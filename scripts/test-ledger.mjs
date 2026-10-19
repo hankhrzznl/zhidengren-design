@@ -79,6 +79,20 @@ const cats = L.categoryBreakdown(null, 3);
 ok("分类汇总按金额降序", cats.length >= 2 && cats[0].amount >= cats[1].amount, JSON.stringify(cats));
 L.setBudget(0); ok("预算可清零", L.budgetOf() === 0, String(L.budgetOf()));
 
+/* 8.6 月报与自动还款 */
+const hb2 = accs.find((a) => a.kind === 'huabei');
+const mp = L.addPlan({ accountId: hb2.id, principal: 600, periods: 6, startDate: '2026-8-15' });
+const dueN = L.autoRepayDue('2026-10-19');
+ok('到期自动补 2 期', dueN === 2 && L.plans().find((p) => p.id === mp.id).paid === 2, String(dueN));
+ok('自动还款幂等（同一天再跑不重复）', L.autoRepayDue('2026-10-19') === 0);
+ok('月末加月对齐', L.addMonths('2026-1-31', 1) === '2026-2-28', L.addMonths('2026-1-31', 1));
+const ms = L.monthSummary('2026-10');
+ok('月报有支出与收入', ms.expense > 0 && ms.income > 0, JSON.stringify({ e: ms.expense, i: ms.income }));
+ok('月报分类按金额降序', ms.byCategory.length >= 2 && ms.byCategory[0].amount >= ms.byCategory[1].amount, JSON.stringify(ms.byCategory.slice(0, 3)));
+ok('月报账户维度非空', ms.byAccount.length >= 1, JSON.stringify(ms.byAccount));
+const tr = L.monthlyTrend(6);
+ok('六个月趋势 6 项且末月为当前', tr.length === 6 && tr[5].month === L.monthKey(), tr.map((x) => x.month).join('/'));
+
 /* 9. 非法输入 */
 ok('金额 0 拒绝', L.addTx({ type: 'expense', amount: 0, accountId: bank.id }) === null);
 ok('转给自己拒绝', L.addTx({ type: 'transfer', amount: 10, accountId: bank.id, toId: bank.id }) === null);
@@ -103,4 +117,5 @@ for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : ''
 const failed = rows.filter((r) => r[0] === 'FAIL').length;
 console.log(`\n账本内核校验：${pass}/${rows.length} PASS`);
 process.exit(failed ? 1 : 0);
+
 

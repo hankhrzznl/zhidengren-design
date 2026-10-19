@@ -292,8 +292,103 @@
     };
   }
 
-  /* 旧「记账」页的数据迁移：一次性把历史条目导入微信钱包 */
-  function migrateLegacy() {
+  /* ---- 月报：单月汇总 / 六个月趋势 / 分期自动还款 ---- */
+  function monthSummary(month) {
+    var db = load();
+    var mk = month || monthKey();
+    var income = 0, expense = 0;
+    var byCat = {}, byAcc = {};
+    db.tx.forEach(function (t) {
+      if (t.type !== 'expense' && t.type !== 'income') return;
+      var d = String(t.date || '');
+      if (d.slice(0, d.lastIndexOf('-')) !== mk) return;
+      var a = num(t.amount);
+      if (t.type === 'income') { income += a; return; }
+      expense += a;
+      var c = t.category || '日常';
+      byCat[c] = (byCat[c] || 0) + a;
+      byAcc[t.accountId] = (byAcc[t.accountId] || 0) + a;
+    });
+    var round = function (x) { return Math.round(x * 100) / 100; };
+    var categories = Object.keys(byCat).map(function (c) {
+      return { category: c, amount: round(byCat[c]), share: expense ? Math.round(byCat[c] / expense * 100) : 0 };
+    }).sort(function (a, b) { return b.amount - a.amount; });
+    var accounts = Object.keys(byAcc).map(function (id) {
+      var acc = accountById(db, id);
+      return { id: id, name: acc ? acc.name : '账户', amount: round(byAcc[id]) };
+    }).sort(function (a, b) { return b.amount - a.amount; });
+    return { month: mk, income: round(income), expense: round(expense), balance: round(income - expense), byCategory: categories, byAccount: accounts };
+  }
+
+  function monthlyTrend(n, endMonth) {
+    var db = load();
+    var count = n || 6;
+    var out = [];
+    var end = endMonth ? endMonth.split('-').map(Number) : null;
+    var now = end ? new Date(end[0], end[1] - 1, 1) : new Date();
+    for (var i = count - 1; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      var mk = d.getFullYear() + '-' + (d.getMonth() + 1);
+      var expense = 0, income = 0;
+      db.tx.forEach(function (t) {
+        var ds = String(t.date || '');
+        if (ds.slice(0, ds.lastIndexOf('-')) !== mk) return;
+        if (t.type === 'expense') expense += num(t.amount);
+        if (t.type === 'income') income += num(t.amount);
+      });
+      out.push({ month: mk, label: (d.getMonth() + 1) + '月', expense: Math.round(expense * 100) / 100, income: Math.round(income * 100) / 100 });
+    }
+    return out;
+  }
+
+  /* 加 n 个月；月末对齐（1/31 + 1 月 = 2/28/29） */
+  function addMonths(dateStr, n) {
+    var p = String(dateStr).split('-').map(Number);
+    var y = p[0], m = p[1] - 1, day = p[2] || 1;
+    var d = new Date(y, m + n, 1);
+    var last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    d.setDate(Math.min(day, last));
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+
+  /* 日期比较用数字，避免 2026-9-15 与 2026-10-15 的字符串坑 */
+  function dateNum(dateStr) {
+    var p = String(dateStr || '').split('-').map(Number);
+    return (p[0] || 0) * 10000 + (p[1] || 0) * 100 + (p[2] || 1);
+  }
+
+  /* 到期自动记一期：从第一个资产账户扣，记在应还日；可补多期 */
+  function autoRepayDue(today) {
+    var db = load();
+    var t = today || dateKey();
+    var n = 0;
+    db.plans.forEach(function (p) {
+      while (p.paid < p.periods) {
+        var due = addMonths(p.startDate, p.paid + 1);
+        if (dateNum(due) > dateNum(t)) break;
+        var from = db.accounts.filter(function (a) { return a.type === 'asset'; })[0];
+        if (!from) break;
+        db.tx.push({
+          id: id('tx_'),
+          ts: Date.now(),
+          date: due,
+          type: 'repay',
+          amount: p.monthly,
+          accountId: from.id,
+          toId: p.accountId,
+          category: '分期自动还款',
+          note: p.name
+        });
+        p.paid += 1;
+        n += 1;
+        if (n > 60) break;
+      }
+    });
+    if (n) save(db);
+    return n;
+  }
+
+  /* 旧「记账」页的数据迁移：一次性把历史条目导入微信钱包 */  function migrateLegacy() {
     var KEY_OLD = 'lifeflow-expense-items';
     var FLAG = 'lifeflow-ledger-migrated';
     try {
@@ -345,6 +440,10 @@
     setBudget: setBudget,
     budgetOf: budgetOf,
     categoryBreakdown: categoryBreakdown,
+    monthSummary: monthSummary,
+    monthlyTrend: monthlyTrend,
+    addMonths: addMonths,
+    autoRepayDue: autoRepayDue,
     totals: totals,
     monthKey: monthKey,
     dateKey: dateKey,

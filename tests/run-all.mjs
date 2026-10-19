@@ -75,6 +75,7 @@ const tests = [
   "verify_modules2.mjs",
   "verify_mood_train.mjs",
   "verify_expense.mjs",
+  "verify_expense_report.mjs",
   "verify_plan.mjs",
   "verify_workbench.mjs",
   "verify_loop.mjs",
@@ -116,5 +117,6 @@ for (const t of tests) {
 server.close();
 console.log(`\n[run-all] ${pass} suites passed, ${fail} failed${fail ? " → " + failed.join(", ") : ""}`);
 process.exit(fail ? 1 : 0);
+
 
 
