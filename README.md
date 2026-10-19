@@ -70,24 +70,44 @@ node scripts/test-store.mjs    # store/accounts 纯函数
 node scripts/test-light.mjs    # 灯焰内核 51 条
 ```
 
-## 部署（GitHub Pages）
+## 部署（GitHub Pages · 已上线）
 
-仓库自带 `.github/workflows/pages.yml`：推到 `master` 后自动把 **落地页 + `pages/` + `workbench/`** 发布到 Pages（不发布 `.workbuddy/`、`资料库备份/`、`_sync/`、`tests/`、`docs/`、`.design/`）。
+**线上地址**：https://hankhrzznl.github.io/zhidengren-design/
 
-第一次部署（需要你本机有仓库地址和凭据；这个会话里没有配置 remote，也没装 `gh`）：
+- 仓库：https://github.com/hankhrzznl/zhidengren-design （公开，默认分支 `main`）
+- Pages：Source = **Deploy from a branch** → `main` / `/`（传统分支构建，推 `main` 即自动重建）
+- 发布内容：仓库根（`index.html` 落地页 + `pages/` + `workbench/` + `tests/` + `scripts/` + `docs/`）
+- 本地远端：`design` → 该仓库；`origin` → `lifeflow`（只放了 `design-v8` 分支，未动 `main`）
+
+### 为什么用独立仓库 + orphan 分支
+
+本仓库本地 `master` 跟踪了 `.workbuddy/`（281 个内部记忆/归档文件）与 `资料库备份/`（40 个），**不能直接推到公开仓库**。所以发布分支 `design-v8` 是 orphan 分支，只含 91 个公开文件；`main` 由它推送而来。
+
+### 更新线上版本
 
 ```bash
-git remote add origin https://github.com/<你>/<repo>.git
-git push -u origin master
-# GitHub → Settings → Pages → Build and deployment → Source: GitHub Actions
-# 等 Actions 里 Deploy to GitHub Pages 跑完，地址是 https://<你>.github.io/<repo>/
+# 1) 在 master 上照常开发、测试、提交
+node tests/run-all.mjs
+
+# 2) 把要公开的文件同步到 design-v8（按需，常用：README/页面/工作台）
+git checkout design-v8
+git checkout master -- README.md index.html pages workbench .github tests scripts docs
+git commit -m "deploy: 同步最新公开文件"
+git push design design-v8:main
+
+# 3) 回 master
+git checkout master
 ```
 
-部署后的注意点：
+Pages 会在推 `main` 后自动重建（约 30–60 秒）。
 
-- 入口是根 `index.html`（三个形式的选择页）；三端资源、`manifest.json`、`sw.js` 都是相对路径，子路径部署已验证。
+### 部署后的注意点
+
+- 入口是根 `index.html`（三个形式的选择页）；三端资源、`manifest.json`、`sw.js` 都是相对路径，子路径部署已验证（线上四页 + `core/light.js` 均 200）。
 - 数据只存在**访问者自己的浏览器**里（localStorage），不联网、不上传；首次打开是空白/演示数据。
 - HTTPS 下 Service Worker 生效（网络优先、离线回退），改版后刷新即可拿到新版。
+- 本机 git 走系统代理 `127.0.0.1:7890`（仓库内已 `git config http.proxy`），否则直连 github.com:443 会超时；凭据由 Git Credential Manager 提供。
+- 另有一个备选：`lifeflow` 仓库的 `design-v8` 分支（workflow 仅手动触发），可随时删掉，不影响应用。
 
 ## 数据
 
