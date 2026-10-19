@@ -38,6 +38,17 @@
   .acct .v.credit{color:var(--red)}
   .acct .s{font-size:10px;color:var(--text-3);margin-top:2px;display:block}
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px}
+  .month-card{margin-top:12px}
+  .month-top{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-2)}
+  .month-spend{color:var(--text-3)}
+  .month-input{display:flex;gap:8px;margin:8px 0}
+  .month-input input{flex:1;min-width:0;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--sheet);color:var(--text-1);font-size:12.5px;padding:0 10px;outline:none}
+  .month-input button{height:36px;padding:0 14px;border-radius:10px;border:0;background:var(--brand);color:var(--brand-ink);font-size:12px;font-weight:600;cursor:pointer}
+  .month-meta{font-size:11px;color:var(--text-3);margin-top:6px}
+  .cats{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .cat-pill{font-size:10.5px;color:var(--text-2);background:var(--sheet);border-radius:99px;padding:4px 8px}
+  .save.ghost{background:transparent;color:var(--text-2);border:1px solid var(--line);margin-top:8px}
+  .to-lab{display:flex;align-items:center;font-size:11.5px;color:var(--text-3)}
   .amount{display:flex;align-items:baseline;gap:8px;border-bottom:1px solid var(--line);padding:2px 0 10px;margin-bottom:10px}
   .amount span{font-size:18px;color:var(--text-2)}
   .amount input{flex:1;min-width:0;border:0;background:transparent;color:var(--text-1);font-size:30px;font-weight:650;outline:none;font-variant-numeric:tabular-nums}
@@ -88,7 +99,21 @@
     </div>
   </div>
 
-  <div class="sec"><h2>账户</h2><button type="button" id="acc-add">＋ 新账户</button></div>
+  <div class="card month-card">
+    <div class="month-top">
+      <span>本月预算</span>
+      <span class="month-spend" id="month-spend">已花 ¥0</span>
+    </div>
+    <div class="month-input">
+      <input id="budget-input" inputmode="decimal" placeholder="设一个预算，如 3000">
+      <button type="button" id="budget-save">保存</button>
+    </div>
+    <div class="bar"><i id="budget-bar" style="width:0%"></i></div>
+    <div class="month-meta" id="month-meta">还没设预算。</div>
+    <div class="cats" id="cat-top"></div>
+  </div>
+
+  <div class="sec"><h2>账户</h2><span><button type="button" id="acc-edit" style="display:none">编辑</button><button type="button" id="acc-add">＋ 新账户</button></span></div>
   <div class="strip" id="acct-strip"></div>
 
   <div class="form card" id="acc-form">
@@ -104,6 +129,7 @@
       <input id="acc-limit" inputmode="decimal" placeholder="额度（信用）">
     </div>
     <button class="save" type="button" id="acc-save">保存账户</button>
+    <button class="save ghost" type="button" id="acc-cancel" style="display:none">取消编辑</button>
   </div>
 
   <div class="sec"><h2>记一笔</h2><span></span></div>
@@ -112,10 +138,15 @@
     <div class="chips" id="type-chips">
       <button class="chip on" type="button" data-type="expense">支出</button>
       <button class="chip" type="button" data-type="income">收入</button>
+      <button class="chip" type="button" data-type="transfer">转账</button>
     </div>
     <div class="fields">
       <select id="rec-account"></select>
       <input id="rec-note" maxlength="30" placeholder="备注（可选）">
+    </div>
+    <div class="fields" id="to-row" style="display:none">
+      <span class="to-lab">转入</span>
+      <select id="rec-to"></select>
     </div>
     <div class="chips" id="cat-chips">
       <button class="chip on" type="button" data-cat="日常">日常</button>
@@ -158,6 +189,7 @@
   var selected = null;
   var type = 'expense';
   var cat = '日常';
+  var editing = null;
   var $ = function (s) { return document.querySelector(s); };
   var toastEl = $('#toast'), toastTimer = null;
 
@@ -183,6 +215,23 @@
     $('#stat-month').textContent = money(t.monthSpend);
   }
 
+  function renderMonth() {
+    var t = L.totals();
+    var budget = L.budgetOf();
+    var pct = budget > 0 ? Math.min(100, Math.round(t.monthSpend / budget * 100)) : 0;
+    $('#month-spend').textContent = '已花 ' + money(t.monthSpend);
+    if (document.activeElement !== $('#budget-input')) $('#budget-input').value = budget > 0 ? budget : '';
+    $('#budget-bar').style.width = pct + '%';
+    $('#budget-bar').style.background = (budget > 0 && t.monthSpend > budget) ? 'var(--red)' : 'var(--brand)';
+    $('#month-meta').textContent = budget > 0
+      ? ('预算 ' + money(budget) + ' · 剩 ' + money(budget - t.monthSpend) + '（' + pct + '%）')
+      : ('本月支出 ' + money(t.monthSpend) + ' · 收入 ' + money(t.monthIncome) + '；设个预算更好控。');
+    var cats = L.categoryBreakdown(null, 3);
+    $('#cat-top').innerHTML = cats.map(function (c) {
+      return '<span class="cat-pill">' + c.category + ' ' + money(c.amount) + '</span>';
+    }).join('');
+  }
+
   function renderAccounts() {
     var db = L.load();
     var strip = $('#acct-strip');
@@ -204,7 +253,10 @@
     renderFilter();
   }
 
-  function renderFilter() { $('#filter-clear').style.display = selected ? 'inline' : 'none'; }
+  function renderFilter() {
+    $('#filter-clear').style.display = selected ? 'inline' : 'none';
+    $('#acc-edit').style.display = selected ? 'inline' : 'none';
+  }
 
   function renderSelects() {
     var db = L.load();
@@ -213,6 +265,15 @@
       return '<option value="' + a.id + '">' + a.name + (a.type === 'credit' ? '（信用）' : '') + '</option>';
     }).join('');
     if (keep) $('#rec-account').value = keep;
+    var keepTo = $('#rec-to').value;
+    $('#rec-to').innerHTML = db.accounts.map(function (a) {
+      return '<option value="' + a.id + '">' + a.name + '</option>';
+    }).join('');
+    if (keepTo) $('#rec-to').value = keepTo;
+    if ($('#rec-to').value === $('#rec-account').value) {
+      var other = db.accounts.filter(function (a) { return a.id !== $('#rec-account').value; })[0];
+      if (other) $('#rec-to').value = other.id;
+    }
     var planSel = $('#plan-account');
     var keepPlan = planSel.value;
     var credits = db.accounts.filter(function (a) { return a.type === 'credit'; });
@@ -270,7 +331,7 @@
   }
 
   function renderAll() {
-    renderStats(); renderAccounts(); renderSelects(); renderPlans(); renderList();
+    renderStats(); renderMonth(); renderAccounts(); renderSelects(); renderPlans(); renderList();
   }
 
   function writeFact(label, amount) {
@@ -282,21 +343,46 @@
     } catch (e) {}
   }
 
-  $('#acc-add').addEventListener('click', function () { $('#acc-form').classList.toggle('on'); });
+  function openAccForm(acc) {
+    editing = acc ? acc.id : null;
+    $('#acc-form').classList.add('on');
+    $('#acc-name').value = acc ? acc.name : '';
+    $('#acc-type').value = acc ? acc.type : 'asset';
+    $('#acc-opening').value = acc ? acc.opening : '';
+    $('#acc-limit').value = acc && acc.limit ? acc.limit : '';
+    $('#acc-type').disabled = !!acc;
+    $('#acc-save').textContent = acc ? '保存修改' : '保存账户';
+    $('#acc-cancel').style.display = acc ? 'block' : 'none';
+  }
+  $('#acc-add').addEventListener('click', function () { openAccForm(null); });
+  $('#acc-edit').addEventListener('click', function () {
+    var a = L.accountById(L.load(), selected);
+    if (a) openAccForm(a);
+  });
+  $('#acc-cancel').addEventListener('click', function () {
+    editing = null;
+    $('#acc-form').classList.remove('on');
+    $('#acc-type').disabled = false;
+  });
   $('#acc-save').addEventListener('click', function () {
     var name = $('#acc-name').value.trim();
     if (!name) { toast('先写账户名'); return; }
-    var acc = L.addAccount({ name: name, type: $('#acc-type').value, opening: $('#acc-opening').value, limit: $('#acc-limit').value });
+    var acc = editing
+      ? L.updateAccount(editing, { name: name, opening: $('#acc-opening').value, limit: $('#acc-limit').value })
+      : L.addAccount({ name: name, type: $('#acc-type').value, opening: $('#acc-opening').value, limit: $('#acc-limit').value });
     if (!acc) { toast('账户没存上'); return; }
-    $('#acc-name').value = ''; $('#acc-opening').value = ''; $('#acc-limit').value = '';
+    editing = null;
     $('#acc-form').classList.remove('on');
-    renderAll(); toast('账户已添加');
+    $('#acc-type').disabled = false;
+    renderAll(); toast('账户已保存');
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('#type-chips .chip'), function (b) {
     b.addEventListener('click', function () {
       type = b.getAttribute('data-type');
       Array.prototype.forEach.call(document.querySelectorAll('#type-chips .chip'), function (x) { x.classList.toggle('on', x === b); });
+      $('#to-row').style.display = type === 'transfer' ? 'flex' : 'none';
+      $('#cat-chips').style.display = type === 'transfer' ? 'none' : 'flex';
     });
   });
   Array.prototype.forEach.call(document.querySelectorAll('#cat-chips .chip'), function (b) {
@@ -311,11 +397,17 @@
     if (!(amount > 0)) { toast('先填金额'); $('#amt-input').focus(); return; }
     var accId = $('#rec-account').value;
     if (!accId) { toast('先建一个账户'); return; }
-    var tx = L.addTx({ type: type, amount: amount, accountId: accId, category: type === 'income' ? '收入' : cat, note: $('#rec-note').value });
-    if (!tx) { toast('这一笔没记上'); return; }
-    writeFact(type === 'income' ? '收入' : cat, amount);
+    var toId = type === 'transfer' ? $('#rec-to').value : undefined;
+    var tx = L.addTx({
+      type: type, amount: amount, accountId: accId, toId: toId,
+      category: type === 'income' ? '收入' : type === 'transfer' ? '转账' : cat,
+      note: $('#rec-note').value
+    });
+    if (!tx) { toast(type === 'transfer' ? '转出和转入不能是同一个账户' : '这一笔没记上'); return; }
+    if (type !== 'transfer') writeFact(type === 'income' ? '收入' : cat, amount);
     $('#amt-input').value = ''; $('#rec-note').value = '';
-    renderAll(); toast(type === 'income' ? '收入 +' + money(amount) : '支出 −' + money(amount));
+    renderAll();
+    toast(type === 'income' ? '收入 +' + money(amount) : type === 'transfer' ? '已转 ' + money(amount) : '支出 −' + money(amount));
   });
 
   $('#plan-add').addEventListener('click', function () { $('#plan-form').classList.toggle('on'); });
@@ -332,6 +424,16 @@
   });
 
   $('#filter-clear').addEventListener('click', function () { selected = null; renderAccounts(); renderList(); });
+
+  $('#budget-save').addEventListener('click', function () {
+    var v = Number($('#budget-input').value);
+    L.setBudget(v > 0 ? v : 0);
+    renderMonth();
+    toast(v > 0 ? '本月预算 ' + money(v) : '已清空预算');
+  });
+  $('#budget-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') $('#budget-save').click();
+  });
 
   L.ensureSeed();
   L.migrateLegacy();

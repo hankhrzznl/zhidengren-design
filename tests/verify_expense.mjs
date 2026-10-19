@@ -1,4 +1,4 @@
-﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errors = [];
@@ -73,6 +73,44 @@ const repaid = await expenseFrame.evaluate(() => ({
 }));
 const repaidCredit = String(repaid.credit || "").replace(/[^0-9]/g, "");
 ok("还一期：待还减少且进度 +1", /已还 1\/12/.test(repaid.sub) && repaidCredit === "1200", JSON.stringify(repaid));
+
+/* 预算 */
+await expenseFrame.fill("#budget-input", "500");
+await expenseFrame.click("#budget-save");
+await page.waitForTimeout(400);
+const budget = await expenseFrame.evaluate(() => ({
+  meta: document.querySelector("#month-meta")?.textContent,
+  width: document.querySelector("#budget-bar")?.style.width,
+}));
+ok("本月预算与进度条", /预算/.test(budget.meta || "") && parseInt(budget.width || "0", 10) > 0, JSON.stringify(budget));
+
+/* 转账 */
+await expenseFrame.click('#type-chips [data-type="transfer"]');
+await page.waitForTimeout(200);
+const toVisible = await expenseFrame.evaluate(() => getComputedStyle(document.querySelector("#to-row")).display !== "none");
+await expenseFrame.evaluate(() => {
+  const a = document.querySelector("#rec-account"), t = document.querySelector("#rec-to");
+  a.value = [...a.options].find((o) => o.textContent.includes("微信")).value;
+  t.value = [...t.options].find((o) => o.textContent.includes("支付宝")).value;
+});
+await expenseFrame.fill("#amt-input", "50");
+await expenseFrame.click("#rec-save");
+await page.waitForTimeout(500);
+const transfer = await expenseFrame.evaluate(() => ({
+  rows: [...document.querySelectorAll(".item")].slice(0, 3).map((x) => x.textContent.replace(/\s+/g, " ")),
+}));
+ok("转账进流水且带转入账户", toVisible && transfer.rows.join("|").includes("→"), JSON.stringify(transfer.rows.slice(0, 2)));
+
+/* 编辑账户 */
+await expenseFrame.evaluate(() => document.querySelector(".acct").click());
+await page.waitForTimeout(250);
+const editVisible = await expenseFrame.evaluate(() => getComputedStyle(document.querySelector("#acc-edit")).display !== "none");
+await expenseFrame.click("#acc-edit");
+await expenseFrame.fill("#acc-name", "微信零钱");
+await expenseFrame.click("#acc-save");
+await page.waitForTimeout(400);
+const renamed = await expenseFrame.evaluate(() => [...document.querySelectorAll(".acct .n")].map((x) => x.textContent.trim()).join("/"));
+ok("账户可改名", editVisible && renamed.includes("微信零钱"), renamed);
 
 await page.click("#modBack");
 await page.waitForTimeout(500);

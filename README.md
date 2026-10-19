@@ -49,7 +49,7 @@
 1. ✅ **电脑端 → 规划/复盘台**：真实日期/周；读手机 `zdLight` 日志，写 `zdLight.plan/todos`；`tiimoClone` 只做迁移；日夜；周视图点击/拖拽。
 2. ✅ **工作台 → 个人工作台**：保留一日工作台/学习/专注/日记录；品牌/日夜跟上；读 `zdLight` 只读；不是开发工具。
 3. ✅ **手机端 → 采集/执行**：「本周计划」只读入口（`#openWeek`），不搬规划编辑。
-4. ✅ **文档/测试**：`run-all` **18 套件**（含 landing 6、vercel dist 10、plan 29、workbench 17）；电脑写计划 → 手机读到 → 工作台只读整条回路有行为测试；`scripts/verify` 31。
+4. ✅ **文档/测试**：`run-all` **19 套件**（含 ledger 29、landing 6、vercel dist 10、plan 30、workbench 20、expense 15）；电脑写计划 → 手机读到 → 工作台只读整条回路有行为测试；`scripts/verify` 31。
 
 ## 跑起来
 
@@ -65,9 +65,10 @@ python -m http.server 8899
 
 ```bash
 node scripts/verify.mjs        # 零依赖：语法/结构/静态 31 条
-node tests/run-all.mjs         # 富测试 18 套件（Playwright；240s/套超时）
+node tests/run-all.mjs         # 富测试 19 套件（Playwright；240s/套超时）
 node scripts/test-store.mjs    # store/accounts 纯函数
 node scripts/test-light.mjs    # 灯焰内核 51 条
+node scripts/test-ledger.mjs   # 账本内核 26 条（账户/流水/分期）
 ```
 
 ## 部署
@@ -153,6 +154,8 @@ Pages 会在推 `main` 后自动重建（约 30–60 秒）。
 - `pages/desktop.html` 电脑端网页（规划/复盘台）
 - `workbench/index.html` 个人工作台；`workbench/cockpit.html` 更早的作战台（历史参考）
 - `tests/` 富测试（Playwright），`scripts/` 零依赖校验
+
+
 
 
 

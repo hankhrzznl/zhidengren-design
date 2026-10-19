@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 执灯人 · 账本内核 ledger.js 纯函数验收
  *   node scripts/test-ledger.mjs
  * 不需要浏览器：mock localStorage，验证账户/流水/分期/总账口径。
@@ -72,6 +72,13 @@ const t3 = L.totals();
 ok('本月支出只算 expense（不含转账/还款）', near(t3.monthSpend, 1600), String(t3.monthSpend));
 ok('本月收入只算 income', near(t3.monthIncome, 500), String(t3.monthIncome));
 
+/* 8.5 预算与分类汇总 */
+L.setBudget(3000);
+ok("预算保存/读取", near(L.budgetOf(), 3000), String(L.budgetOf()));
+const cats = L.categoryBreakdown(null, 3);
+ok("分类汇总按金额降序", cats.length >= 2 && cats[0].amount >= cats[1].amount, JSON.stringify(cats));
+L.setBudget(0); ok("预算可清零", L.budgetOf() === 0, String(L.budgetOf()));
+
 /* 9. 非法输入 */
 ok('金额 0 拒绝', L.addTx({ type: 'expense', amount: 0, accountId: bank.id }) === null);
 ok('转给自己拒绝', L.addTx({ type: 'transfer', amount: 10, accountId: bank.id, toId: bank.id }) === null);
@@ -96,3 +103,4 @@ for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : ''
 const failed = rows.filter((r) => r[0] === 'FAIL').length;
 console.log(`\n账本内核校验：${pass}/${rows.length} PASS`);
 process.exit(failed ? 1 : 0);
+

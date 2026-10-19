@@ -236,6 +236,36 @@
 
   function planRemaining(plan) { return Math.max(0, plan.periods - plan.paid) * plan.monthly; }
 
+  /* ---- 本月预算 / 分类汇总 ---- */
+  function setBudget(amount, month) {
+    var db = load();
+    db.budget = { month: month || monthKey(), amount: Math.max(0, num(amount)) };
+    if (!save(db)) return null;
+    return db.budget;
+  }
+
+  function budgetOf(month) {
+    var db = load();
+    var mk = month || monthKey();
+    return db.budget && db.budget.month === mk ? num(db.budget.amount) : 0;
+  }
+
+  function categoryBreakdown(month, limit) {
+    var db = load();
+    var mk = month || monthKey();
+    var map = {};
+    db.tx.forEach(function (t) {
+      if (t.type !== 'expense') return;
+      var d = String(t.date || '');
+      if (d.slice(0, d.lastIndexOf('-')) !== mk) return;
+      var c = t.category || '日常';
+      map[c] = (map[c] || 0) + num(t.amount);
+    });
+    return Object.keys(map).map(function (c) {
+      return { category: c, amount: Math.round(map[c] * 100) / 100 };
+    }).sort(function (a, b) { return b.amount - a.amount; }).slice(0, limit || 3);
+  }
+
   function totals(month) {
     var db = load();
     var mk = month || monthKey();
@@ -312,6 +342,9 @@
     addPlan: addPlan,
     repayPlan: repayPlan,
     planRemaining: planRemaining,
+    setBudget: setBudget,
+    budgetOf: budgetOf,
+    categoryBreakdown: categoryBreakdown,
     totals: totals,
     monthKey: monthKey,
     dateKey: dateKey,
