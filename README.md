@@ -138,6 +138,7 @@ Pages 会在推 `main` 后自动重建（约 30–60 秒）。
 |---|---|---|
 | `zdLight` | 灯/心情/日志（v2） | 手机（logs/moods）+ 电脑端（plan/todos） |
 | `lifeflow-days-v1` | 模块记录（store） | 手机 |
+| `lifeflow-ledger-v1` | 记账：账户 / 流水 / 分期（账本内核 `pages/core/ledger.js`） | 手机 |
 | `zdWardrobe` | 衣柜 | 手机 |
 | `lifeflow-theme` | 日夜主题 | 手机 / 电脑端 / 工作台 |
 | `tiimoClone` | 电脑端旧任务板 | 电脑端（仅迁移兜底） |
@@ -152,6 +153,7 @@ Pages 会在推 `main` 后自动重建（约 30–60 秒）。
 - `pages/desktop.html` 电脑端网页（规划/复盘台）
 - `workbench/index.html` 个人工作台；`workbench/cockpit.html` 更早的作战台（历史参考）
 - `tests/` 富测试（Playwright），`scripts/` 零依赖校验
+
 
 
 

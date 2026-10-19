@@ -29,6 +29,51 @@ const store = await page.evaluate(() => {
   return { n: (d.byMod["记账"] || []).length, vals: (d.byMod["记账"] || []).map((r) => r.value) };
 });
 ok("记账写入 store 的 entries", store.n >= 1, JSON.stringify(store));
+
+/* 账户 / 信用 / 分期 */
+const accs = await expenseFrame.evaluate(() => ({
+  n: document.querySelectorAll(".acct").length,
+  names: [...document.querySelectorAll(".acct .n")].map((x) => x.textContent.trim()),
+  net: document.querySelector("#stat-net-v")?.textContent,
+}));
+ok("记账有多个账户（微信/支付宝/银行卡/花呗/白条）", accs.n >= 5 && accs.names.join("/").includes("微信钱包") && accs.names.join("/").includes("花呗"), JSON.stringify(accs));
+ok("第一笔支出后净资产为负", (accs.net || "").includes("−"), accs.net);
+
+await expenseFrame.evaluate(() => {
+  const sel = document.querySelector("#rec-account");
+  sel.value = [...sel.options].find((o) => o.textContent.includes("花呗")).value;
+});
+await expenseFrame.fill("#amt-input", "100");
+await expenseFrame.click("#rec-save");
+await page.waitForTimeout(600);
+const credit = await expenseFrame.evaluate(() => ({
+  credit: document.querySelector("#stat-credit")?.textContent,
+  net: document.querySelector("#stat-net-v")?.textContent,
+}));
+ok("信用消费计入待还", (credit.credit || "").includes("100"), JSON.stringify(credit));
+
+await expenseFrame.click("#plan-add");
+await expenseFrame.fill("#plan-principal", "1200");
+await expenseFrame.fill("#plan-periods", "12");
+await expenseFrame.click("#plan-save");
+await page.waitForTimeout(600);
+const plan = await expenseFrame.evaluate(() => ({
+  rows: document.querySelectorAll(".plan-row").length,
+  text: document.querySelector(".plan-row")?.textContent || "",
+  credit: document.querySelector("#stat-credit")?.textContent,
+}));
+const planCredit = String(plan.credit || "").replace(/[^0-9]/g, "");
+ok("分期建好并计入待还", plan.rows === 1 && /100/.test(plan.text) && planCredit === "1300", JSON.stringify(plan));
+
+await expenseFrame.click(".repay[data-plan]");
+await page.waitForTimeout(600);
+const repaid = await expenseFrame.evaluate(() => ({
+  sub: document.querySelector(".plan-sub")?.textContent || "",
+  credit: document.querySelector("#stat-credit")?.textContent,
+}));
+const repaidCredit = String(repaid.credit || "").replace(/[^0-9]/g, "");
+ok("还一期：待还减少且进度 +1", /已还 1\/12/.test(repaid.sub) && repaidCredit === "1200", JSON.stringify(repaid));
+
 await page.click("#modBack");
 await page.waitForTimeout(500);
 await page.evaluate(() => document.querySelector('[data-tab="lamp"]').click());
@@ -48,5 +93,6 @@ console.log(`\n记账校验：${results.filter((r) => r[0] === "PASS").length}/$
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 
 
