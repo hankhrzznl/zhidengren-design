@@ -78,7 +78,7 @@ for (const t of tabs) {
 }
 ok("可见按钮都有可访问名", noName.length === 0, JSON.stringify([...new Set(noName)]));
 
-await page.evaluate(() => document.querySelector('[data-tab="profile"]')?.click());
+await page.evaluate(() => document.querySelector('#avatarBtn')?.click());
 await page.waitForTimeout(300);
 const stickers = await page.evaluate(() => ({
   tag: document.querySelector(".ob-wide .mi")?.tagName,
@@ -168,6 +168,7 @@ console.log(`\n安全/可访问性校验：${results.filter((r) => r[0] === "PAS
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 
 
 

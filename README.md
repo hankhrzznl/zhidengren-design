@@ -1,4 +1,4 @@
-﻿# 执灯人 / LifeFlow 蓝本
+# 执灯人 / LifeFlow 蓝本
 
 三种形式，按「时间尺度」分工，不是同一种界面的三个皮肤。
 
@@ -39,7 +39,7 @@
 
 ## 当前状态（2026-10-18）
 
-- **手机端**：v3 + 日夜 + 四账户 + 模块中枢 + 六模块接灯；「本周计划」只读入口（`#openWeek`）。设计正源。
+- **手机端**：v3 + 日夜 + 四账户 + 六模块接灯；模块中枢在 **「记一笔」页**（四账户模块 + 工具，附「和『今天』的关系」说明），「我的」只留入口；「本周计划」只读（`#openWeek`）。设计正源。
 - **工作台**：`workbench/index.html`「执灯人 · 个人工作台」，`wb_lifeflow_daywork_v2` 独立数据；导航 **今日 / 模块 / 账本 / 日复盘**（只做一天，不做周复盘）；品牌/日夜已同源（`lifeflow-theme`），左栏只读手机灯/心情，今日与日复盘都只读电脑端「今日计划」，时间轴有「此刻」，模块/账本/复盘日夜可读，键盘有焦点环。`cockpit.html` 是更早的独立清单页，不是工作台入口。
 - **电脑端网页**：真实日期/周/月（`new Date`），读手机 `zdLight.plan/todos` 并写回，`tiimoClone` 只做兜底；日夜与手机共用 key；周视图可点进某天、可拖墨点换天；月视图 42 格 + 汇总；顶栏跟随选中日。导航只留 **日/周/月 + 成长（境印）**——「方向」「四域」属手机端产品模型，电脑端不再重复。
 - **共享层**：`pages/core/light.js` 三端共用；`pages/tokens.css` 收两端逐值相同的令牌（`--xuan/--mo/--line/--brand/四域/--zhu`），`--hi/--am` 等语义不同者不抽。
@@ -72,9 +72,11 @@ node scripts/test-light.mjs    # 灯焰内核 51 条
 
 ## 部署
 
-### 已上线：GitHub Pages
+**主站**：Vercel + `my-lifeos.com` —— `/`（落地页）、`/app/`、`/desktop/`、`/work/` 四条路径同一个 origin。GitHub Pages 只作镜像，不作为对外入口。
 
-**线上地址**：https://hankhrzznl.github.io/zhidengren-design/
+### 镜像：GitHub Pages
+
+**镜像地址**：https://hankhrzznl.github.io/zhidengren-design/
 
 - 仓库：https://github.com/hankhrzznl/zhidengren-design （公开，默认分支 `main`）
 - Pages：Source = **Deploy from a branch** → `main` / `/`（传统分支构建，推 `main` 即自动重建）
@@ -137,7 +139,7 @@ Pages 会在推 `main` 后自动重建（约 30–60 秒）。
 | `zdLight` | 灯/心情/日志（v2） | 手机（logs/moods）+ 电脑端（plan/todos） |
 | `lifeflow-days-v1` | 模块记录（store） | 手机 |
 | `zdWardrobe` | 衣柜 | 手机 |
-| `lifeflow-theme` | 日夜主题 | 手机 / 电脑端 |
+| `lifeflow-theme` | 日夜主题 | 手机 / 电脑端 / 工作台 |
 | `tiimoClone` | 电脑端旧任务板 | 电脑端（仅迁移兜底） |
 | `wb_lifeflow_daywork_v2` | 工作台个人工作/学习/记录 | 工作台 |
 

@@ -1,4 +1,4 @@
-// 全链路校验 · 日程页 15 个模块贴纸 + 穿搭模块行为
+﻿// 全链路校验 · 日程页 15 个模块贴纸 + 穿搭模块行为
 // 用法：node tests/verify_modules.mjs
 // 自行确保 pages/ 在 http://127.0.0.1:8899 可访问（未起则脚本内起一个）
 import { readFileSync, writeFileSync } from "node:fs";
@@ -85,7 +85,7 @@ function check(name, ok, detail) {
 }
 
 async function stickerClick(label) {
-  await page.evaluate(() => document.querySelector('[data-tab="profile"]').click());
+  await page.evaluate(() => document.querySelector('#avatarBtn').click());
   await page.waitForTimeout(250);
   const loc = page.locator(".ob-wide .mi").filter({ hasText: label });
   if ((await loc.count()) !== 1) throw new Error(`贴纸「${label}」数量=${await loc.count()}`);
@@ -118,12 +118,12 @@ async function getV3Frame(link) {
 
 async function backToToday() {
   await page.click("#modBack");
-  await page.waitForFunction(() => document.body.dataset.tab === "profile", { timeout: 6000 });
+  await page.waitForFunction(() => document.body.dataset.tab === "assistant", { timeout: 6000 });
   await page.waitForTimeout(120);
 }
 
 async function openWardrobe() {
-  await page.evaluate(() => document.querySelector('[data-tab="profile"]').click());
+  await page.evaluate(() => document.querySelector('#avatarBtn').click());
   await page.waitForTimeout(200);
   await stickerClick("穿搭");
   await page.waitForFunction(
@@ -139,7 +139,7 @@ async function openWardrobe() {
   return f;
 }
 
-/* ── 3. 首页与 15 个贴纸 ── */
+/* ── 3. 记一笔页与 15 个模块贴纸 ── */
 await page.goto(BASE + "/index.html", { waitUntil: "load" });
 await page.evaluate(() => {
   localStorage.removeItem("zdLight");
@@ -148,13 +148,13 @@ await page.evaluate(() => {
 });
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(500);
-await page.evaluate(() => document.querySelector('[data-tab="profile"]').click());
+await page.evaluate(() => document.querySelector('#avatarBtn').click());
 await page.waitForTimeout(300);
 
 const stickers = await page.evaluate(() =>
   [...document.querySelectorAll(".ob-wide .mi")].map((x) => x.textContent.trim())
 );
-check("日程页 15 个模块贴纸", stickers.length === 15, `实际 ${stickers.length}: ${stickers.join("/")}`);
+check("记一笔页 15 个模块贴纸", stickers.length === 15, `实际 ${stickers.length}: ${stickers.join("/")}`);
 check("贴纸顺序与预期一致", JSON.stringify(stickers) === JSON.stringify(EXPECT.map((x) => x[0])), stickers.join("/"));
 
 /* MOD_LINK 表与交接文档一致 */
@@ -450,5 +450,7 @@ if (consoleErrors.length) {
   [...new Set(consoleErrors)].slice(0, 4).forEach((x) => console.log("  · " + x));
 }
 process.exit(failed.length ? 1 : 0);
+
+
 
 

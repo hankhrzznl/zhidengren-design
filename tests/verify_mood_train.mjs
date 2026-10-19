@@ -11,7 +11,7 @@ await page.goto(BASE + "/index.html", { waitUntil: "load" });
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(900);
-await page.evaluate(() => document.querySelector('[data-tab="profile"]').click());
+await page.evaluate(() => document.querySelector('#avatarBtn').click());
 await page.waitForTimeout(300);
 
 /* 情绪页 → store → 壳灯/心情格 */
@@ -43,7 +43,7 @@ ok("壳心情格与模块同源", lampMood.set === 1 && (lampMood.today || "").i
 ok("情绪点亮第一缕", lampMood.light === 1, JSON.stringify(lampMood));
 
 /* 训练页 → store → 壳体 */
-await page.evaluate(() => document.querySelector('[data-tab="profile"]').click());
+await page.evaluate(() => document.querySelector('#avatarBtn').click());
 await page.waitForTimeout(300);
 await page.evaluate(() => [...document.querySelectorAll(".ob-wide .mi")].find((x) => x.textContent.includes("训练")).click());
 await page.waitForTimeout(3400);
@@ -77,4 +77,5 @@ console.log(`\n情绪/训练校验：${results.filter((r) => r[0] === "PASS").le
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 

@@ -93,7 +93,7 @@ check("日间 · 记一笔保持 + 有主题入口", await page.evaluate(() =>
 ));
 
 /* 5. 模块页跟随 + 壳内切换 */
-await page.evaluate(() => document.querySelector('[data-tab="profile"]').click());
+await page.evaluate(() => document.querySelector('#avatarBtn').click());
 await page.waitForTimeout(250);
 await page.evaluate(() => [...document.querySelectorAll(".ob-wide .mi")].find((x) => x.textContent.includes("穿搭")).click());
 await page.waitForTimeout(2200);
@@ -171,5 +171,6 @@ const failed = checks.filter((c) => !c.ok);
 for (const c of checks) console.log(`${c.ok ? "PASS" : "FAIL"}  ${c.name}`);
 console.log(`\n主题校验：${checks.length - failed.length}/${checks.length} PASS`);
 process.exit(failed.length ? 1 : 0);
+
 
 
