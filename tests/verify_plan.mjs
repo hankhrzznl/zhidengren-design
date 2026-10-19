@@ -12,7 +12,7 @@ await page.goto(BASE + "/index.html", { waitUntil: "load" });
 await page.evaluate(() => localStorage.clear());
 await page.evaluate((today) => {
   localStorage.setItem("zdLight", JSON.stringify({
-    v: 2, light: 5, moods: {}, logs: {},
+    v: 2, light: 5, moods: {}, logs: { [today]: 3 },
     plan: { anytime: [], morning: [{ id: 901, t: "周计划测试任务", m: 30, dom: "体能", dates: [today], done: false }], noon: [], day: [], evening: [] },
     todos: { high: [], mid: [], low: [], inbox: [] }
   }));
@@ -164,6 +164,7 @@ const moSum = await page.evaluate(() => {
 });
 ok("月视图汇总与格子条数一致", moSum.total > 0 && moSum.sum.replace(/\s+/g, "").includes(`${moSum.total}项`), JSON.stringify(moSum));
 ok("月视图汇总含完成率", /完成率/.test(moSum.sum), moSum.sum);
+ok("月视图显示本月灯数", /3 灯/.test(moSum.sum), moSum.sum);
 await page.click("#wNext");
 await page.waitForTimeout(400);
 const nextMonth = await page.evaluate(() => document.querySelector("#vSub")?.textContent);
@@ -187,3 +188,4 @@ console.log(`\n计划回路校验：${results.filter((r) => r[0] === "PASS").len
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+

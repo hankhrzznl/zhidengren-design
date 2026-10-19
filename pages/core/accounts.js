@@ -44,6 +44,8 @@
     '记账':     { kind: 'account', account: 'means', label: '记账', metric: 'entries', target: 1, rule: { kind: 'ratio', target: 1 } },
     '穿搭':     { kind: 'account', account: 'means', label: '穿搭', metric: 'worn', target: 1, rule: { kind: 'ratio', target: 1 } },
     '学习':     { kind: 'account', account: 'mind',  label: '学习', metric: 'minutes', target: 60, rule: { kind: 'ratio', target: 60 } },
+    '思考':     { kind: 'account', account: 'mind',  label: '思考', metric: 'entries', target: 3, rule: { kind: 'ratio', target: 3 } },
+    '输出':     { kind: 'account', account: 'mind',  label: '输出', metric: 'words', target: 500, rule: { kind: 'ratio', target: 500 } },
 
     /* —— 工具（4）：存事实，不进四账户 —— */
     '备忘录':   { kind: 'tool', account: null, label: '备忘录' },

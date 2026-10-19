@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>输出 · 执灯人</title>
+<style>
+  :root{
+    --bg:#0B0F1A; --card:#121826; --line:rgba(232,234,242,.08);
+    --text-1:#E8EAF2; --text-2:#9AA3B5; --text-3:#5A6478;
+    --brand:#4DC3FF; --brand-ink:#06121F; --mind:#4DC3FF;
+  }
+  [data-theme="light"]{
+    --bg:#F7F4EF; --card:#FFFFFF; --line:rgba(38,34,30,.10);
+    --text-1:#26221E; --text-2:#6E675E; --text-3:#A39C90;
+    --brand:#002FA7; --brand-ink:#FFFFFF; --mind:#2E86DE;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text-1);font-family:"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;padding:22px 18px 40px}
+  .head{display:flex;align-items:baseline;justify-content:space-between;margin:4px 0 18px}
+  .head h1{font-size:22px;margin:0;letter-spacing:.02em}
+  .head span{font-size:11.5px;color:var(--text-3);letter-spacing:.04em}
+  .hero{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;display:flex;align-items:baseline;gap:10px}
+  .hero b{font-size:46px;line-height:1;font-weight:650;letter-spacing:-.02em;color:var(--mind);font-variant-numeric:tabular-nums}
+  .hero span{font-size:12px;color:var(--text-2)}
+  .hero small{margin-left:auto;font-size:11px;color:var(--text-3)}
+  .quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 8px}
+  .quick button{height:46px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text-1);font-size:13px;cursor:pointer;transition:border-color .16s,transform .1s}
+  .quick button:hover{border-color:var(--mind)}
+  .quick button:active{transform:scale(.97)}
+  .quick button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .hint{font-size:11px;color:var(--text-3);margin:0 0 20px;line-height:1.7}
+  .sec{display:flex;align-items:baseline;justify-content:space-between;font-size:11px;color:var(--text-3);letter-spacing:.14em;margin:0 0 8px}
+  .sec span{letter-spacing:.02em}
+  .list{display:flex;flex-direction:column;gap:6px}
+  .row{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--card);border:1px solid var(--line);border-radius:12px;font-size:12.5px}
+  .row time{color:var(--text-3);font-variant-numeric:tabular-nums;font-size:11px}
+  .row b{margin-left:auto;font-weight:600;color:var(--text-1)}
+  .empty{color:var(--text-3);font-size:12px;padding:16px;text-align:center;border:1px dashed var(--line);border-radius:12px}
+  .toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,10px);opacity:0;pointer-events:none;background:var(--brand);color:var(--brand-ink);padding:8px 16px;border-radius:99px;font-size:12px;transition:all .2s}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+  <div class="head"><h1>输出</h1><span>记进「思」账户</span></div>
+
+  <div class="hero">
+    <b id="total">0</b><span>字 · 今天</span>
+    <small id="goal">目标 500 字</small>
+  </div>
+
+  <div class="quick">
+    <button type="button" data-words="100">+100 字</button>
+    <button type="button" data-words="300">+300 字</button>
+    <button type="button" data-words="500">+500 字</button>
+  </div>
+  <p class="hint">写完一段就记一次；字数不必精确到个位。</p>
+
+  <p class="sec">今日输出 <span id="count">0 条</span></p>
+  <div class="list" id="list"></div>
+  <div class="toast" id="toast"></div>
+
+<script src="../core/store.js"></script>
+<script>
+(function () {
+  var MOD = '输出', GOAL = 500;
+  var d = new Date();
+  var today = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  var listEl = document.getElementById('list');
+  var totalEl = document.getElementById('total');
+  var goalEl = document.getElementById('goal');
+  var countEl = document.getElementById('count');
+  var toastEl = document.getElementById('toast');
+
+  function records() {
+    try { return (window.LightStore.readDay(today).byMod[MOD] || []); } catch (e) { return []; }
+  }
+  function render() {
+    var arr = records();
+    var total = arr.reduce(function (n, r) { return n + (Number(r.value) || 0); }, 0);
+    totalEl.textContent = total;
+    goalEl.textContent = '目标 ' + GOAL + ' 字' + (total >= GOAL ? ' · 已达标' : '');
+    countEl.textContent = arr.length + ' 条';
+    listEl.innerHTML = arr.length ? arr.slice().reverse().map(function (r) {
+      var t = new Date(r.at);
+      return '<div class="row"><time>' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') + '</time><span>输出</span><b>+' + r.value + ' 字</b></div>';
+    }).join('') : '<div class="empty">今天还没写。写完一段来记一笔。</div>';
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.quick button'), function (btn) {
+    btn.addEventListener('click', function () {
+      var n = Number(btn.dataset.words) || 100;
+      if (window.LightStore) window.LightStore.record({ mod: MOD, metric: 'words', value: n, date: today });
+      render();
+      toastEl.textContent = '记下 ' + n + ' 字';
+      toastEl.classList.add('on');
+      setTimeout(function () { toastEl.classList.remove('on'); }, 1200);
+    });
+  });
+  window.addEventListener('storage', function (e) { if (e.key === 'lifeflow-days-v1') render(); });
+  if (window.LightStore && window.LightStore.subscribe) window.LightStore.subscribe(render);
+  render();
+})();
+</script>
+</body>
+</html>

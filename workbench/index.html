@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="utf-8">
@@ -306,6 +306,8 @@ input{font-family:inherit}
 .tm-hint{font-size:10px;color:var(--mo-3);line-height:1.6;margin:0;letter-spacing:.02em}
 
 .mini-list{padding:2px 0}
+.mini-list .mini-rec{cursor:pointer;transition:background .16s}
+.mini-list .mini-rec:hover{background:var(--hair)}
 /* 今日计划 · 只读（来自电脑端 zdLight.plan） */
 .plan-card{padding:4px 0}
 .ps-row{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 18px;border-top:1px solid var(--hair);font-size:12.5px}
@@ -1569,6 +1571,7 @@ refreshAll();
 </script>
 </body>
 </html>
+
 
 
 

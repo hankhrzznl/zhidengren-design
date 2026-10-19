@@ -589,6 +589,9 @@ function loadState(){
   /* 手机端 zdLight 里已有真实 plan/todos 时，电脑端直接用它（同一份事实）；tiimoClone 只做旧数据/演示兜底 */
   let mobile=null;
   try{const z=JSON.parse(localStorage.getItem('zdLight')||'null');if(z&&(z.plan||z.todos))mobile=z}catch(e){}
+  /* 手机端「记一笔」的日志：只读，用于月视图汇总 */
+  let mobileLogs={};
+  try{const z=JSON.parse(localStorage.getItem('zdLight')||'null');if(z&&z.logs)mobileLogs=z.logs}catch(e){}
   const hasReal=!!(mobile||(saved&&(Object.values(saved.todos||{}).some(a=>a&&a.length)||Object.values(saved.plan||{}).some(a=>a&&a.length)||(saved.goals&&saved.goals.length))));
   demoMode=!hasReal;
   const src=mobile||(hasReal?saved:seedDemo());
@@ -604,6 +607,7 @@ function loadState(){
     goals:JSON.parse(JSON.stringify(src.goals||[])),
     sub:JSON.parse(JSON.stringify(src.sub||{})),
     streak:src.streak||0,streakDate:src.streakDate||'',
+    logs:JSON.parse(JSON.stringify(mobileLogs||src.logs||{})),
     done:(src.doneDate===TODAY_STR?src.done:0),doneDate:TODAY_STR,
     uid:uid,demo:src.demo||!hasReal
   };
@@ -756,7 +760,14 @@ function renderMonth(){
     </button>`;
   }
   const rate=total?Math.round(doneN/total*100):0;
-  const sum=`<div class="mo-sum"><span><b>${activeDays}</b> 天有功课</span><span><b>${total}</b> 项</span><span><b>${doneN}</b> 项已记</span><span><b>${rate}%</b> 完成率</span></div>`;
+  /* 本月灯数：手机端「记一笔」的日志条数（记一笔，灯亮一分） */
+  const logs=state.logs||{};
+  let monthLights=0;
+  Object.keys(logs).forEach(k=>{
+    const p=k.split('-'), y=Number(p[0]), m=Number(p[1]);
+    if(y===first.getFullYear()&&m===first.getMonth()+1) monthLights+=Number(logs[k])||0;
+  });
+  const sum=`<div class="mo-sum"><span><b>${activeDays}</b> 天有功课</span><span><b>${total}</b> 项</span><span><b>${doneN}</b> 项已记</span><span><b>${rate}%</b> 完成率</span><span title="手机端「记一笔」：记一笔，灯亮一分"><b>${monthLights}</b> 灯</span></div>`;
   $('#stage-month').innerHTML=`<div class="mo-wrap"><div class="mo-cap">${first.getFullYear()} 年 ${first.getMonth()+1} 月${sum}</div>${head}<div class="mo-grid">${cells}</div></div>`;
   $$('#stage-month .mo-cell').forEach(c=>c.onclick=()=>{selectedDay=c.dataset.date;switchView('day');renderAll();});
 }

@@ -1,4 +1,4 @@
-import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 const errors = [];
@@ -49,6 +49,16 @@ ok("工作台时间轴 6 条", tl.rows === 6, JSON.stringify(tl));
 ok("时间轴最多一个「此刻」", tl.now <= 1, String(tl.now));
 ok("暗色中午时段色是月白", tl.noon === "#E8EAF2", tl.noon);
 
+/* 今日流水：行可点进模块 */
+const streamCount = await page.evaluate(() => document.querySelectorAll("#view-today .mini-list .mini-rec").length);
+if (streamCount > 0) {
+  await page.click("#view-today .mini-list .mini-rec");
+  await page.waitForTimeout(500);
+  const streamOpen = await page.evaluate(() => ({ module: !document.querySelector("#view-module")?.classList.contains("gone"), back: !!document.querySelector("#view-module [data-back]") }));
+  ok("今日流水行可进模块", streamOpen.module === true, JSON.stringify(streamOpen));
+  await page.click("#view-module [data-back]");
+  await page.waitForTimeout(400);
+}
 /* 日复盘：一天尺度，不再做周复盘 */
 await page.click('#nav [data-view="review"]');
 await page.waitForTimeout(500);
@@ -106,4 +116,5 @@ console.log(`\n工作台校验：${results.filter((r) => r[0] === "PASS").length
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 

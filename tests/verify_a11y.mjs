@@ -85,7 +85,7 @@ const stickers = await page.evaluate(() => ({
   n: document.querySelectorAll(".ob-wide button.mi").length,
   labels: [...document.querySelectorAll(".ob-wide .mi")].map((x) => x.textContent.trim()),
 }));
-ok("16 个贴纸都是 button", stickers.tag === "BUTTON" && stickers.n === 16, JSON.stringify(stickers));
+ok("18 个贴纸都是 button", stickers.tag === "BUTTON" && stickers.n === 18, JSON.stringify(stickers));
 await page.evaluate(() => document.querySelector('[data-tab="lamp"]')?.click());
 await page.waitForTimeout(300);
 const moodA11y = await page.evaluate(() => ({
@@ -168,6 +168,7 @@ console.log(`\n安全/可访问性校验：${results.filter((r) => r[0] === "PAS
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 
 
 

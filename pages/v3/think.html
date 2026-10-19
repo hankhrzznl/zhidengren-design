@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>思考 · 执灯人</title>
+<style>
+  :root{
+    --bg:#0B0F1A; --card:#121826; --line:rgba(232,234,242,.08);
+    --text-1:#E8EAF2; --text-2:#9AA3B5; --text-3:#5A6478;
+    --brand:#4DC3FF; --brand-ink:#06121F; --mind:#4DC3FF;
+  }
+  [data-theme="light"]{
+    --bg:#F7F4EF; --card:#FFFFFF; --line:rgba(38,34,30,.10);
+    --text-1:#26221E; --text-2:#6E675E; --text-3:#A39C90;
+    --brand:#002FA7; --brand-ink:#FFFFFF; --mind:#2E86DE;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text-1);font-family:"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;padding:22px 18px 40px}
+  .head{display:flex;align-items:baseline;justify-content:space-between;margin:4px 0 18px}
+  .head h1{font-size:22px;margin:0;letter-spacing:.02em}
+  .head span{font-size:11.5px;color:var(--text-3);letter-spacing:.04em}
+  .hero{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;display:flex;align-items:baseline;gap:10px}
+  .hero b{font-size:46px;line-height:1;font-weight:650;letter-spacing:-.02em;color:var(--mind);font-variant-numeric:tabular-nums}
+  .hero span{font-size:12px;color:var(--text-2)}
+  .hero small{margin-left:auto;font-size:11px;color:var(--text-3)}
+  .input-row{display:flex;gap:8px;margin:14px 0 8px}
+  .input-row input{flex:1;min-width:0;height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text-1);font-size:14px;outline:none}
+  .input-row input:focus{border-color:var(--mind)}
+  .input-row button{height:46px;padding:0 16px;border-radius:12px;border:0;background:var(--brand);color:var(--brand-ink);font-size:13px;font-weight:600;cursor:pointer}
+  .hint{font-size:11px;color:var(--text-3);margin:0 0 20px;line-height:1.7}
+  .sec{display:flex;align-items:baseline;justify-content:space-between;font-size:11px;color:var(--text-3);letter-spacing:.14em;margin:0 0 8px}
+  .sec span{letter-spacing:.02em}
+  .list{display:flex;flex-direction:column;gap:6px}
+  .row{display:flex;gap:10px;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;font-size:12.5px;line-height:1.6}
+  .row time{color:var(--text-3);font-variant-numeric:tabular-nums;font-size:11px;flex:none;padding-top:1px}
+  .row span{color:var(--text-1);word-break:break-word}
+  .empty{color:var(--text-3);font-size:12px;padding:16px;text-align:center;border:1px dashed var(--line);border-radius:12px}
+  .toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,10px);opacity:0;pointer-events:none;background:var(--brand);color:var(--brand-ink);padding:8px 16px;border-radius:99px;font-size:12px;transition:all .2s}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+  <div class="head"><h1>思考</h1><span>记进「思」账户</span></div>
+
+  <div class="hero">
+    <b id="total">0</b><span>条 · 今天</span>
+    <small id="goal">目标 3 条</small>
+  </div>
+
+  <div class="input-row">
+    <input id="text" maxlength="60" autocomplete="off" placeholder="刚才在想什么…">
+    <button type="button" id="save">记一条</button>
+  </div>
+  <p class="hint">一条一句话就够；不追求完整，先把念头留住。</p>
+
+  <p class="sec">今日思考 <span id="count">0 条</span></p>
+  <div class="list" id="list"></div>
+  <div class="toast" id="toast"></div>
+
+<script src="../core/store.js"></script>
+<script>
+(function () {
+  var MOD = '思考', GOAL = 3;
+  var d = new Date();
+  var today = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  var listEl = document.getElementById('list');
+  var totalEl = document.getElementById('total');
+  var goalEl = document.getElementById('goal');
+  var countEl = document.getElementById('count');
+  var inputEl = document.getElementById('text');
+  var toastEl = document.getElementById('toast');
+
+  function records() {
+    try { return (window.LightStore.readDay(today).byMod[MOD] || []); } catch (e) { return []; }
+  }
+  function render() {
+    var arr = records();
+    totalEl.textContent = arr.length;
+    goalEl.textContent = '目标 ' + GOAL + ' 条' + (arr.length >= GOAL ? ' · 已达标' : '');
+    countEl.textContent = arr.length + ' 条';
+    listEl.innerHTML = arr.length ? arr.slice().reverse().map(function (r) {
+      var t = new Date(r.at);
+      var text = (r.meta && r.meta.text) || '一条思考';
+      return '<div class="row"><time>' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') + '</time><span>' + text.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }) + '</span></div>';
+    }).join('') : '<div class="empty">还没有。写一句刚才在想的事。</div>';
+  }
+  function save() {
+    var text = (inputEl.value || '').trim();
+    if (!text) { inputEl.focus(); toastEl.textContent = '先写一句'; toastEl.classList.add('on'); setTimeout(function () { toastEl.classList.remove('on'); }, 1200); return; }
+    if (window.LightStore) window.LightStore.record({ mod: MOD, metric: 'entries', value: 1, date: today, meta: { text: text } });
+    inputEl.value = '';
+    render();
+    toastEl.textContent = '记下一条思考';
+    toastEl.classList.add('on');
+    setTimeout(function () { toastEl.classList.remove('on'); }, 1200);
+  }
+  document.getElementById('save').addEventListener('click', save);
+  inputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') save(); });
+  window.addEventListener('storage', function (e) { if (e.key === 'lifeflow-days-v1') render(); });
+  if (window.LightStore && window.LightStore.subscribe) window.LightStore.subscribe(render);
+  render();
+})();
+</script>
+</body>
+</html>

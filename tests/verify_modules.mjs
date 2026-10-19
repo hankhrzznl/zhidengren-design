@@ -1,4 +1,4 @@
-// 全链路校验 · 日程页 15 个模块贴纸 + 穿搭模块行为
+﻿// 全链路校验 · 日程页 15 个模块贴纸 + 穿搭模块行为
 // 用法：node tests/verify_modules.mjs
 // 自行确保 pages/ 在 http://127.0.0.1:8899 可访问（未起则脚本内起一个）
 import { readFileSync, writeFileSync } from "node:fs";
@@ -73,6 +73,8 @@ const EXPECT = [
   ["记账", "v3/expense.html"],
   ["穿搭", "v3/wardrobe.html"],
   ["学习", "v3/study.html"],
+  ["思考", "v3/think.html"],
+  ["输出", "v3/output.html"],
   ["备忘录", "v3/notes.html"],
   ["倒数日", "v3/countdown.html"],
   ["到点提醒", "v3/reminders.html"],
@@ -155,7 +157,7 @@ await page.waitForTimeout(300);
 const stickers = await page.evaluate(() =>
   [...document.querySelectorAll(".ob-wide .mi")].map((x) => x.textContent.trim())
 );
-check("记一笔页 16 个模块贴纸", stickers.length === 16, `实际 ${stickers.length}: ${stickers.join("/")}`);
+check("记一笔页 18 个模块贴纸", stickers.length === 18, `实际 ${stickers.length}: ${stickers.join("/")}`);
 check("贴纸顺序与预期一致", JSON.stringify(stickers) === JSON.stringify(EXPECT.map((x) => x[0])), stickers.join("/"));
 
 /* 模块按四账户标注 + 触控高度 */
@@ -165,7 +167,7 @@ const hubMeta = await page.evaluate(() => {
   const heights = [...document.querySelectorAll("#screen-assistant .ob-wide .mi")].map((x) => x.getBoundingClientRect().height);
   return { tagged: tagged.length, doms: doms.join(""), minH: Math.min(...heights) };
 });
-check("12 个模块标注四账户（含思/学习）", hubMeta.tagged === 12 && ["体", "情", "思", "志"].every((d) => hubMeta.doms.includes(d)), JSON.stringify(hubMeta));
+check("14 个模块标注四账户（含思三件）", hubMeta.tagged === 14 && ["体", "情", "思", "志"].every((d) => hubMeta.doms.includes(d)), JSON.stringify(hubMeta));
 check("模块触控高度 ≥44", hubMeta.minH >= 43.5, String(hubMeta.minH));
 
 /* 今天记下的：可收起 */
@@ -187,7 +189,7 @@ const modLinkOk = EXPECT.every(([label, link]) => {
   const canonical = { 情绪: "情绪记录", 训练: "运动", 久坐: "休息" }[label] || label;
   return modLink[canonical] === link;
 });
-check("MOD_LINK 16 项均指向预期页面", modLinkOk);
+check("MOD_LINK 18 项均指向预期页面", modLinkOk);
 
 for (const [label, link] of EXPECT) {
   let err = "";
@@ -474,6 +476,7 @@ if (consoleErrors.length) {
   [...new Set(consoleErrors)].slice(0, 4).forEach((x) => console.log("  · " + x));
 }
 process.exit(failed.length ? 1 : 0);
+
 
 
 
