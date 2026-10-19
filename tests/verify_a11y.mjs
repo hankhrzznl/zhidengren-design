@@ -120,7 +120,7 @@ const rm = await page.evaluate(() => {
 ok("prefers-reduced-motion 生效", parseFloat(rm.transition) <= 0.001 && parseFloat(rm.animation) <= 0.001, JSON.stringify(rm));
 await page.emulateMedia({ reducedMotion: "no-preference" });
 
-/* 6. 对比度 / 热区 / 状态栏 */
+/* 6. 对比度 / 热区 */
 const contrast = async (theme) => page.evaluate((t) => {
   document.querySelector(`#screen-todo .theme-toggle`)?.click();
   return null;
@@ -158,10 +158,9 @@ ok("夜间占位符对比度 ≥ 4.5", (() => {
 
 const tap = await page.evaluate(() => {
   const after = (sel) => { const el = document.querySelector(sel); if (!el) return null; const cs = getComputedStyle(el, "::after"); return cs.content + " inset " + cs.top + " " + cs.left; };
-  return { check: after(".ring-check"), add: after(".js-add"), more: after(".js-more"), status: document.querySelector(".statusbar")?.getAttribute("aria-hidden") };
+  return { check: after(".ring-check"), add: after(".js-add"), more: after(".js-more") };
 });
 ok("小控件有扩热区", (tap.check || "").includes("inset") && !(tap.check || "").includes("0px") && (tap.more || "").includes("inset"), JSON.stringify(tap));
-ok("状态栏是装饰层", tap.status === "true", String(tap.status));
 
 await page.screenshot({ path: OUT + "p1-a11y.png" });
 for (const r of results) console.log(r[0].padEnd(5), r[1], r[2] ? "· " + r[2] : "");
@@ -169,5 +168,7 @@ console.log(`\n安全/可访问性校验：${results.filter((r) => r[0] === "PAS
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
+
 
 

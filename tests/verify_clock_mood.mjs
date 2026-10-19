@@ -1,4 +1,4 @@
-import { chromium, EXE, BASE, OUT, PAGES } from "./_env.mjs";
+﻿import { chromium, EXE, BASE, OUT, PAGES } from "./_env.mjs";
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errors = [];
@@ -26,7 +26,6 @@ const s0 = await page.evaluate(() => {
     week: pads,
     selected: document.querySelector(".wd.sel")?.getAttribute("data-date"),
     planTitles: [...document.querySelectorAll("#p-morning .task-title, #p-evening .task-title, #p-anytime .task-title")].map((x) => x.textContent.trim()),
-    status: document.querySelector(".sb-time span")?.textContent,
     moodLabels: [...document.querySelectorAll("#moodRow .mood-col span")].map((x) => x.textContent),
     moodToday: document.querySelectorAll("#moodRow .mood-btn.today").length,
     moodFuture: document.querySelectorAll("#moodRow .mood-btn.is-future").length,
@@ -39,7 +38,6 @@ ok("周条含今天", s0.week.includes(String(+s0.today.split("-")[2])), s0.week
 ok("标题是今天星期", s0.title === ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"][new Date().getDay()], s0.title);
 ok("月份是当前月", s0.month.includes(new Date().getFullYear() + " 年") && s0.month.includes((new Date().getMonth() + 1) + " 月"), s0.month);
 ok("种子任务在今天的日程里", s0.planTitles.includes("拉伸") && s0.planTitles.includes("散步"), JSON.stringify(s0.planTitles));
-ok("状态栏是真实时间", /^\d{2}:\d{2}$/.test(s0.status) && s0.status !== "01:02", s0.status);
 ok("心情周一–周日", JSON.stringify(s0.moodLabels) === JSON.stringify(["一","二","三","四","五","六","日"]), JSON.stringify(s0.moodLabels));
 ok("只有今天可编辑", s0.moodToday === 1, String(s0.moodToday));
 ok("旧 mood 数组已迁移为空", !s0.moods || typeof s0.moods === "object", JSON.stringify(s0.moods));
@@ -106,3 +104,4 @@ console.log(`\n时钟/心情校验：${results.filter((r) => r[0] === "PASS").le
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+

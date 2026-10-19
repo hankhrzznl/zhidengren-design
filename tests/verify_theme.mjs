@@ -1,4 +1,4 @@
-// 日间 / 夜间主题 · 全链路校验（5 个 tab + 模块页 iframe 同步）
+﻿// 日间 / 夜间主题 · 全链路校验（5 个 tab + 模块页 iframe 同步）
 // 用法：node tests/verify_theme.mjs
 import { spawn } from "node:child_process";
 import { chromium, EXE, BASE, OUT, PAGES } from "./_env.mjs";
@@ -60,8 +60,6 @@ const light = await page.evaluate(() => ({
   card: getComputedStyle(document.querySelector(".task-card")).backgroundColor,
   title: getComputedStyle(document.querySelector(".task-title")).color,
   tabbar: getComputedStyle(document.querySelector(".tabbar")).backgroundColor,
-  status: getComputedStyle(document.querySelector(".statusbar")).backgroundColor,
-  statusFilter: getComputedStyle(document.querySelector(".statusbar svg")).filter,
   iconColor: getComputedStyle(document.querySelector(".task-ic")).color,
   tileFilter: getComputedStyle(document.querySelector(".ob-wide .mi svg")).filter,
 }));
@@ -69,7 +67,6 @@ check("点一下切到日间", light.theme === "light" && light.key === "light",
 check("日间壳底色=暖奶油", light.body === "rgb(242, 236, 227)", light.body);
 check("日间卡片=白 / 正文=暖墨", light.card === "rgb(255, 255, 255)" && light.title === "rgb(38, 34, 30)", JSON.stringify({ card: light.card, title: light.title }));
 check("日间底栏=白玻璃", light.tabbar === "rgba(255, 255, 255, 0.88)", light.tabbar);
-check("日间状态栏=浅底 + 图标反色", light.status === "rgb(251, 247, 241)" && light.statusFilter === "invert(1)", JSON.stringify({ status: light.status, filter: light.statusFilter }));
 check("日间图标随主题反色 / 去提亮", light.iconColor === "rgb(38, 34, 30)" && light.tileFilter === "none", JSON.stringify({ iconColor: light.iconColor, tileFilter: light.tileFilter }));
 check("日间按钮图标切换为月亮", light.icon === "#i-moon", light.icon);
 
@@ -174,4 +171,5 @@ const failed = checks.filter((c) => !c.ok);
 for (const c of checks) console.log(`${c.ok ? "PASS" : "FAIL"}  ${c.name}`);
 console.log(`\n主题校验：${checks.length - failed.length}/${checks.length} PASS`);
 process.exit(failed.length ? 1 : 0);
+
 

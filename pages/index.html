@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html data-page-node-id="JB7UGdksLhHazchILCTZ3X" lang="zh-CN" data-theme="dark">
 <head data-page-node-id="eiRLEOIoDXnJt0aU8uEuq5">
 <meta data-page-node-id="8XxPPCIxNqwT6wRqYfPwL6" charset="UTF-8">
@@ -61,17 +61,10 @@ body{background:var(--xuan);display:flex;align-items:center;justify-content:cent
 }
 .island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:122px;height:34px;background:#0A0D15;border-radius:18px;z-index:80;box-shadow:0 0 0 1px rgba(232,234,242,.06)}
 
-/* ============ 状态栏 ============ */
-.statusbar{position:absolute;top:0;left:0;right:0;height:56px;display:flex;justify-content:space-between;align-items:center;padding:14px 27px 0 36px;z-index:70;color:var(--mo);pointer-events:none}
-.sb-time{display:flex;align-items:center;gap:7px;font:500 15.5px var(--en);letter-spacing:.3px}
-.sb-time svg{width:19px;height:14px}
-.sb-icons{display:flex;align-items:center;gap:7px}
-.sb-icons .pct{font:500 13px var(--en);color:var(--mo)}
-.sb-icons svg{display:block}
 
 /* ============ 屏幕容器 ============ */
 .screens{position:absolute;inset:0}
-.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:70px 16px 122px;visibility:hidden;opacity:0;transform:translateY(10px);transition:opacity .26s ease,transform .26s ease,visibility .26s;scrollbar-width:none;background:var(--xuan)}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:56px 16px 122px;visibility:hidden;opacity:0;transform:translateY(10px);transition:opacity .26s ease,transform .26s ease,visibility .26s;scrollbar-width:none;background:var(--xuan)}
 .screen::-webkit-scrollbar{display:none}
 .screen.active{visibility:visible;opacity:1;transform:none}
 #screen-focus{background:var(--xuan);padding-top:74px}
@@ -622,9 +615,9 @@ body{background:var(--shell-bg)}
 .screens{background:transparent}
 .screen{
   background:transparent;
-  padding:70px 16px 118px;
+  padding:56px 16px 118px;
 }
-#screen-assistant{padding:70px 16px 110px}
+#screen-assistant{padding:56px 16px 110px}
 #screen-focus{background:var(--phone-bg)}
 
 /* ---------- 顶部：图标胶囊 ---------- */
@@ -1103,8 +1096,6 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
 /* ---------- 辅助：主题按钮 / 图标继承 ---------- */
 .assistant-top .theme-toggle{margin-left:auto;margin-right:8px}
 .task-ic{color:var(--mo)}
-.statusbar{background:var(--screen-top)}
-body[data-tab="mod"] .statusbar{background:var(--mod-bg)}
 
 /* ============================================================
    日间模式 · v3 light（暖奶油底 / 白卡 / 克莱因蓝）
@@ -1132,8 +1123,6 @@ html[data-theme="light"] .phone{
   border-color:#E3DDD3;
   box-shadow:0 24px 60px rgba(38,34,30,.18),0 0 0 1px rgba(38,34,30,.06);
 }
-html[data-theme="light"] .statusbar{color:var(--mo)}
-html[data-theme="light"] .statusbar svg{filter:invert(1)}
 html[data-theme="light"] .wk-d i.up{color:#002FA7;background:rgba(0,47,167,.10);border-color:rgba(0,47,167,.28)}
 html[data-theme="light"] .tabbar{
   background:rgba(255,255,255,.88);
@@ -1287,17 +1276,6 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
 
 <div data-page-node-id="tJgAjmnCtHcL22VIYpKoOb" class="phone">
   <div data-page-node-id="s2JKp83w3PenBt16EcSK8k" class="island"></div>
-
-  <!--pnid:RMOrwNUSxTj97kycZwJJ6L--><!-- 状态栏 -->
-  <div data-page-node-id="FXIQ8Q5Ta12UdunARHUQ3h" class="statusbar" aria-hidden="true">
-    <div data-page-node-id="mi6eMzN7xbqKQThwqT3yzI" class="sb-time"><span data-page-node-id="mzgKWnfc0waDrma5B6jLpu"><!--pnid:SEXCBB4DrJdHcXkJnDH2qP-->01:02</span><svg data-page-node-id="v8mv9JqOg3JwHnqVNYOCOm" viewBox="0 0 28 20" style="color:#fff"><use data-page-node-id="MFD2W6hVpeiohaN4irs0qH" fill="none" href="#i-bed"/></svg></div>
-    <div data-page-node-id="AvtvuF4xxcZsfbPywKCNO7" class="sb-icons">
-      <svg data-page-node-id="KNT6mRMCxH8I1eB3o6kNwJ" height="13" viewBox="0 0 20 14" width="18"><use data-page-node-id="qn8BTGYhXQL36YoWVAXcY4" href="#i-signal"/></svg>
-      <svg data-page-node-id="JMfrB7NyYQSzqCAQzXS2Io" height="12" viewBox="0 0 18 13" width="17"><use data-page-node-id="8LcrscdTChuCodODIOKQdU" href="#i-wifi"/></svg>
-      <span data-page-node-id="G9f0llzDZ9mRicljC5pS3v" class="pct"><!--pnid:2ZYBszkQ9cxac5pSVGUKbF-->49</span>
-      <svg data-page-node-id="OenENxUnM5ejH1A20xCusD" height="14" viewBox="0 0 30 14" width="29"><use data-page-node-id="GlOfB0tHT9tqssk5wDtigc" href="#i-batt"/></svg>
-    </div>
-  </div>
 
   <div data-page-node-id="mIFUaOdjSQDgBDXP9dDGIh" class="screens">
 
@@ -3273,13 +3251,6 @@ $$('.theme-toggle').forEach(function(b){
 });
 applyShellTheme(shellTheme, false);
 
-/* 状态栏时钟：用真实时间，别停在做 demo 的 01:02 */
-function syncStatusClock(){
-  const d=new Date(),el=document.querySelector('.sb-time span');
-  if(el)el.textContent=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
-syncStatusClock();
-setInterval(syncStatusClock,30000);
 </script>
 <script>
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
@@ -3288,3 +3259,5 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
 </script>
 </body>
 </html>
+
+

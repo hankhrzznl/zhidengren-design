@@ -49,7 +49,7 @@
 1. ✅ **电脑端 → 规划/复盘台**：真实日期/周；读手机 `zdLight` 日志，写 `zdLight.plan/todos`；`tiimoClone` 只做迁移；日夜；周视图点击/拖拽。
 2. ✅ **工作台 → 个人工作台**：保留一日工作台/学习/专注/日记录；品牌/日夜跟上；读 `zdLight` 只读；不是开发工具。
 3. ✅ **手机端 → 采集/执行**：「本周计划」只读入口（`#openWeek`），不搬规划编辑。
-4. ✅ **文档/测试**：`run-all` **17 套件**（含 landing 6、plan 29、workbench 17）；电脑写计划 → 手机读到 → 工作台只读整条回路有行为测试；`scripts/verify` 31。
+4. ✅ **文档/测试**：`run-all` **18 套件**（含 landing 6、vercel dist 10、plan 29、workbench 17）；电脑写计划 → 手机读到 → 工作台只读整条回路有行为测试；`scripts/verify` 31。
 
 ## 跑起来
 
@@ -65,7 +65,7 @@ python -m http.server 8899
 
 ```bash
 node scripts/verify.mjs        # 零依赖：语法/结构/静态 31 条
-node tests/run-all.mjs         # 富测试 17 套件（Playwright；240s/套超时）
+node tests/run-all.mjs         # 富测试 18 套件（Playwright；240s/套超时）
 node scripts/test-store.mjs    # store/accounts 纯函数
 node scripts/test-light.mjs    # 灯焰内核 51 条
 ```
@@ -81,7 +81,15 @@ node scripts/test-light.mjs    # 灯焰内核 51 条
 - 发布内容：仓库根（`index.html` 落地页 + `pages/` + `workbench/` + `tests/` + `scripts/` + `docs/`）
 - 本地远端：`design` → 该仓库；`origin` → `lifeflow`（只放了 `design-v8` 分支，未动 `main`）
 
-### 域名 `my-lifeos.com`（Vercel）：见 `docs/部署-Vercel-域名.md`
+### 已上线：Vercel + `my-lifeos.com`（2026-10-19）
+
+**线上地址**：
+- https://my-lifeos.com/ 落地页
+- https://my-lifeos.com/app/ 手机端
+- https://my-lifeos.com/desktop/ 电脑端
+- https://my-lifeos.com/work/ 工作台
+
+项目：`zhidengren-design`（GitHub 关联，Production Branch `main`）；生产别名 `zhidengren-design.vercel.app`；`www` 308 → 裸域。详细步骤与更新流程见 `docs/部署-Vercel-域名.md`。
 
 推荐 **一个 Vercel 项目 + 主域名下三个路径**：`/`（落地页）、`/app/`（手机端）、`/desktop/`（电脑端）、`/work/`（工作台）。原因是三端靠 localStorage 共享数据，**子域名是不同 origin，会把数据切断**。
 
@@ -142,4 +150,6 @@ Pages 会在推 `main` 后自动重建（约 30–60 秒）。
 - `pages/desktop.html` 电脑端网页（规划/复盘台）
 - `workbench/index.html` 个人工作台；`workbench/cockpit.html` 更早的作战台（历史参考）
 - `tests/` 富测试（Playwright），`scripts/` 零依赖校验
+
+
 

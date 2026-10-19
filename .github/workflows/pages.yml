@@ -1,7 +1,8 @@
 name: Deploy to GitHub Pages
 
 on:
-  # 只手动触发：避免推分支时自动发布，覆盖同仓库里原有站点的 Pages
+  push:
+    branches: [main, master, design-v8]
   workflow_dispatch:
 
 permissions:

@@ -1,8 +1,27 @@
 # 部署到 Vercel + `my-lifeos.com`
 
-> 现状（2026-10-19）：`my-lifeos.com` 的 DNS 在 **DNSPod**（`stage/puppis.dnspod.net`），
-> 顶点 A 已指向 Vercel（`216.198.79.1`），`www` 走旧项目的 CNAME（`a41e7db024709c84.vercel-dns-017.com`）。
-> 新仓库：`https://github.com/hankhrzznl/zhidengren-design`（静态三端 + 落地页）。
+> **已上线（2026-10-19）**：https://my-lifeos.com/ （`/app/` 手机端、`/desktop/` 电脑端、`/work/` 工作台）
+>
+> - Vercel 项目：`zhidengren-design`（`prj_3d2JICAUINdLTN2xMsJyjFAAGD39`），关联 GitHub `hankhrzznl/zhidengren-design`，Production Branch = `main`
+> - 生产别名：https://zhidengren-design.vercel.app （`*.vercel.app` 部署地址有 Vercel Authentication 登录保护，这是正常的）
+> - `www.my-lifeos.com` → 308 → `my-lifeos.com`
+> - 旧项目 `lifeflow` 仍在（`lifeflow-delta-vert.vercel.app`），只是不再占用域名；`app.my-lifeos.com` 仍归 `lifeflow-app`，未动
+> - 上线自检：`node scripts/check-live.mjs https://my-lifeos.com` → **10/10 PASS**
+>
+> 原 DNS 情况：`my-lifeos.com` 在 **DNSPod**（`stage/puppis.dnspod.net`），顶点 A 指向 Vercel（`216.198.79.1`）；`www` 原来走旧项目 CNAME，迁移后按 Vercel 默认处理。
+
+## 日常更新
+
+```bash
+# master 上开发 → 把公开文件同步到发布分支 → 推 main
+git checkout design-v8
+git checkout master -- README.md index.html pages workbench .github tests scripts docs vercel.json .gitignore
+git commit -m "deploy: 同步最新公开文件"
+git push design design-v8:main
+git checkout master
+```
+
+Vercel 监听 `main`，推完自动重建（约 30–60 秒），再跑一次 `check-live` 即可。
 
 ## 先看一个硬约束：localStorage 按 origin 隔离
 

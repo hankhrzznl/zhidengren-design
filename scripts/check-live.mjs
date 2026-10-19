@@ -5,20 +5,36 @@
  *   node scripts/check-live.mjs https://xxx.com  # 指定域名
  *
  * 校验：四个路径 200、关键资源 200、落地页链接指向 app/desktop/work。
- * 纯 Node（Node 18+ 自带 fetch），零依赖；不依赖浏览器。
+ * 零依赖：优先 curl（可走 HTTPS_PROXY，适合本机有系统代理的情况），没有 curl 再退回 fetch。
  */
+import { spawnSync } from "node:child_process";
+
 const base = (process.argv[2] || "https://my-lifeos.com").replace(/\/+$/, "");
+const proxy = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || "";
 const results = [];
 const ok = (name, pass, detail = "") => results.push({ name, pass, detail });
 
+function viaCurl(url) {
+  const args = ["-sS", "-L", "--max-time", "30", "-w", "\n__STATUS__%{http_code}"];
+  if (proxy) args.push("--proxy", proxy);
+  args.push(url);
+  const r = spawnSync("curl", args, { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+  if (r.error || r.status !== 0 || typeof r.stdout !== "string") return null;
+  const i = r.stdout.lastIndexOf("\n__STATUS__");
+  if (i < 0) return null;
+  return { status: Number(r.stdout.slice(i + 11)), text: r.stdout.slice(0, i), url };
+}
+
 async function get(pathname) {
   const url = base + pathname;
+  const c = viaCurl(url);
+  if (c) return c;
   try {
     const r = await fetch(url, { redirect: "follow", headers: { "user-agent": "zhidengren-check" } });
     const text = r.status === 200 && /html/.test(r.headers.get("content-type") || "") ? await r.text() : "";
     return { status: r.status, text, url };
   } catch (e) {
-    return { status: 0, text: "", url, error: String(e.message || e) };
+    return { status: 0, text: "", url, error: String(e.message || e) + (proxy ? "" : "（本机若在代理后，试 HTTPS_PROXY=http://127.0.0.1:7890）") };
   }
 }
 
