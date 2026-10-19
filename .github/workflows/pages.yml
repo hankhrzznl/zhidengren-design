@@ -1,8 +1,8 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches: [main, master, design-v8]
+  # 只手动触发：GitHub Pages 现在用分支构建（main /），
+  # 避免每次 push 都跑一遍 Actions 部署、和 Vercel 打架。
   workflow_dispatch:
 
 permissions:

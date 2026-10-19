@@ -2,12 +2,13 @@
    历史坑：原先用 cache.addAll() 预缓存，其中 ./assets/tab-avatar.png 已删除（第七轮改为内联 SVG 头像）、
    ./styles/main.css 没有任何页面加载；addAll 是全成全败语义，一个 404 就让 install 整体 reject，
    SW 从此永远不激活且控制台不报错。现改为逐条 add + 单条容错。 */
-const CACHE = 'lifeflow-hub-v5';
+const CACHE = 'lifeflow-hub-v6';
 const ASSETS = [
   './',
   './index.html',
   './desktop.html',
   './manifest.json',
+  './tokens.css',
   './assets/icon.svg',
   './assets/apple-touch-icon.png',
   './assets/ai-mascot-dark.png',

@@ -394,6 +394,9 @@ input{font-family:inherit}
 .ec-note{font-size:10.5px;color:var(--mo-3);margin:0;letter-spacing:.04em}
 
 /* ---------- records ---------- */
+.do-next{width:100%;text-align:left;border:0;background:transparent;padding:4px 6px;margin:0 -6px 8px;border-radius:8px;cursor:pointer;font:inherit}
+.do-next:hover{background:var(--hair)}
+.do-next .sum-n{color:var(--mo-2)}
 .week-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-bottom:18px;max-width:640px}
 .dtab{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
@@ -1334,7 +1337,7 @@ function renderReview(){
 
   const gaps = GRID_MODULES.filter(function(m){ return m.id !== 'budget' && recsOn(TODAY, m.id).length === 0; }).slice(0, 3);
   const next = gaps.length ? gaps.map(function(m){
-    return '<div class="sum-row"><span class="sum-n">' + m.n + '</span><span class="sum-bar"><i style="width:0%"></i></span><span class="sum-v" style="width:auto;color:var(--mo-3)">没记</span></div>';
+    return '<button class="sum-row do-next" type="button" data-open="' + m.id + '"><span class="sum-n">' + m.n + '</span><span class="sum-bar"><i style="width:0%"></i></span><span class="sum-v" style="width:auto;color:var(--brand)">去记 →</span></button>';
   }).join('') : '<p class="week-kv">今天 20 个模块都动过了。</p>';
 
   const planRows = (function(){ try { return todayPlanReadOnly(); } catch(e){ return []; } })();
@@ -1506,6 +1509,12 @@ function bind(){
   document.getElementById('view-records').addEventListener('click', function(e){
     const d = e.target.closest('[data-day]');
     if(d){ state.day = d.getAttribute('data-day'); refreshAll(); return; }
+    const o = e.target.closest('[data-open]');
+    if(o){ openModule(o.getAttribute('data-open')); }
+  });
+
+  /* 日复盘「明日先做」：点一行直接进那个模块的主页 */
+  document.getElementById('view-review').addEventListener('click', function(e){
     const o = e.target.closest('[data-open]');
     if(o){ openModule(o.getAttribute('data-open')); }
   });

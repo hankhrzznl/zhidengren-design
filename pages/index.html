@@ -228,6 +228,13 @@ body[data-tab="mod"] .tabbar{display:none}
 .hub-group{margin:10px 0 2px;font-size:11px;color:var(--txt3)}
 .hub-card .ob-wide{width:100%;padding:4px 0 2px;gap:8px 4px;min-height:0;height:auto;align-content:start}
 .hub-card .ob-wide .mi span{font-size:10px}
+/* 模块按四账户着色 + 44px 触控高度 */
+.hub-card .ob-wide .mi{min-height:44px;justify-content:center;padding:4px 0;border-radius:10px}
+.hub-card .ob-wide .mi:active{background:var(--hair)}
+.hub-card .ob-wide .mi[data-dom="体"] svg{color:#FF5C4D}
+.hub-card .ob-wide .mi[data-dom="情"] svg{color:#C77DFF}
+.hub-card .ob-wide .mi[data-dom="思"] svg{color:#4DC3FF}
+.hub-card .ob-wide .mi[data-dom="志"] svg{color:#F5C545}
 .wk-list{display:flex;flex-direction:column;gap:8px}
 .wk-row{display:flex;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
 .wk-row.today{border-color:var(--brand)}
@@ -1483,24 +1490,24 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
 
       <div class="hub-intro">
         <b>这些模块，和「今天」是什么关系？</b>
-        <p>「今天」页上的每一格，都是这里的模块记出来的：饮水、睡眠、训练、情绪…分别记进 <em>体 / 情 / 思 / 志</em> 四个账户；四账户当天的完成度，决定今晚这盏灯亮几分。工具（备忘录、倒数日、到点提醒）只存事实，不挤进四账户。</p>
+        <p>「今天」页上的每一格，都是这里的模块记出来的：饮水、睡眠、训练、情绪…分别记进 <em>体 / 情 / 思 / 志</em> 四个账户；四账户当天的完成度，决定今晚这盏灯亮几分。工具（备忘录、倒数日、到点提醒）只存事实，不挤进四账户；<b>思</b> 目前没有独立模块，靠待办与今天里的任务推进。</p>
       </div>
 
       <div class="hub-card" aria-label="模块中枢">
         <div class="hub-head"><h2>模块</h2><span>四账户 · 工具独立</span></div>
         <div class="hub-group">四账户模块</div>
         <div class="ob ob-wide" id="hubAccounts">
-          <button type="button" class="mi"><svg><use href="#i-smile"/></svg><span>情绪</span></button>
-          <button type="button" class="mi"><svg><use href="#i-bed"/></svg><span>睡眠</span></button>
-          <button type="button" class="mi"><svg><use href="#i-drop"/></svg><span>饮水</span></button>
-          <button type="button" class="mi"><svg><use href="#i-walk"/></svg><span>训练</span></button>
-          <button type="button" class="mi"><svg><use href="#i-cart"/></svg><span>饮食</span></button>
-          <button type="button" class="mi"><svg><use href="#i-focusmode"/></svg><span>久坐</span></button>
-          <button type="button" class="mi"><svg><use href="#i-pill"/></svg><span>吃药</span></button>
-          <button type="button" class="mi"><svg><use href="#i-flower-d"/></svg><span>功法养生</span></button>
-          <button type="button" class="mi"><svg><use href="#i-think"/></svg><span>冥想</span></button>
-          <button type="button" class="mi"><svg><use href="#i-doc-d"/></svg><span>记账</span></button>
-          <button type="button" class="mi"><svg><use href="#i-cloth"/></svg><span>穿搭</span></button>
+          <button type="button" class="mi" data-dom="情"><svg><use href="#i-smile"/></svg><span>情绪</span></button>
+          <button type="button" class="mi" data-dom="体"><svg><use href="#i-bed"/></svg><span>睡眠</span></button>
+          <button type="button" class="mi" data-dom="体"><svg><use href="#i-drop"/></svg><span>饮水</span></button>
+          <button type="button" class="mi" data-dom="体"><svg><use href="#i-walk"/></svg><span>训练</span></button>
+          <button type="button" class="mi" data-dom="体"><svg><use href="#i-cart"/></svg><span>饮食</span></button>
+          <button type="button" class="mi" data-dom="体"><svg><use href="#i-focusmode"/></svg><span>久坐</span></button>
+          <button type="button" class="mi" data-dom="体"><svg><use href="#i-pill"/></svg><span>吃药</span></button>
+          <button type="button" class="mi" data-dom="体"><svg><use href="#i-flower-d"/></svg><span>功法养生</span></button>
+          <button type="button" class="mi" data-dom="情"><svg><use href="#i-think"/></svg><span>冥想</span></button>
+          <button type="button" class="mi" data-dom="志"><svg><use href="#i-doc-d"/></svg><span>记账</span></button>
+          <button type="button" class="mi" data-dom="志"><svg><use href="#i-cloth"/></svg><span>穿搭</span></button>
         </div>
         <div class="hub-group">工具</div>
         <div class="ob ob-wide" id="hubTools">
@@ -3277,6 +3284,8 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
 </script>
 </body>
 </html>
+
+
 
 
 

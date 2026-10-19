@@ -1,4 +1,4 @@
-﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 const errors = [];
@@ -59,6 +59,18 @@ const rv = await page.evaluate(() => ({
 }));
 ok("工作台复盘是日尺度", rv.title === "日复盘" && !/七天走势|本周关卡/.test(rv.text), JSON.stringify({ title: rv.title }));
 ok("日复盘含明天先做与今日计划", /明日先做/.test(rv.text) && /今日计划/.test(rv.text) && rv.plan === 1, JSON.stringify({ plan: rv.plan }));
+
+/* 明日先做 → 点一行直接进模块主页 */
+const gapCount = await page.evaluate(() => document.querySelectorAll("#view-review .do-next").length);
+ok("日复盘给出「去记」入口", gapCount >= 1, String(gapCount));
+await page.click("#view-review .do-next");
+await page.waitForTimeout(500);
+const opened = await page.evaluate(() => ({
+  module: !document.querySelector("#view-module")?.classList.contains("gone"),
+  title: document.querySelector(".tb-title")?.textContent || "",
+  back: !!document.querySelector("#view-module [data-back]"),
+}));
+ok("点明日先做进入模块主页", opened.module === true && opened.title.length > 1 && opened.back, JSON.stringify(opened));
 await page.click('#nav [data-view="today"]');
 await page.waitForTimeout(300);
 

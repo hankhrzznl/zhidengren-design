@@ -157,6 +157,16 @@ const stickers = await page.evaluate(() =>
 check("记一笔页 15 个模块贴纸", stickers.length === 15, `实际 ${stickers.length}: ${stickers.join("/")}`);
 check("贴纸顺序与预期一致", JSON.stringify(stickers) === JSON.stringify(EXPECT.map((x) => x[0])), stickers.join("/"));
 
+/* 模块按四账户标注 + 触控高度 */
+const hubMeta = await page.evaluate(() => {
+  const tagged = [...document.querySelectorAll("#screen-assistant .ob-wide .mi[data-dom]")];
+  const doms = [...new Set(tagged.map((x) => x.dataset.dom))];
+  const heights = [...document.querySelectorAll("#screen-assistant .ob-wide .mi")].map((x) => x.getBoundingClientRect().height);
+  return { tagged: tagged.length, doms: doms.join(""), minH: Math.min(...heights) };
+});
+check("11 个模块标注账户（体/情/志）", hubMeta.tagged === 11 && ["体", "情", "志"].every((d) => hubMeta.doms.includes(d)) && !hubMeta.doms.includes("思"), JSON.stringify(hubMeta));
+check("模块触控高度 ≥44", hubMeta.minH >= 43.5, String(hubMeta.minH));
+
 /* MOD_LINK 表与交接文档一致 */
 const modLink = await page.evaluate(() => MOD_LINK);
 const modLinkOk = EXPECT.every(([label, link]) => {
@@ -450,6 +460,7 @@ if (consoleErrors.length) {
   [...new Set(consoleErrors)].slice(0, 4).forEach((x) => console.log("  · " + x));
 }
 process.exit(failed.length ? 1 : 0);
+
 
 
 
