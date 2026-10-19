@@ -1,4 +1,4 @@
-﻿// 全链路校验 · 日程页 15 个模块贴纸 + 穿搭模块行为
+// 全链路校验 · 日程页 15 个模块贴纸 + 穿搭模块行为
 // 用法：node tests/verify_modules.mjs
 // 自行确保 pages/ 在 http://127.0.0.1:8899 可访问（未起则脚本内起一个）
 import { readFileSync, writeFileSync } from "node:fs";
@@ -72,6 +72,7 @@ const EXPECT = [
   ["冥想", "v3/wellness.html"],
   ["记账", "v3/expense.html"],
   ["穿搭", "v3/wardrobe.html"],
+  ["学习", "v3/study.html"],
   ["备忘录", "v3/notes.html"],
   ["倒数日", "v3/countdown.html"],
   ["到点提醒", "v3/reminders.html"],
@@ -154,7 +155,7 @@ await page.waitForTimeout(300);
 const stickers = await page.evaluate(() =>
   [...document.querySelectorAll(".ob-wide .mi")].map((x) => x.textContent.trim())
 );
-check("记一笔页 15 个模块贴纸", stickers.length === 15, `实际 ${stickers.length}: ${stickers.join("/")}`);
+check("记一笔页 16 个模块贴纸", stickers.length === 16, `实际 ${stickers.length}: ${stickers.join("/")}`);
 check("贴纸顺序与预期一致", JSON.stringify(stickers) === JSON.stringify(EXPECT.map((x) => x[0])), stickers.join("/"));
 
 /* 模块按四账户标注 + 触控高度 */
@@ -164,8 +165,21 @@ const hubMeta = await page.evaluate(() => {
   const heights = [...document.querySelectorAll("#screen-assistant .ob-wide .mi")].map((x) => x.getBoundingClientRect().height);
   return { tagged: tagged.length, doms: doms.join(""), minH: Math.min(...heights) };
 });
-check("11 个模块标注账户（体/情/志）", hubMeta.tagged === 11 && ["体", "情", "志"].every((d) => hubMeta.doms.includes(d)) && !hubMeta.doms.includes("思"), JSON.stringify(hubMeta));
+check("12 个模块标注四账户（含思/学习）", hubMeta.tagged === 12 && ["体", "情", "思", "志"].every((d) => hubMeta.doms.includes(d)), JSON.stringify(hubMeta));
 check("模块触控高度 ≥44", hubMeta.minH >= 43.5, String(hubMeta.minH));
+
+/* 今天记下的：可收起 */
+const fold = await page.evaluate(() => {
+  const btn = document.querySelector("#recToggle"), list = document.querySelector("#recList");
+  if (!btn || !list) return null;
+  const before = getComputedStyle(list).display;
+  btn.click();
+  const after = getComputedStyle(list).display;
+  const label = btn.textContent;
+  btn.click();
+  return { before, after, label };
+});
+check("今天记下的可收起/展开", fold && fold.before !== "none" && fold.after === "none" && fold.label === "展开", JSON.stringify(fold));
 
 /* MOD_LINK 表与交接文档一致 */
 const modLink = await page.evaluate(() => MOD_LINK);
@@ -173,7 +187,7 @@ const modLinkOk = EXPECT.every(([label, link]) => {
   const canonical = { 情绪: "情绪记录", 训练: "运动", 久坐: "休息" }[label] || label;
   return modLink[canonical] === link;
 });
-check("MOD_LINK 15 项均指向预期页面", modLinkOk);
+check("MOD_LINK 16 项均指向预期页面", modLinkOk);
 
 for (const [label, link] of EXPECT) {
   let err = "";
@@ -460,6 +474,7 @@ if (consoleErrors.length) {
   [...new Set(consoleErrors)].slice(0, 4).forEach((x) => console.log("  · " + x));
 }
 process.exit(failed.length ? 1 : 0);
+
 
 
 

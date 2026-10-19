@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html data-page-node-id="JB7UGdksLhHazchILCTZ3X" lang="zh-CN" data-theme="dark">
 <head data-page-node-id="eiRLEOIoDXnJt0aU8uEuq5">
 <meta data-page-node-id="8XxPPCIxNqwT6wRqYfPwL6" charset="UTF-8">
@@ -220,6 +220,8 @@ body[data-tab="mod"] .tabbar{display:none}
 .hub-intro b{display:block;font-size:13px;font-weight:700;color:var(--txt);margin-bottom:6px;letter-spacing:.01em}
 .hub-intro p{margin:0;font-size:11.5px;line-height:1.8;color:var(--txt2)}
 .hub-intro em{font-style:normal;color:var(--brand);font-weight:600}
+.rec-toggle{margin-left:10px;font:inherit;font-size:11px;color:var(--brand);background:none;border:0;padding:2px 4px;border-radius:6px;cursor:pointer}
+.rec-toggle:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .hub-link{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 18px 14px;padding:12px 16px;border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--txt2);font-size:12.5px;letter-spacing:.02em}
 .hub-link svg{width:16px;height:16px;flex:none;color:var(--txt3)}
 .hub-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
@@ -1490,7 +1492,7 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
 
       <div class="hub-intro">
         <b>这些模块，和「今天」是什么关系？</b>
-        <p>「今天」页上的每一格，都是这里的模块记出来的：饮水、睡眠、训练、情绪…分别记进 <em>体 / 情 / 思 / 志</em> 四个账户；四账户当天的完成度，决定今晚这盏灯亮几分。工具（备忘录、倒数日、到点提醒）只存事实，不挤进四账户；<b>思</b> 目前没有独立模块，靠待办与今天里的任务推进。</p>
+        <p>「今天」页上的每一格，都是这里的模块记出来的：饮水、睡眠、训练、情绪…分别记进 <em>体 / 情 / 思 / 志</em> 四个账户；四账户当天的完成度，决定今晚这盏灯亮几分。工具（备忘录、倒数日、到点提醒）只存事实，不挤进四账户；<b>思</b> 目前由「学习」记录分钟数，思考与输出随后补。</p>
       </div>
 
       <div class="hub-card" aria-label="模块中枢">
@@ -1508,6 +1510,7 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
           <button type="button" class="mi" data-dom="情"><svg><use href="#i-think"/></svg><span>冥想</span></button>
           <button type="button" class="mi" data-dom="志"><svg><use href="#i-doc-d"/></svg><span>记账</span></button>
           <button type="button" class="mi" data-dom="志"><svg><use href="#i-cloth"/></svg><span>穿搭</span></button>
+          <button type="button" class="mi" data-dom="思"><svg><use href="#i-book"/></svg><span>学习</span></button>
         </div>
         <div class="hub-group">工具</div>
         <div class="ob ob-wide" id="hubTools">
@@ -1518,7 +1521,7 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
         </div>
       </div>
 
-      <div class="sect-h"><b>今天记下的</b><span id="recCount">0 条</span></div>
+      <div class="sect-h rec-h"><b>今天记下的</b><span id="recCount">0 条</span><button type="button" class="rec-toggle" id="recToggle" aria-expanded="true">收起</button></div>
       <div class="rec-list" id="recList"></div>
     </section>
     </section>
@@ -1650,6 +1653,14 @@ function go(t){
 $$('.tab').forEach(b=>b.onclick=()=>go(b.dataset.tab));
 $('#avatarBtn').onclick=()=>go('assistant');
 $('#toRecord').onclick=()=>go('assistant');
+/* 今天记下的：默认展开，可收起（页面变长后给模块区让位） */
+$('#recToggle').onclick=()=>{
+  const list=$('#recList'), btn=$('#recToggle');
+  const hide=list.style.display!=='none';
+  list.style.display=hide?'none':'';
+  btn.textContent=hide?'展开':'收起';
+  btn.setAttribute('aria-expanded',String(!hide));
+};
 $('#focusBtn').onclick=()=>go('focus');
 $('#assistantBack').onclick=()=>go('todo');
 
@@ -2761,7 +2772,7 @@ const MOD_LINK={
   /* 日程页贴纸上有、但 MOD_META 里没有的四个 */
   '备忘录':'v3/notes.html','倒数日':'v3/countdown.html','到点提醒':'v3/reminders.html','更多':'v3/more.html',
   /* v2.0 新增 */
-  '穿搭':'v3/wardrobe.html'
+  '穿搭':'v3/wardrobe.html','学习':'v3/study.html'
 };
 /* 任务编辑器：月/日也从今天来（年份月份仍以当前演示月为准，当前环境 2026-10） */
 const NOW_TE=new Date();
@@ -3284,6 +3295,8 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
 </script>
 </body>
 </html>
+
+
 
 
 

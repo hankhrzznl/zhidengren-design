@@ -397,6 +397,9 @@ input{font-family:inherit}
 .do-next{width:100%;text-align:left;border:0;background:transparent;padding:4px 6px;margin:0 -6px 8px;border-radius:8px;cursor:pointer;font:inherit}
 .do-next:hover{background:var(--hair)}
 .do-next .sum-n{color:var(--mo-2)}
+/* 日复盘里的记录行：点一下进对应模块主页 */
+#view-review .mini-rec{width:100%;text-align:left;border:0;background:transparent;font:inherit;color:inherit;cursor:pointer;border-radius:8px;padding-left:6px;padding-right:6px}
+#view-review .mini-rec:hover{background:var(--hair)}
 .week-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-bottom:18px;max-width:640px}
 .dtab{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
@@ -1330,9 +1333,9 @@ function renderReview(){
   const rows = list.length ? list.map(function(r){
     const m = modById(r.mod); if(!m) return '';
     const t = new Date(r.ts);
-    return '<div class="mini-rec" style="cursor:default"><span class="mt">' + String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0') + '</span>' +
+    return '<button class="mini-rec" type="button" data-open="' + m.id + '"><span class="mt">' + String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0') + '</span>' +
       '<span class="mn">' + m.n + '</span><span class="mnote"></span>' +
-      '<b>' + (m.id === 'spend' ? '¥' + Math.round(r.v) : (Math.round(r.v * 10) / 10) + ' ' + m.u) + '</b></div>';
+      '<b>' + (m.id === 'spend' ? '¥' + Math.round(r.v) : (Math.round(r.v * 10) / 10) + ' ' + m.u) + '</b></button>';
   }).join('') : '<div class="empty">今天还没记。</div>';
 
   const gaps = GRID_MODULES.filter(function(m){ return m.id !== 'budget' && recsOn(TODAY, m.id).length === 0; }).slice(0, 3);
