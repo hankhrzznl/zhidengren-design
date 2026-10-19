@@ -1,4 +1,4 @@
-# 执灯人 / LifeFlow 蓝本
+﻿# 执灯人 / LifeFlow 蓝本
 
 三种形式，按「时间尺度」分工，不是同一种界面的三个皮肤。
 
@@ -70,7 +70,9 @@ node scripts/test-store.mjs    # store/accounts 纯函数
 node scripts/test-light.mjs    # 灯焰内核 51 条
 ```
 
-## 部署（GitHub Pages · 已上线）
+## 部署
+
+### 已上线：GitHub Pages
 
 **线上地址**：https://hankhrzznl.github.io/zhidengren-design/
 
@@ -78,6 +80,17 @@ node scripts/test-light.mjs    # 灯焰内核 51 条
 - Pages：Source = **Deploy from a branch** → `main` / `/`（传统分支构建，推 `main` 即自动重建）
 - 发布内容：仓库根（`index.html` 落地页 + `pages/` + `workbench/` + `tests/` + `scripts/` + `docs/`）
 - 本地远端：`design` → 该仓库；`origin` → `lifeflow`（只放了 `design-v8` 分支，未动 `main`）
+
+### 域名 `my-lifeos.com`（Vercel）：见 `docs/部署-Vercel-域名.md`
+
+推荐 **一个 Vercel 项目 + 主域名下三个路径**：`/`（落地页）、`/app/`（手机端）、`/desktop/`（电脑端）、`/work/`（工作台）。原因是三端靠 localStorage 共享数据，**子域名是不同 origin，会把数据切断**。
+
+仓库已内置：`scripts/build-vercel.mjs`（组装 `dist/`）、`vercel.json`（Build Command / Install skip / Output / SW 不缓存）、`tests/verify_vercel_dist.mjs`（10 条，验证四路径 + 同源共享）、`scripts/check-live.mjs`（上线后一键自检 10 条）。
+
+```bash
+node scripts/build-vercel.mjs          # 本地产出 dist/
+python -m http.server 8902 -d dist     # 本地预览
+```
 
 ### 为什么用独立仓库 + orphan 分支
 
@@ -129,3 +142,4 @@ Pages 会在推 `main` 后自动重建（约 30–60 秒）。
 - `pages/desktop.html` 电脑端网页（规划/复盘台）
 - `workbench/index.html` 个人工作台；`workbench/cockpit.html` 更早的作战台（历史参考）
 - `tests/` 富测试（Playwright），`scripts/` 零依赖校验
+

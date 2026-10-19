@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 执灯人 · 富测试一条命令
  *   node tests/run-all.mjs
  *
@@ -66,6 +66,7 @@ console.log(`[run-all] static http://127.0.0.1:${PORT} (pages/)\n`);
 
 const tests = [
   "verify_landing.mjs",
+  "verify_vercel_dist.mjs",
   "verify_blueprint.mjs",
   "verify_theme.mjs",
   "verify_clock_mood.mjs",
@@ -114,3 +115,4 @@ for (const t of tests) {
 server.close();
 console.log(`\n[run-all] ${pass} suites passed, ${fail} failed${fail ? " → " + failed.join(", ") : ""}`);
 process.exit(fail ? 1 : 0);
+

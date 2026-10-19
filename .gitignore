@@ -7,7 +7,11 @@ shot-*.png
 
 # 依赖（这份蓝本不需要，防止将来误入）
 node_modules/
-# 公开仓库：内部记忆/资料库备份/内部同步清单不入库
+
+# 构建产物（Vercel 构建时由 scripts/build-vercel.mjs 生成）
+dist/
+
+# 不建议入库：内部记忆 / 资料库备份 / 内部同步清单
 .workbuddy/
 资料库备份/
 _sync/
