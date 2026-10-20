@@ -66,6 +66,27 @@ const prev = await page.evaluate(() => ({
 }));
 ok("切到上个月：支出归零", (prev.expense || "").includes("0"), JSON.stringify(prev));
 
+/* 金额眼睛：与记账页共用隐藏状态 */
+await page.click("#eye");
+await page.waitForTimeout(300);
+const masked = await page.evaluate(() => ({
+  expense: document.querySelector("#sum-expense")?.textContent,
+  income: document.querySelector("#sum-income")?.textContent,
+  cat: document.querySelector("#cat-list .cat-top b")?.textContent,
+  pressed: document.querySelector("#eye")?.getAttribute("aria-pressed"),
+}));
+ok("月报眼睛关闭后隐藏金额", (masked.expense || "").includes("••••") && (masked.income || "").includes("••••") && masked.pressed === "true", JSON.stringify(masked));
+
+await page.reload({ waitUntil: "load" });
+await page.waitForTimeout(700);
+const stillHidden = await page.evaluate(() => document.querySelector("#sum-expense")?.textContent);
+ok("月报隐藏状态刷新后保持", (stillHidden || "").includes("••••"), stillHidden);
+
+await page.click("#eye");
+await page.waitForTimeout(300);
+const shown = await page.evaluate(() => document.querySelector("#eye")?.getAttribute("aria-pressed"));
+ok("月报眼睛睁开后恢复", shown === "false", String(shown));
+
 await page.screenshot({ path: OUT + "expense-report.png" });
 
 for (const r of results) console.log(r[0].padEnd(5), r[1], r[2] ? "· " + r[2] : "");

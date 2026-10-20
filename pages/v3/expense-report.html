@@ -20,6 +20,8 @@
   .head{display:flex;align-items:baseline;gap:10px;margin:2px 0 6px}
   .head a{font-size:12px;color:var(--text-3);text-decoration:none}
   .head h1{font-size:22px;margin:0;letter-spacing:.02em}
+  .eye{margin-left:auto;width:34px;height:34px;padding:7px;border:0;background:none;color:var(--text-3);cursor:pointer;border-radius:50%}
+  .eye svg{width:20px;height:20px;display:block}
   .month-nav{display:flex;align-items:center;justify-content:space-between;margin:8px 0 14px;font-size:13px;color:var(--text-2)}
   .month-nav button{width:32px;height:32px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text-1);font-size:15px;cursor:pointer}
   .sum{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px}
@@ -55,7 +57,7 @@
 </style>
 </head>
 <body>
-  <div class="head"><a href="expense.html">← 记账</a><h1>月报</h1></div>
+  <div class="head"><a href="expense.html">← 记账</a><h1>月报</h1><button type="button" class="eye" id="eye" aria-label="隐藏金额" aria-pressed="false" title="隐藏 / 显示金额"></button></div>
 
   <div class="month-nav">
     <button type="button" id="prev" aria-label="上个月">‹</button>
@@ -90,13 +92,26 @@
 (function () {
   var L = window.LightLedger;
   var $ = function (s) { return document.querySelector(s); };
+  var HIDE_KEY = 'lifeflow-money-hidden';
+  var hidden = false;
+  try { hidden = localStorage.getItem(HIDE_KEY) === '1'; } catch (e) {}
   var params = new URLSearchParams(location.search);
   var month = params.get('m') || L.monthKey();
 
   function money(n) {
+    if (hidden) return '••••';
     n = Number(n) || 0;
     var sign = n < 0 ? '−' : '';
     return sign + '¥' + (Math.round(Math.abs(n) * 100) / 100).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+  var EYE_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.7"/></svg>';
+  var EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.7"/><path d="M4 20 20 4"/></svg>';
+  function applyEye() {
+    var b = $('#eye');
+    if (!b) return;
+    b.innerHTML = hidden ? EYE_OFF : EYE_ON;
+    b.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+    b.setAttribute('aria-label', hidden ? '显示金额' : '隐藏金额');
   }
   function monthLabel(mk) {
     var p = mk.split('-');
@@ -127,7 +142,7 @@
 
     $('#cat-sum').textContent = s.byCategory.length ? (s.byCategory.length + ' 类') : '';
     $('#cat-list').innerHTML = s.byCategory.length ? s.byCategory.map(function (c) {
-      return '<div class="cat-row"><div class="cat-top"><span>' + c.category + '</span><b>' + money(c.amount) + ' · ' + c.share + '%</b></div><div class="cat-bar"><i style="width:' + c.share + '%"></i></div></div>';
+      return '<div class="cat-row"><div class="cat-top"><span>' + c.category + '</span><b>' + money(c.amount) + (hidden ? '' : ' · ' + c.share + '%') + '</b></div><div class="cat-bar"><i style="width:' + c.share + '%"></i></div></div>';
     }).join('') : '<div class="empty">这个月还没有支出。</div>';
 
     $('#acc-list').innerHTML = s.byAccount.length ? s.byAccount.map(function (a) {
@@ -147,10 +162,22 @@
   $('#prev').addEventListener('click', function () { shift(-1); });
   $('#next').addEventListener('click', function () { shift(1); });
 
+  $('#eye').addEventListener('click', function () {
+    hidden = !hidden;
+    try { localStorage.setItem(HIDE_KEY, hidden ? '1' : '0'); } catch (e) {}
+    applyEye();
+    render();
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key === HIDE_KEY) { hidden = e.newValue === '1'; applyEye(); render(); }
+  });
+
   L.autoRepayDue();
+  applyEye();
   render();
 })();
 </script>
 </body>
 </html>
+
 

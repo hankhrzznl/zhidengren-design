@@ -102,6 +102,31 @@ const repaid = await expenseFrame.evaluate(() => ({
 const repaidCredit = String(repaid.credit || "").replace(/[^0-9]/g, "");
 ok("还一期：待还减少且进度 +1", /已还 1\/12/.test(repaid.sub) && repaidCredit === "1200", JSON.stringify(repaid));
 
+/* 金额眼睛：闭眼隐藏、刷新保持、睁眼恢复 */
+await expenseFrame.click("#eye");
+await page.waitForTimeout(300);
+const masked = await expenseFrame.evaluate(() => ({
+  net: document.querySelector("#stat-net-v")?.textContent,
+  acct: document.querySelector(".acct .v")?.textContent,
+  amt: document.querySelector(".item .amt")?.textContent,
+  pressed: document.querySelector("#eye")?.getAttribute("aria-pressed"),
+  budgetType: document.querySelector("#budget-input")?.type,
+}));
+ok("眼睛关闭后金额隐藏", (masked.net || "").includes("••••") && (masked.acct || "").includes("••••") && (masked.amt || "").includes("••••") && masked.pressed === "true" && masked.budgetType === "password", JSON.stringify(masked));
+
+await expenseFrame.evaluate(() => location.reload());
+await page.waitForTimeout(900);
+const persisted = await expenseFrame.evaluate(() => document.querySelector("#stat-net-v")?.textContent);
+ok("隐藏状态刷新后保持", (persisted || "").includes("••••"), persisted);
+
+await expenseFrame.click("#eye");
+await page.waitForTimeout(300);
+const shown = await expenseFrame.evaluate(() => ({
+  net: document.querySelector("#stat-net-v")?.textContent,
+  pressed: document.querySelector("#eye")?.getAttribute("aria-pressed"),
+}));
+ok("眼睛睁开后恢复金额", (shown.net || "").includes("¥") && shown.pressed === "false", JSON.stringify(shown));
+
 /* 预算 */
 await expenseFrame.fill("#budget-input", "500");
 await expenseFrame.click("#budget-save");
