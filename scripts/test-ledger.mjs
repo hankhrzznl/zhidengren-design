@@ -89,6 +89,20 @@ ok('月报账户维度非空', ms.byAccount.length >= 1, JSON.stringify(ms.byAcc
 const tr = L.monthlyTrend(6);
 ok('六个月趋势 6 项且末月为当前', tr.length === 6 && tr[5].month === L.monthKey(), tr.map((x) => x.month).join('/'));
 
+/* 8.7 混合期数排期 + 本月一次还 */
+const pA = L.addPlan({ accountId: huabei.id, monthly: 100, periods: 12, startDate: '2026-1-15', name: '耳机' });
+const pB = L.addPlan({ accountId: huabei.id, monthly: 200, periods: 24, startDate: '2026-1-15', name: '手机' });
+ok('按每期金额反推总价', pA.monthly === 100 && near(pA.principal, 1200), JSON.stringify({ m: pA.monthly, p: pA.principal }));
+ok('本月应还 = 两笔各自月供相加', near(L.monthlyDue('2026-2').total, 300), String(L.monthlyDue('2026-2').total));
+ok('24 期独存时只剩它的月供', near(L.monthlyDue('2027-12').total, 200), String(L.monthlyDue('2027-12').total));
+const up = L.upcoming(6, '2026-2');
+ok('未来 6 个月排期 6 项', up.length === 6 && up[0].total === 300, JSON.stringify(up));
+const beforePay = L.totals().creditUsed;
+const paidMonth = L.payMonth('2026-2', bank.id);
+ok('一次还本月两笔', paidMonth.count === 2 && near(paidMonth.total, 300), JSON.stringify(paidMonth));
+ok('还后信用待还减少 300', near(beforePay - L.totals().creditUsed, 300), String(L.totals().creditUsed));
+ok('重复还本月不重复扣', L.payMonth('2026-2', bank.id).count === 0);
+
 /* 9. 非法输入 */
 ok('金额 0 拒绝', L.addTx({ type: 'expense', amount: 0, accountId: bank.id }) === null);
 ok('转给自己拒绝', L.addTx({ type: 'transfer', amount: 10, accountId: bank.id, toId: bank.id }) === null);
@@ -133,6 +147,9 @@ for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : ''
 const failed = rows.filter((r) => r[0] === 'FAIL').length;
 console.log(`\n账本内核校验：${pass}/${rows.length} PASS`);
 process.exit(failed ? 1 : 0);
+
+
+
 
 
 

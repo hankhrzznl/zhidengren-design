@@ -166,11 +166,19 @@
 
   function addPlan(input) {
     input = input || {};
-    var principal = num(input.principal);
     var periods = Math.round(num(input.periods));
-    if (principal <= 0 || periods < 1 || !input.accountId) return null;
+    if (periods < 1 || !input.accountId) return null;
     var feeRate = num(input.feeRate);
-    var monthly = Math.round((principal * (1 + feeRate / 100) / periods) * 100) / 100;
+    var monthly = num(input.monthly);
+    var principal = num(input.principal);
+    /* 两种录法：知道「每期还多少」最直观；只有总价时再按月摊 */
+    if (monthly > 0) {
+      principal = Math.round(monthly * periods * 100) / 100;
+    } else if (principal > 0) {
+      monthly = Math.round((principal * (1 + feeRate / 100) / periods) * 100) / 100;
+    } else {
+      return null;
+    }
     var db = load();
     var plan = {
       id: id('plan_'),
@@ -222,6 +230,69 @@
   }
 
   function planRemaining(plan) { return Math.max(0, plan.periods - plan.paid) * plan.monthly; }
+
+  /* 某个月应还多少：每笔分期各自按自己的期数排，12 期和 24 期不会互相牵连 */
+  function monthlyDue(month) {
+    var db = load();
+    var mk = month || monthKey();
+    var items = [], total = 0;
+    db.plans.forEach(function (p) {
+      for (var n = 1; n <= p.periods; n++) {
+        var d = addMonths(p.startDate, n);
+        var m = d.slice(0, d.lastIndexOf('-'));
+        if (m === mk) {
+          items.push({ planId: p.id, name: p.name, accountId: p.accountId, monthly: p.monthly, installment: n, paid: n <= p.paid });
+          total += p.monthly;
+          break;
+        }
+      }
+    });
+    return { month: mk, total: Math.round(total * 100) / 100, items: items };
+  }
+
+  /* 未来 n 个月每月应还 */
+  function upcoming(n, fromMonth) {
+    var start = fromMonth || monthKey();
+    var count = n || 6;
+    var out = [];
+    for (var i = 0; i < count; i++) {
+      var d = addMonths(start + '-1', i);
+      var mk = d.slice(0, d.lastIndexOf('-'));
+      var due = monthlyDue(mk);
+      out.push({ month: mk, label: Number(mk.split('-')[1]) + '月', total: due.total, count: due.items.length });
+    }
+    return out;
+  }
+
+  /* 一次性还掉某个月所有到期分期（从指定资产账户扣） */
+  function payMonth(month, fromAccountId) {
+    if (!fromAccountId) return { count: 0, total: 0 };
+    var db = load();
+    var mk = month || monthKey();
+    var count = 0, total = 0;
+    db.plans.forEach(function (p) {
+      if (p.paid >= p.periods) return;
+      var next = p.paid + 1;
+      var d = addMonths(p.startDate, next);
+      if (d.slice(0, d.lastIndexOf('-')) !== mk) return;
+      db.tx.push({
+        id: id('tx_'),
+        ts: Date.now(),
+        date: d,
+        type: 'repay',
+        amount: p.monthly,
+        accountId: fromAccountId,
+        toId: p.accountId,
+        category: '分期还款',
+        note: p.name
+      });
+      p.paid += 1;
+      count += 1;
+      total += p.monthly;
+    });
+    if (count) save(db);
+    return { count: count, total: Math.round(total * 100) / 100 };
+  }
 
   /* ---- 本月预算 / 分类汇总 ---- */
   function setBudget(amount, month) {
@@ -444,6 +515,9 @@
     addPlan: addPlan,
     repayPlan: repayPlan,
     planRemaining: planRemaining,
+    monthlyDue: monthlyDue,
+    upcoming: upcoming,
+    payMonth: payMonth,
     setBudget: setBudget,
     budgetOf: budgetOf,
     categoryBreakdown: categoryBreakdown,
@@ -456,3 +530,4 @@
     dateKey: dateKey
   };
 })(typeof window !== 'undefined' ? window : globalThis);
+

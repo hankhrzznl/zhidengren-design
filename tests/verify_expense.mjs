@@ -1,4 +1,4 @@
-import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errors = [];
@@ -81,8 +81,9 @@ const credit = await expenseFrame.evaluate(() => ({
 ok("信用消费计入待还", (credit.credit || "").includes("100"), JSON.stringify(credit));
 
 await expenseFrame.click("#plan-add");
-await expenseFrame.fill("#plan-principal", "1200");
+await expenseFrame.fill("#plan-name", "耳机");
 await expenseFrame.fill("#plan-periods", "12");
+await expenseFrame.fill("#plan-monthly", "100");
 await expenseFrame.click("#plan-save");
 await page.waitForTimeout(600);
 const plan = await expenseFrame.evaluate(() => ({
@@ -91,7 +92,26 @@ const plan = await expenseFrame.evaluate(() => ({
   credit: document.querySelector("#stat-credit")?.textContent,
 }));
 const planCredit = String(plan.credit || "").replace(/[^0-9]/g, "");
-ok("分期建好并计入待还", plan.rows === 1 && /100/.test(plan.text) && planCredit === "1300", JSON.stringify(plan));
+ok("分期按每期金额建好并计入待还", plan.rows === 1 && /100/.test(plan.text) && planCredit === "1300", JSON.stringify(plan));
+
+/* 第二笔不同期数：12 期 + 24 期并存 */
+await expenseFrame.click("#plan-add");
+await expenseFrame.fill("#plan-name", "手机");
+await expenseFrame.fill("#plan-periods", "24");
+await expenseFrame.fill("#plan-monthly", "200");
+await expenseFrame.click("#plan-save");
+await page.waitForTimeout(600);
+const plans2 = await expenseFrame.evaluate(() => ({
+  rows: document.querySelectorAll(".plan-row").length,
+  text: document.querySelector("#plan-list")?.textContent.replace(/\s+/g, " ") || "",
+  credit: document.querySelector("#stat-credit")?.textContent,
+  due: document.querySelector("#due-month")?.textContent,
+  ups: document.querySelectorAll("#plan-upcoming .up").length,
+  pay: document.querySelector("#pay-month")?.textContent,
+}));
+const plans2Credit = String(plans2.credit || "").replace(/[^0-9]/g, "");
+ok("12 期与 24 期两笔分期并存", plans2.rows === 2 && /100 × 12|100 ×12/.test(plans2.text) && /200 × 24|200 ×24/.test(plans2.text) && plans2Credit === "6100", JSON.stringify(plans2));
+ok("分期显示本月应还与未来 6 个月", plans2.ups === 6 && /¥/.test(plans2.due || "") && /还本期|本月已还清|本月无需还/.test(plans2.pay || ""), JSON.stringify({ due: plans2.due, ups: plans2.ups, pay: plans2.pay }));
 
 await expenseFrame.click(".repay[data-plan]");
 await page.waitForTimeout(600);
@@ -100,7 +120,7 @@ const repaid = await expenseFrame.evaluate(() => ({
   credit: document.querySelector("#stat-credit")?.textContent,
 }));
 const repaidCredit = String(repaid.credit || "").replace(/[^0-9]/g, "");
-ok("还一期：待还减少且进度 +1", /已还 1\/12/.test(repaid.sub) && repaidCredit === "1200", JSON.stringify(repaid));
+ok("还一期：待还减少且进度 +1", /已还 1\/12/.test(repaid.sub) && repaidCredit === "6000", JSON.stringify(repaid));
 
 /* 金额眼睛：闭眼隐藏、刷新保持、睁眼恢复 */
 await expenseFrame.click("#eye");
@@ -215,6 +235,8 @@ console.log(`\n记账校验：${results.filter((r) => r[0] === "PASS").length}/$
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
+
 
 
 

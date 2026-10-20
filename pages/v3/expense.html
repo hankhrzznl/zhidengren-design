@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -65,6 +65,14 @@
   .fields input{flex:1;min-width:110px}
   .fields select{min-width:120px}
   .save{width:100%;height:44px;border:0;border-radius:12px;background:var(--brand);color:var(--brand-ink);font-size:14px;font-weight:650;margin-top:4px;cursor:pointer}
+  .due-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 0 12px;border-bottom:1px solid var(--line);margin-bottom:4px;font-size:12.5px;color:var(--text-2)}
+  .due-head b{font-size:20px;color:var(--text-1);font-variant-numeric:tabular-nums;margin-left:4px}
+  .pay-btn{height:32px;padding:0 12px;border-radius:99px;border:0;background:var(--brand);color:var(--brand-ink);font:inherit;font-size:11.5px;font-weight:600;cursor:pointer}
+  .pay-btn[disabled]{background:var(--sheet);color:var(--text-3);cursor:default}
+  .upcoming{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .up{font-size:10.5px;color:var(--text-3);background:var(--sheet);border-radius:99px;padding:4px 8px;font-variant-numeric:tabular-nums}
+  .up.on{color:var(--brand)}
+  .due-tag{font-style:normal;font-size:9.5px;color:var(--brand-ink);background:var(--brand);border-radius:99px;padding:1px 6px;margin-left:4px;font-weight:600}
   .plan{display:flex;flex-direction:column;gap:8px}
   .plan-row{padding:12px 0;border-top:1px solid var(--line)}
   .plan-row:first-child{border-top:0;padding-top:2px}
@@ -172,16 +180,20 @@
 
   <div class="sec"><h2>分期</h2><button type="button" id="plan-add">＋ 分期</button></div>
   <div class="card" id="plan-card">
+    <div class="due-head">
+      <span>本月应还 <b id="due-month">¥0</b></span>
+      <button type="button" class="pay-btn" id="pay-month">还本期</button>
+    </div>
     <div class="plan" id="plan-list"></div>
+    <div class="upcoming" id="plan-upcoming"></div>
     <div class="form" id="plan-form">
       <div class="fields">
-        <select id="plan-account"></select>
-        <input id="plan-principal" inputmode="decimal" placeholder="本金">
+        <input id="plan-name" maxlength="12" placeholder="商品名称，如 耳机">
+        <input id="plan-periods" inputmode="numeric" placeholder="期数">
       </div>
       <div class="fields">
-        <input id="plan-periods" inputmode="numeric" placeholder="期数">
-        <input id="plan-fee" inputmode="decimal" placeholder="费率 %（可选）">
-        <input id="plan-name" maxlength="12" placeholder="名称">
+        <input id="plan-monthly" inputmode="decimal" placeholder="每期还多少">
+        <select id="plan-account"></select>
       </div>
       <button class="save" type="button" id="plan-save">开始分期</button>
     </div>
@@ -265,13 +277,16 @@
   function renderAccounts() {
     var db = L.load();
     var strip = $('#acct-strip');
+    var dueByAcc = {};
+    L.monthlyDue().items.forEach(function (it) { dueByAcc[it.accountId] = (dueByAcc[it.accountId] || 0) + it.monthly; });
     strip.innerHTML = db.accounts.map(function (a) {
       var bal = L.accountBalance(db, a.id);
       var credit = a.type === 'credit';
+      var due = dueByAcc[a.id] || 0;
       return '<button type="button" class="acct' + (selected === a.id ? ' on' : '') + '" data-acc="' + a.id + '">' +
         '<span class="n"><i style="background:' + (a.color || '#4DC3FF') + '"></i>' + a.name + '</span>' +
         '<span class="v' + (credit ? ' credit' : '') + '">' + (credit ? '待还 ' : '') + money(bal) + '</span>' +
-        '<span class="s">' + (credit ? ('额度 ' + money(a.limit || 0)) : '资产') + '</span></button>';
+        '<span class="s">' + (credit ? ('额度 ' + money(a.limit || 0) + (due ? ' · 本月 ' + money(due) : '')) : '资产') + '</span></button>';
     }).join('');
     if (!db.accounts.length) {
       strip.innerHTML = '<button type="button" class="acct-empty" id="acc-first"><b>＋ 添加第一个账户</b><span>微信 / 支付宝 / 银行卡 / 花呗</span></button>';
@@ -322,17 +337,30 @@
 
   function renderPlans() {
     var db = L.load();
+    var due = L.monthlyDue();
+    var dueByAcc = {};
+    due.items.forEach(function (it) { dueByAcc[it.accountId] = (dueByAcc[it.accountId] || 0) + it.monthly; });
+    $('#due-month').textContent = money(due.total);
+    var payBtn = $('#pay-month');
+    var unpaid = due.items.filter(function (i) { return !i.paid; });
+    payBtn.disabled = unpaid.length === 0;
+    payBtn.textContent = due.total === 0 ? '本月无需还' : (unpaid.length ? '还本期 ' + money(due.total) : '本月已还清');
+    $('#plan-upcoming').innerHTML = L.upcoming(6).map(function (u) {
+      return '<span class="up' + (u.month === due.month ? ' on' : '') + '">' + u.label + ' ' + money(u.total) + '</span>';
+    }).join('');
+
     var list = db.plans.slice().sort(function (a, b) { return String(b.startDate).localeCompare(String(a.startDate)); });
     var el = $('#plan-list');
-    if (!list.length) { el.innerHTML = '<div class="empty">还没有分期。花呗/白条的分期记在这里，按月还。</div>'; return; }
+    if (!list.length) { el.innerHTML = '<div class="empty">还没有分期。花呗/白条的商品分期记在这里，每月按各自期数还。</div>'; return; }
     el.innerHTML = list.map(function (p) {
       var done = p.paid >= p.periods;
       var pct = Math.round(p.paid / p.periods * 100);
+      var dueThis = due.items.some(function (i) { return i.planId === p.id; });
       return '<div class="plan-row">' +
-        '<div class="plan-top"><span>' + accountName(p.accountId) + ' · ' + (p.name || '分期') + '</span><b>' + money(p.monthly) + ' × ' + p.periods + ' 期</b></div>' +
+        '<div class="plan-top"><span>' + accountName(p.accountId) + ' · ' + (p.name || '分期') + (dueThis && !done ? ' <em class="due-tag">本月</em>' : '') + '</span><b>' + money(p.monthly) + ' × ' + p.periods + ' 期</b></div>' +
         '<div class="plan-sub">已还 ' + p.paid + '/' + p.periods + ' 期 · 剩余 ' + money(L.planRemaining(p)) + (p.feeRate ? ' · 费率 ' + p.feeRate + '%' : '') + '</div>' +
         '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
-        '<button class="repay" type="button" data-plan="' + p.id + '"' + (done ? ' disabled' : '') + '>' + (done ? '已还清' : '还一期（从资产账户扣）') + '</button>' +
+        '<button class="repay" type="button" data-plan="' + p.id + '"' + (done ? ' disabled' : '') + '>' + (done ? '已还清' : '还这一笔（从资产账户扣）') + '</button>' +
         '</div>';
     }).join('');
     Array.prototype.forEach.call(el.querySelectorAll('.repay[data-plan]'), function (b) {
@@ -449,15 +477,25 @@
 
   $('#plan-add').addEventListener('click', function () { $('#plan-form').classList.toggle('on'); });
   $('#plan-save').addEventListener('click', function () {
-    var principal = Number($('#plan-principal').value);
     var periods = Number($('#plan-periods').value);
+    var monthly = Number($('#plan-monthly').value);
     var accId = $('#plan-account').value;
-    if (!(principal > 0) || !(periods >= 1) || !accId) { toast('本金 / 期数 / 信用账户都要填'); return; }
-    var p = L.addPlan({ accountId: accId, principal: principal, periods: periods, feeRate: $('#plan-fee').value, name: $('#plan-name').value || '分期' });
+    if (!(monthly > 0) || !(periods >= 1) || !accId) { toast('商品名 / 期数 / 每期金额 / 信用账户都要填'); return; }
+    var p = L.addPlan({ accountId: accId, monthly: monthly, periods: periods, name: $('#plan-name').value || '分期' });
     if (!p) { toast('分期没建上'); return; }
-    $('#plan-principal').value = ''; $('#plan-periods').value = ''; $('#plan-fee').value = ''; $('#plan-name').value = '';
+    $('#plan-monthly').value = ''; $('#plan-periods').value = ''; $('#plan-name').value = '';
     $('#plan-form').classList.remove('on');
-    renderAll(); toast('分期已建：每月 ' + money(p.monthly));
+    renderAll(); toast('已建：' + money(p.monthly) + ' × ' + p.periods + ' 期');
+  });
+
+  $('#pay-month').addEventListener('click', function () {
+    var db = L.load();
+    var from = db.accounts.filter(function (a) { return a.type === 'asset'; })[0];
+    if (!from) { toast('先建一个资产账户'); return; }
+    var r = L.payMonth(null, from.id);
+    if (!r.count) { toast('本月没有待还分期'); return; }
+    writeFact('还款', r.total);
+    renderAll(); toast('已还 ' + r.count + ' 笔 · ' + money(r.total));
   });
 
   $('#filter-clear').addEventListener('click', function () { selected = null; renderAccounts(); renderList(); });
@@ -500,6 +538,8 @@
 </script>
 </body>
 </html>
+
+
 
 
 
