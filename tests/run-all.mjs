@@ -78,6 +78,7 @@ const tests = [
   "verify_expense_report.mjs",
   "verify_plan_edit.mjs",
   "verify_quick_add.mjs",
+  "verify_quick_setup.mjs",
   "verify_plan.mjs",
   "verify_workbench.mjs",
   "verify_loop.mjs",
@@ -86,6 +87,7 @@ const tests = [
   "verify_modules.mjs",
   "../scripts/test-store.mjs",
   "../scripts/test-ledger.mjs",
+  "../scripts/test-bill-parse.mjs",
   "../scripts/test-light.mjs"
 ];
 
@@ -119,6 +121,8 @@ for (const t of tests) {
 server.close();
 console.log(`\n[run-all] ${pass} suites passed, ${fail} failed${fail ? " → " + failed.join(", ") : ""}`);
 process.exit(fail ? 1 : 0);
+
+
 
 
 

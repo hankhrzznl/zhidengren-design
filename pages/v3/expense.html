@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -20,6 +20,7 @@
   h1{font-size:22px;margin:0;letter-spacing:.02em}
   .head{display:flex;align-items:baseline;justify-content:space-between;margin:4px 0 14px}
   .rep-link{font-size:11.5px;color:var(--brand);text-decoration:none;padding:2px 4px}
+  .head-links{display:flex;align-items:baseline;gap:10px}
   .stat{position:relative;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px 18px 14px}
   .eye{position:absolute;top:10px;right:10px;width:34px;height:34px;padding:7px;border:0;background:none;color:var(--text-3);cursor:pointer;border-radius:50%}
   .eye svg{width:20px;height:20px;display:block}
@@ -68,6 +69,7 @@
   .to-lab{display:flex;align-items:center;font-size:11.5px;color:var(--text-3)}
   .amount{display:flex;align-items:baseline;gap:8px;border-bottom:1px solid var(--line);padding:2px 0 10px;margin-bottom:10px}
   .amount span{font-size:18px;color:var(--text-2)}
+  .amount .paste{flex:none;height:32px;padding:0 10px;border-radius:99px;border:1px solid var(--line);background:var(--sheet);color:var(--text-2);font:inherit;font-size:11px;cursor:pointer}
   .amount input{flex:1;min-width:0;border:0;background:transparent;color:var(--text-1);font-size:30px;font-weight:650;outline:none;font-variant-numeric:tabular-nums}
   .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
   .chip{font:inherit;font-size:11.5px;padding:6px 10px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--text-2);cursor:pointer}
@@ -125,7 +127,7 @@
 </style>
 </head>
 <body>
-  <div class="head"><h1>记账</h1><a class="rep-link" href="expense-report.html">月报 →</a></div>
+  <div class="head"><h1>记账</h1><span class="head-links"><a class="rep-link" href="quick-setup.html">自动记账</a><a class="rep-link" href="expense-report.html">月报 →</a></span></div>
 
   <div class="stat">
     <div class="lab">净资产</div>
@@ -183,7 +185,7 @@
 
   <div class="sec"><h2>记一笔</h2><span></span></div>
   <div class="card">
-    <div class="amount"><span>¥</span><input id="amt-input" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+    <div class="amount"><span>¥</span><input id="amt-input" inputmode="decimal" placeholder="0.00" autocomplete="off"><button type="button" class="paste" id="paste-btn">粘贴账单</button></div>
     <div class="chips" id="type-chips">
       <button class="chip on" type="button" data-type="expense">支出</button>
       <button class="chip" type="button" data-type="income">收入</button>
@@ -243,6 +245,7 @@
 
 <script src="../core/store.js"></script>
 <script src="../core/ledger.js"></script>
+<script src="../core/bill-parse.js"></script>
 <script>
 (function () {
   var L = window.LightLedger;
@@ -606,6 +609,27 @@
     });
   });
 
+  $('#paste-btn').addEventListener('click', async function () {
+    var text = '';
+    try {
+      text = await navigator.clipboard.readText();
+    } catch (e) {
+      toast('无法读剪贴板：请先复制账单文本'); return;
+    }
+    var r = window.LightBillParse && window.LightBillParse.parse(text);
+    if (!r) { toast('没认出金额，先复制完整账单'); return; }
+    $('#amt-input').value = r.amount;
+    if (r.note) $('#rec-note').value = r.note;
+    var chip = Array.prototype.slice.call(document.querySelectorAll('#cat-chips .chip')).filter(function (x) { return x.getAttribute('data-cat') === r.cat; })[0];
+    if (chip) chip.click();
+    if (r.accountHint) {
+      var sel = $('#rec-account');
+      var opt = Array.prototype.slice.call(sel.options).filter(function (o) { return o.textContent.indexOf(r.accountHint) >= 0; })[0];
+      if (opt) sel.value = opt.value;
+    }
+    toast('已填入 ' + money(r.amount) + '，确认后点「记下」');
+  });
+
   $('#rec-save').addEventListener('click', function () {
     var amount = Number($('#amt-input').value);
     if (!(amount > 0)) { toast('先填金额'); $('#amt-input').focus(); return; }
@@ -734,6 +758,8 @@
 </script>
 </body>
 </html>
+
+
 
 
 

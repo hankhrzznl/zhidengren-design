@@ -1,4 +1,4 @@
-import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -56,8 +56,26 @@ const income = await page.evaluate(() => {
 });
 ok("URL 快捷记账支持收入与日期", income.type === "income" && income.amount === 500 && income.cat === "稿费" && income.date === "2026-10-19", JSON.stringify(income));
 
+/* 粘贴账单：解析并填入表单 */
+await page.goto(BASE + "/v3/expense.html", { waitUntil: "load" });
+await page.waitForTimeout(700);
+await page.evaluate(() => {
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { readText: async () => "微信支付\n商户：瑞幸咖啡\n金额：¥19.90" }
+  });
+});
+await page.click("#paste-btn");
+await page.waitForTimeout(500);
+const pasted = await page.evaluate(() => ({
+  amount: document.querySelector("#amt-input")?.value,
+  note: document.querySelector("#rec-note")?.value,
+  cat: [...document.querySelectorAll("#cat-chips .chip")].find((x) => x.classList.contains("on"))?.getAttribute("data-cat"),
+}));
+ok("粘贴账单自动填金额/商户/分类", pasted.amount === "19.9" && pasted.note === "瑞幸咖啡" && pasted.cat === "餐饮", JSON.stringify(pasted));
 for (const r of results) console.log(r[0].padEnd(5), r[1], r[2] ? "· " + r[2] : "");
 console.log(`\n快捷记账校验：${results.filter((r) => r[0] === "PASS").length}/${results.length} PASS`);
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+

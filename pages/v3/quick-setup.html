@@ -1,0 +1,133 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>自动记账 · 执灯人</title>
+<style>
+  :root{
+    --bg:#0B0F1A; --card:#121826; --sheet:#1A2332; --line:rgba(232,234,242,.08);
+    --text-1:#E8EAF2; --text-2:#9AA3B5; --text-3:#5A6478; --brand:#4DC3FF; --brand-ink:#06121F;
+  }
+  [data-theme="light"]{
+    --bg:#F7F4EF; --card:#FFFFFF; --sheet:#F2ECE3; --line:rgba(38,34,30,.10);
+    --text-1:#26221E; --text-2:#6E675E; --text-3:#A39C90; --brand:#002FA7; --brand-ink:#FFFFFF;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text-1);font-family:"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;padding:20px 16px 40px}
+  .head{display:flex;align-items:baseline;gap:10px;margin:2px 0 14px}
+  .head a{font-size:12px;color:var(--text-3);text-decoration:none}
+  .head h1{font-size:22px;margin:0;letter-spacing:.02em}
+  p.lead{margin:0 0 16px;font-size:12px;line-height:1.8;color:var(--text-2)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+  .sec{font-size:11px;color:var(--text-3);letter-spacing:.14em;margin:20px 0 8px}
+  .route{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:12px;line-height:1.7}
+  .route:first-of-type{border-top:0}
+  .route b{display:block;font-size:12.5px;color:var(--text-1);margin-bottom:2px}
+  .route span{color:var(--text-2)}
+  .tag{flex:none;width:22px;height:22px;border-radius:7px;background:var(--sheet);color:var(--brand);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .fields{display:flex;gap:8px;margin:8px 0}
+  .fields select{flex:1;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--sheet);color:var(--text-1);font-size:12.5px;padding:0 10px}
+  code{display:block;word-break:break-all;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.7;background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text-1)}
+  .btns{display:flex;gap:8px;margin-top:8px}
+  .btn{flex:1;height:38px;border-radius:10px;border:0;background:var(--brand);color:var(--brand-ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text-2)}
+  ol{margin:8px 0 0;padding-left:18px;font-size:12px;line-height:1.9;color:var(--text-2)}
+  ol b{color:var(--text-1)}
+  .note{font-size:11px;line-height:1.8;color:var(--text-3);margin-top:10px}
+  .toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,10px);opacity:0;pointer-events:none;background:var(--brand);color:var(--brand-ink);padding:8px 16px;border-radius:99px;font-size:12px;transition:all .2s}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+  <div class="head"><a href="expense.html">← 记账</a><h1>自动记账</h1></div>
+  <p class="lead">iOS 不允许 App 后台读微信 / 支付宝账单，所以做法是：<b>用快捷指令把「金额」拼成一条记账链接</b>，打开就记好。下面按覆盖面从高到低排。</p>
+
+  <div class="card">
+    <div class="route"><span class="tag">1</span><div><b>分享 / 复制账单（微信、支付宝）</b><span>复制账单文本 → 点一下「记一笔」快捷指令。覆盖最广，需要一次配置。</span></div></div>
+    <div class="route"><span class="tag">2</span><div><b>银行短信自动（真自动）</b><span>收到含「消费」的短信 → 自动解析金额 → 打开链接。</span></div></div>
+    <div class="route"><span class="tag">3</span><div><b>Apple Pay 自动（iOS 17+）</b><span>「交易」自动化，只覆盖 Apple Pay，需实测。</span></div></div>
+    <div class="route"><span class="tag">4</span><div><b>Siri / 背面轻点（最快手动）</b><span>「嘿 Siri，记一笔」或双击手机背面。</span></div></div>
+  </div>
+
+  <div class="sec">生成你的记账链接</div>
+  <div class="card">
+    <div class="fields">
+      <select id="acc"></select>
+      <select id="cat">
+        <option>餐饮</option><option>交通</option><option>购物</option><option>日常</option><option>房租</option><option>还款</option>
+      </select>
+    </div>
+    <code id="tpl">https://my-lifeos.com/app/v3/expense.html?quick=[金额]&amp;cat=餐饮&amp;account=微信钱包</code>
+    <div class="btns">
+      <button type="button" class="btn" id="copy">复制模板</button>
+      <button type="button" class="btn ghost" id="test">测试一次</button>
+    </div>
+    <p class="note">快捷指令里把 <b>[金额]</b> 换成「数字」变量即可；<b>account</b> 也可以删掉，默认用第一个资产账户。</p>
+  </div>
+
+  <div class="sec">快捷指令怎么建</div>
+  <div class="card">
+    <ol>
+      <li>打开「快捷指令」→ 右上角 <b>＋</b> → 命名「记一笔」；</li>
+      <li>点详情 → 打开 <b>在共享表单中显示</b>，接收类型选 <b>文本</b>；</li>
+      <li>加动作 <b>「从输入中获取数字」</b>（或「匹配文本」正则 <code style="display:inline">(?:¥|￥)\s*([0-9]+(?:\.[0-9]{1,2})?)</code>）；</li>
+      <li>加动作 <b>「打开 URL」</b>，粘贴上面复制的模板，把 <b>[金额]</b> 换成第 3 步的数字变量；</li>
+      <li>保存。之后在微信/支付宝账单里复制文本 → 分享 → 选「记一笔」。</li>
+    </ol>
+    <p class="note">短信自动化：快捷指令 → 自动化 → 信息 → 包含「消费」→ 立即运行 → 同样的「打开 URL」。</p>
+  </div>
+
+  <div class="sec">不想配快捷指令？</div>
+  <div class="card">
+    <p class="note" style="margin:0">回到记账页，用「粘贴账单」：复制微信/支付宝账单后点一下，金额、商户、分类会自动填好，确认「记下」即可。</p>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script src="../core/ledger.js"></script>
+<script>
+(function () {
+  var L = window.LightLedger;
+  var $ = function (s) { return document.querySelector(s); };
+  function toast(msg) {
+    var el = $('#toast'); el.textContent = msg; el.classList.add('on');
+    clearTimeout(el._t); el._t = setTimeout(function () { el.classList.remove('on'); }, 1800);
+  }
+  function build(useAmount) {
+    var acc = $('#acc').value;
+    var cat = $('#cat').value;
+    var base = location.origin + location.pathname.replace(/[^/]*$/, 'expense.html') + '?quick=' + (useAmount ? '0.01' : '[金额]') + '&cat=' + encodeURIComponent(cat);
+    if (acc) base += '&account=' + encodeURIComponent(acc);
+    if (useAmount) base += '&note=' + encodeURIComponent('测试');
+    return base;
+  }
+  function render() {
+    $('#tpl').textContent = build(false);
+  }
+  function init() {
+    var accs = L.listAccounts();
+    $('#acc').innerHTML = '<option value="">默认（第一个资产账户）</option>' + accs.map(function (a) {
+      return '<option value="' + a.name + '">' + a.name + (a.type === 'credit' ? '（信用）' : '') + '</option>';
+    }).join('');
+    render();
+  }
+  $('#acc').addEventListener('change', render);
+  $('#cat').addEventListener('change', render);
+  $('#copy').addEventListener('click', function () {
+    var text = build(false);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast('模板已复制'); }, function () { toast('复制失败，请长按选择'); });
+    } else {
+      toast('请长按模板手动复制');
+    }
+  });
+  $('#test').addEventListener('click', function () {
+    location.href = build(true);
+  });
+  init();
+})();
+</script>
+</body>
+</html>
+
