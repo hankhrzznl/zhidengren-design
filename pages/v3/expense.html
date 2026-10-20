@@ -116,6 +116,9 @@
   .acct-empty span{font-size:10.5px;color:var(--text-3)}
   .wipe{display:block;width:100%;margin:22px 0 4px;padding:10px;border:0;background:none;color:var(--text-3);font:inherit;font-size:11.5px;cursor:pointer}
   .wipe:hover{color:var(--red)}
+  .quick-bar{position:fixed;left:16px;right:16px;bottom:20px;z-index:50;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:var(--card);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.35);font-size:12px;color:var(--text-1)}
+  .quick-bar span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .quick-bar button{border:0;background:var(--brand);color:var(--brand-ink);border-radius:99px;padding:5px 12px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer}
   .toast{position:fixed;left:50%;bottom:16px;transform:translate(-50%,10px);opacity:0;pointer-events:none;background:var(--brand);color:var(--brand-ink);padding:8px 16px;border-radius:99px;font-size:12px;transition:all .2s}
   .toast.on{opacity:1;transform:translate(-50%,0)}
 </style>
@@ -153,7 +156,7 @@
     <div class="cats" id="cat-top"></div>
   </div>
 
-  <div class="sec"><h2>账户</h2><span><button type="button" id="acc-edit" style="display:none">编辑</button><button type="button" id="acc-add">＋ 新账户</button></span></div>
+  <div class="sec"><h2>账户</h2><span><button type="button" id="acc-edit">编辑账户</button><button type="button" id="acc-add">＋ 新账户</button></span></div>
   <div class="strip" id="acct-strip"></div>
 
   <div class="form card" id="acc-form">
@@ -231,6 +234,7 @@
   <div class="sec"><h2>流水</h2><button type="button" id="filter-clear" style="display:none">看全部</button></div>
   <div class="card"><div class="list" id="rec-list"></div></div>
 
+  <div class="quick-bar" id="quick-bar" style="display:none"><span id="quick-text"></span><button type="button" id="quick-undo">撤销</button></div>
   <button type="button" class="wipe" id="wipe">清空记账数据（账户 / 流水 / 分期）</button>
   <div class="toast" id="toast"></div>
 
@@ -336,7 +340,6 @@
 
   function renderFilter() {
     $('#filter-clear').style.display = selected ? 'inline' : 'none';
-    $('#acc-edit').style.display = selected ? 'inline' : 'none';
   }
 
   function renderSelects() {
@@ -483,12 +486,56 @@
 
   function writeFact(label, amount) {
     try {
-      if (!window.LightStore) return;
+      if (!window.LightStore) return null;
       var d = new Date();
       var key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-      window.LightStore.record({ mod: '记账', metric: 'entries', value: 1, date: key, meta: { label: label, amount: amount } });
-    } catch (e) {}
+      return window.LightStore.record({ mod: '记账', metric: 'entries', value: 1, date: key, meta: { label: label, amount: amount } });
+    } catch (e) { return null; }
   }
+
+  /* 快捷指令 / URL 记账：expense.html?quick=38&cat=餐饮&note=午饭&account=微信 */
+  var quickTimer = null, lastQuick = null;
+  function quickAddFromURL() {
+    var q;
+    try { q = new URLSearchParams(location.search); } catch (e) { return null; }
+    var amt = Number(q.get('quick') || q.get('amount') || '');
+    if (!(amt > 0)) return null;
+    var db = L.load();
+    var token = q.get('account') || '';
+    var acc = db.accounts.find(function (a) { return a.id === token; }) ||
+      db.accounts.find(function (a) { return a.name === token; }) ||
+      db.accounts.filter(function (a) { return a.type === 'asset'; })[0];
+    if (!acc) { toast('快捷记账：先添加一个账户'); return null; }
+    var type = q.get('type') === 'income' ? 'income' : 'expense';
+    var cat = q.get('cat') || q.get('category') || (type === 'income' ? '收入' : '日常');
+    var note = q.get('note') || q.get('memo') || '';
+    var rawDate = q.get('date');
+    var tx = L.addTx({
+      type: type, amount: amt, accountId: acc.id,
+      category: cat, note: note,
+      date: rawDate ? normalizeDate(rawDate) : undefined
+    });
+    if (!tx) { toast('快捷记账失败'); return null; }
+    var fact = writeFact(type === 'income' ? '收入' : cat, amt);
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    return { tx: tx, fact: fact, accName: acc.name };
+  }
+
+  function showQuick(info) {
+    lastQuick = { tx: info.tx.id, fact: info.fact && info.fact.id };
+    $('#quick-text').textContent = '已记 ' + (info.tx.type === 'income' ? '收入 ' : '') + money(info.tx.amount) + ' · ' + info.accName + ' · ' + info.tx.category;
+    $('#quick-bar').style.display = 'flex';
+    clearTimeout(quickTimer);
+    quickTimer = setTimeout(function () { $('#quick-bar').style.display = 'none'; }, 9000);
+  }
+  $('#quick-undo').addEventListener('click', function () {
+    if (!lastQuick) return;
+    L.removeTx(lastQuick.tx);
+    try { if (lastQuick.fact && window.LightStore) window.LightStore.remove(lastQuick.fact); } catch (e) {}
+    lastQuick = null;
+    $('#quick-bar').style.display = 'none';
+    renderAll(); toast('已撤销');
+  });
 
   function openAccForm(acc) {
     editing = acc ? acc.id : null;
@@ -514,6 +561,7 @@
   $('#acc-edit').addEventListener('click', function () {
     var a = L.accountById(L.load(), selected);
     if (a) openAccForm(a);
+    else toast('先点一个账户，再点「编辑账户」');
   });
   $('#acc-cancel').addEventListener('click', function () {
     editing = null;
@@ -642,9 +690,11 @@
 
   L.cleanDemo();
   var auto = L.autoRepayDue();
+  var quick = quickAddFromURL();
   syncAccType();
   applyEye();
   renderAll();
+  if (quick) showQuick(quick);
   if (auto) toast('自动记了 ' + auto + ' 期分期');
 
   $('#eye').addEventListener('click', function () {
@@ -669,6 +719,8 @@
 </script>
 </body>
 </html>
+
+
 
 
 
