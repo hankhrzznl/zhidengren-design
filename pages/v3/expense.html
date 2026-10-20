@@ -551,13 +551,22 @@
     var d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
+  function toInputDate(s) {
+    var a = String(s || '').split('-').map(Number);
+    if (a.length < 3 || !a[0]) return '';
+    return a[0] + '-' + String(a[1]).padStart(2, '0') + '-' + String(a[2]).padStart(2, '0');
+  }
+  function normalizeDate(s) {
+    var a = String(s || '').split('-').map(Number);
+    return (a[0] || 0) + '-' + (a[1] || 1) + '-' + (a[2] || 1);
+  }
   function openPlanForm(p) {
     editingPlan = p ? p.id : null;
     $('#plan-form').classList.add('on');
     $('#plan-name').value = p ? p.name : '';
     $('#plan-periods').value = p ? p.periods : '';
     $('#plan-monthly').value = p ? p.monthly : '';
-    $('#plan-start').value = p ? p.startDate : todayISO();
+    $('#plan-start').value = p ? toInputDate(p.startDate) : todayISO();
     if (p) $('#plan-account').value = p.accountId;
     $('#plan-cancel').style.display = p ? 'inline-block' : 'none';
     $('#plan-save').textContent = p ? '保存修改' : '开始分期';
@@ -573,7 +582,8 @@
     var periods = Number($('#plan-periods').value);
     var monthly = Number($('#plan-monthly').value);
     var accId = $('#plan-account').value;
-    var start = $('#plan-start').value || todayISO();
+    var startRaw = $('#plan-start').value;
+    var start = startRaw ? normalizeDate(startRaw) : todayISO();
     var name = $('#plan-name').value || '分期';
     if (!(monthly > 0) || !(periods >= 1) || !accId) { toast('商品名 / 期数 / 每期金额 / 信用账户都要填'); return; }
     var p = wasEdit
@@ -640,6 +650,7 @@
 </script>
 </body>
 </html>
+
 
 
 
