@@ -94,13 +94,40 @@
     return { added: added, total: rows.length, skipped: skipped };
   }
 
+  /* 从 App 直接 POST 一条（用来测通部署） */
+  async function push(row) {
+    var cfg = config();
+    if (!cfg || !cfg.url || !cfg.token) throw new Error('no-config');
+    var body = {
+      amount: Number(row.amount) || 0.01,
+      type: row.type === 'income' ? 'income' : 'expense',
+      cat: row.cat || '日常',
+      note: row.note || '连通测试',
+      account: row.account || '',
+      source: row.source || 'manual'
+    };
+    var res = await root.fetch(cfg.url + '/inbox?token=' + encodeURIComponent(cfg.token), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error('http-' + res.status);
+    return await res.json().catch(function () { return null; });
+  }
+  async function testPush() {
+    await push({ amount: 0.01, note: '连通测试', source: 'manual' });
+    return await pull();
+  }
   root.LightInbox = {
     config: config,
     saveConfig: saveConfig,
     pull: pull,
+    push: push,
+    testPush: testPush,
     seen: seen,
     clearSeen: clearSeen
   };
 })(typeof window !== 'undefined' ? window : globalThis);
+
 
 

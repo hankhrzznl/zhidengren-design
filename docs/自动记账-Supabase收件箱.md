@@ -1,4 +1,4 @@
-# 自动记账 · Supabase 云收件箱方案
+﻿# 自动记账 · Supabase 云收件箱方案
 
 > 目标：快捷指令**不打开 Safari**，直接把消费写进云端；记账页打开时自动拉取。
 > 适用：想「手机付完款，记账 App 一开就已经记好」；愿意接受数据放在自己的 Supabase 项目里。
@@ -70,25 +70,17 @@ Supabase → SQL Editor → 粘贴执行 `supabase/schema.sql`：
 - 建 `public.inbox`；
 - 开启 RLS 且**不建策略**：anon 读不到，只有 service_role 能访问。
 
-### 3. 部署 Edge Function
+### 3. 部署 Edge Function（推荐 Dashboard，不用装 CLI）
 
-任选一种：
+1. 左侧 **Edge Functions** → **Deploy a new function** → **Via Editor**；
+2. 名称填 `inbox`；
+3. 把 `supabase/functions/inbox/index.ts` 的内容整段粘进去（手机可打开 GitHub raw 复制）；
+4. 点 **Deploy**；
+5. 进入这个函数的 **Settings**，把 **Verify JWT** 关掉（快捷指令没有 Supabase JWT，鉴权靠下面的 token）；
+6. **Secrets** 里新增：`INBOX_TOKEN = 一串长随机`（自己生成，别用生日）。
 
-**A. 用 CLI**
-
-```bash
-npm i -g supabase
-supabase login
-supabase link --project-ref xxxx
-supabase functions deploy inbox --no-verify-jwt
-supabase secrets set INBOX_TOKEN=换成一串长随机
-```
-
-**B. 用 Dashboard**
-
-Edge Functions → New function → 名称 `inbox` → 粘贴 `supabase/functions/inbox/index.ts` → 在 Secrets 里加 `INBOX_TOKEN`。
-
-> `--no-verify-jwt` 是必须的：快捷指令不会带 Supabase JWT，鉴权由 `INBOX_TOKEN` 负责。
+> 不用 `--no-verify-jwt` 命令，Dashboard 里就是关掉 Verify JWT。
+> `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` 是 Supabase 自动注入的，不用自己填。
 
 ### 4. App 里配置
 
@@ -96,7 +88,7 @@ Edge Functions → New function → 名称 `inbox` → 粘贴 `supabase/function
 
 - URL 填 `https://xxxx.supabase.co/functions/v1/inbox`；
 - Token 填你刚设的 `INBOX_TOKEN`；
-- 保存 → 点「立即拉取」验证。
+- 保存 → 点「**发送测试**」：它会 POST 0.01 再拉回来，显示「测试成功」就通了。
 
 配置存在本机 `localStorage['lifeflow-inbox-config']`。
 
@@ -179,3 +171,4 @@ delete from public.inbox where created_at < now() - interval '90 days';
 2. 收件箱自动清理（pg_cron）；
 3. 拉取失败重试与离线队列；
 4. 在 Supabase 里直接做月度统计，App 只读。
+

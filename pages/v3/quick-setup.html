@@ -89,6 +89,7 @@
     <div class="btns">
       <button type="button" class="btn" id="inbox-save">保存</button>
       <button type="button" class="btn ghost" id="inbox-pull">立即拉取</button>
+      <button type="button" class="btn ghost" id="inbox-test">发送测试</button>
     </div>
     <p class="note" id="inbox-status">未配置。部署步骤见 docs/自动记账-Supabase收件箱.md。</p>
   </div>
@@ -193,6 +194,15 @@
     $('#inbox-status').textContent = '已保存：' + url;
     toast('云收件箱已保存');
   });
+  $('#inbox-test').addEventListener('click', async function () {
+    $('#inbox-status').textContent = '发送测试中…';
+    try {
+      var r2 = await window.LightInbox.testPush();
+      $('#inbox-status').textContent = '测试成功：已写入 0.01 并拉取 ' + r2.added + ' 笔';
+    } catch (e) {
+      $('#inbox-status').textContent = '测试失败：' + (e.message === 'no-config' ? '先保存 URL 和 token' : e.message);
+    }
+  });
   $('#inbox-pull').addEventListener('click', async function () {
     $('#inbox-status').textContent = '拉取中…';
     try {
@@ -244,6 +254,7 @@
 </script>
 </body>
 </html>
+
 
 
 

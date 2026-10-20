@@ -35,6 +35,12 @@ let current = cloud;
 globalThis.fetch = async (url, init) => {
   calls++;
   if (String(url).indexOf('token=t0ken') < 0) return { ok: false, status: 403, json: async () => ({}) };
+  if (init && init.method === 'POST') {
+    const row = JSON.parse(init.body);
+    const rec = Object.assign({ id: 'p' + calls, created_at: new Date().toISOString() }, row);
+    current = current.concat([rec]);
+    return { ok: true, status: 200, json: async () => rec };
+  }
   return { ok: true, status: 200, json: async () => current };
 };
 
@@ -64,6 +70,9 @@ current = [
 const dedup = await Inbox.pull();
 ok('短信与 Apple Pay 同一笔只记一次', dedup.added === 1 && dedup.skipped === 1, JSON.stringify(dedup));
 ok('账本保留来源标记', L.load().tx.some((t) => t.amount === 66 && t.meta && t.meta.source === 'sms'), JSON.stringify(L.load().tx.filter((t) => t.amount === 66)));
+/* 从 App 发一条测试，再拉回来 */
+const pushed = await Inbox.testPush();
+ok('testPush 写入并拉回 0.01', pushed.added === 1 && L.load().tx.some((t) => t.amount === 0.01), JSON.stringify(pushed));
 /* 未配置 */
 Inbox.saveConfig({ url: '', token: '' });
 let err = '';
@@ -73,4 +82,5 @@ ok('未配置时给出明确错误', err === 'no-config', err);
 for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : '');
 console.log(`\n云收件箱校验：${pass}/${rows.length} PASS`);
 process.exit(rows.some((r) => r[0] === 'FAIL') ? 1 : 0);
+
 

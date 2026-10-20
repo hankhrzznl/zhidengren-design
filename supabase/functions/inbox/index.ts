@@ -1,8 +1,7 @@
-﻿// 执灯人 · 自动记账云收件箱（Supabase Edge Function）
-// 部署：supabase functions deploy inbox --no-verify-jwt
+// 执灯人 · 自动记账云收件箱（Supabase Edge Function）
+// 部署：Dashboard 里粘贴本文件即可（或 supabase functions deploy inbox --no-verify-jwt）
 // 环境变量：INBOX_TOKEN=<自己设的长随机串>
 // 已有 SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 由 Supabase 注入。
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -17,7 +16,7 @@ function json(body: unknown, status = 200) {
   });
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   const url = new URL(req.url);
@@ -68,4 +67,5 @@ serve(async (req) => {
 
   return json({ error: "method" }, 405);
 });
+
 
