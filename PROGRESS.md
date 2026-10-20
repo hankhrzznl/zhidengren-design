@@ -15,7 +15,7 @@
 - **数据层**：`pages/core/store.js` + `pages/core/accounts.js`；`zdLight`（手机写 logs/moods、电脑写 plan/todos）、`wb_lifeflow_daywork_v2`（工作台个人数据）。
 - **已接灯**：饮水/睡眠/饮食/训练（体）、情绪（情）、记账（志）。
 - **三端日夜**：共用 `lifeflow-theme`；浅色语义色 `DOM_SEM_LIGHT` 覆盖 v3 模块页四域色；工作台 `--slot-*` 时段光两套。
-- **验证**：`run-all` **22/22**（blueprint 33、theme 25、clock 16、a11y 17、p16 11、modules2 16、mood/train 11、expense 26、expense-report 10、plan-edit 7、quick-add 5、plan 30、workbench 20、loop 17、sugg 8、gate 8、modules 134、store 29、ledger 57、light 51、landing 6、vercel-dist 10）；`scripts/verify` 31/31。
+- **验证**：`run-all` **22/22**（blueprint 33、theme 25、clock 16、a11y 17、p16 11、modules2 16、mood/train 11、expense 26、expense-report 10、plan-edit 7、quick-add 5、plan 30、workbench 20、loop 17、sugg 8、gate 8、modules 134、store 29、ledger 59、light 51、landing 6、vercel-dist 10）；`scripts/verify` 31/31。
 - **manifest**：`_sync/manifest-2026-10-18.txt` **87 文件**（含 `pages/tokens.css`），随每次改动重生成。
 
 ## 最近变更（10-18 下午~晚上）

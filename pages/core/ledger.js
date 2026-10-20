@@ -164,6 +164,34 @@
 
   function plans() { return load().plans.slice(); }
 
+  /* ---- 信用账户的账单是「按月」的：分期只决定从哪个月开始、分几期、每期多少；
+          具体哪天还款，永远跟着账户的账单日/还款日走 ---- */
+  function monthOf(dateStr) {
+    var a = String(dateStr || '').split('-').map(Number);
+    return a[0] + '-' + a[1];
+  }
+  function normalizeMonth(m) {
+    var a = String(m || '').split('-').map(Number);
+    if (!a[0] || !a[1]) return '';
+    return a[0] + '-' + a[1];
+  }
+  function planStartMonth(p) {
+    if (!p) return monthKey();
+    if (p.startMonth) return normalizeMonth(p.startMonth);
+    if (p.startDate) return monthOf(addMonths(p.startDate, 1));
+    return monthKey();
+  }
+
+  /* 某个月的还款日：跟着信用账户的还款日走，不跟商品走 */
+  function dueDateFor(plan, month) {
+    var db = load();
+    var acc = accountById(db, plan.accountId);
+    var day = Math.min(28, Math.max(1, Math.round(num(acc && acc.repayDay) || 10)));
+    var a = String(month).split('-').map(Number);
+    var last = new Date(a[0], a[1], 0).getDate();
+    return month + '-' + Math.min(day, last);
+  }
+
   function addPlan(input) {
     input = input || {};
     var periods = Math.round(num(input.periods));
@@ -179,6 +207,10 @@
     } else {
       return null;
     }
+    var startMonth = input.startMonth
+      ? normalizeMonth(input.startMonth)
+      : (input.startDate ? monthOf(addMonths(input.startDate, 1)) : monthOf(addMonths(dateKey(), 1)));
+    if (!startMonth) return null;
     var db = load();
     var plan = {
       id: id('plan_'),
@@ -188,6 +220,7 @@
       periods: periods,
       feeRate: feeRate,
       monthly: monthly,
+      startMonth: startMonth,
       startDate: input.startDate || dateKey(),
       paid: 0
     };
@@ -196,7 +229,7 @@
     db.tx.push({
       id: id('tx_'),
       ts: Date.now(),
-      date: plan.startDate,
+      date: input.startDate || dateKey(),
       type: 'expense',
       amount: principal,
       accountId: plan.accountId,
@@ -243,7 +276,7 @@
       if (p.settled) return;
       for (var n = 1; n <= p.periods; n++) {
         if (!includePaid && n <= p.paid) continue;
-        var d = addMonths(p.startDate, n);
+        var d = addMonths(planStartMonth(p) + '-1', n - 1);
         var m = d.slice(0, d.lastIndexOf('-'));
         if (m === mk) {
           items.push({ planId: p.id, name: p.name, accountId: p.accountId, monthly: p.monthly, installment: n, paid: n <= p.paid });
@@ -278,12 +311,12 @@
     db.plans.forEach(function (p) {
       if (p.paid >= p.periods) return;
       var next = p.paid + 1;
-      var d = addMonths(p.startDate, next);
+      var d = addMonths(planStartMonth(p) + '-1', next - 1);
       if (d.slice(0, d.lastIndexOf('-')) !== mk) return;
       db.tx.push({
         id: id('tx_'),
         ts: Date.now(),
-        date: d,
+        date: dueDateFor(p, mk),
         type: 'repay',
         amount: p.monthly,
         accountId: fromAccountId,
@@ -322,6 +355,8 @@
     p.monthly = Math.round(monthly * 100) / 100;
     if (patch.name != null) p.name = String(patch.name).slice(0, 20) || p.name;
     if (patch.accountId) p.accountId = patch.accountId;
+    if (patch.startMonth) p.startMonth = normalizeMonth(patch.startMonth);
+    else if (patch.startDate) p.startMonth = monthOf(addMonths(patch.startDate, 1));
     if (patch.startDate) p.startDate = patch.startDate;
     p.principal = Math.round(p.monthly * p.periods * 100) / 100;
 
@@ -345,6 +380,14 @@
     });
     if (!save(db)) return null;
     return p;
+  }
+
+  /* 旧计划没有 startMonth：按「首期 = 购买月 + 1」补齐 */
+  function ensurePlanModel() {
+    var db = load(); var changed = false;
+    db.plans.forEach(function (p) { if (!p.startMonth) { p.startMonth = planStartMonth(p); changed = true; } });
+    if (changed) save(db);
+    return changed;
   }
 
   /* 删除分期并撤销它带来的本金与还款流水（余额会回到记账前） */
@@ -547,7 +590,10 @@
     var n = 0;
     db.plans.forEach(function (p) {
       while (p.paid < p.periods) {
-        var due = addMonths(p.startDate, p.paid + 1);
+        var sm = planStartMonth(p);
+        var dm = addMonths(sm + '-1', p.paid);
+        var mk = dm.slice(0, dm.lastIndexOf('-'));
+        var due = dueDateFor(p, mk);
         if (dateNum(due) > dateNum(t)) break;
         var from = db.accounts.filter(function (a) { return a.type === 'asset'; })[0];
         if (!from) break;
@@ -643,6 +689,8 @@
     planRemaining: planRemaining,
     monthlyDue: monthlyDue,
     updatePlan: updatePlan,
+    planStartMonth: planStartMonth,
+    ensurePlanModel: ensurePlanModel,
     deletePlan: deletePlan,
     settlePlan: settlePlan,
     billingInfo: billingInfo,
@@ -660,6 +708,7 @@
     dateKey: dateKey
   };
 })(typeof window !== 'undefined' ? window : globalThis);
+
 
 
 

@@ -224,7 +224,8 @@
         <select id="plan-account"></select>
       </div>
       <div class="fields">
-        <input id="plan-start" type="date" aria-label="首期日期">
+        <span class="to-lab">首期</span>
+        <input id="plan-start" type="month" aria-label="首期账单月">
         <button class="pbtn" type="button" id="plan-cancel" style="display:none">取消修改</button>
       </div>
       <button class="save" type="button" id="plan-save">开始分期</button>
@@ -383,16 +384,20 @@
       return '<span class="up' + (u.month === due.month ? ' on' : '') + '">' + u.label + ' ' + money(u.total) + '</span>';
     }).join('');
 
-    var list = db.plans.slice().sort(function (a, b) { return String(b.startDate).localeCompare(String(a.startDate)); });
+    var list = db.plans.slice().sort(function (a, b) { return String(L.planStartMonth(b)).localeCompare(String(L.planStartMonth(a))); });
     var el = $('#plan-list');
     if (!list.length) { el.innerHTML = '<div class="empty">还没有分期。花呗/白条的商品分期记在这里，每月按各自期数还。</div>'; return; }
     el.innerHTML = list.map(function (p) {
       var done = p.paid >= p.periods;
       var pct = Math.round(p.paid / p.periods * 100);
       var dueThis = due.items.some(function (i) { return i.planId === p.id; });
+      var accObj = L.accountById(db, p.accountId);
+      var sm = L.planStartMonth(p);
+      var monthLabel = Number(sm.split('-')[1]) + ' 月';
+      var repayDay = accObj ? (accObj.repayDay || 10) : 10;
       return '<div class="plan-row">' +
         '<div class="plan-top"><span>' + accountName(p.accountId) + ' · ' + (p.name || '分期') + (dueThis && !done ? ' <em class="due-tag">本月</em>' : '') + '</span><b>' + money(p.monthly) + ' × ' + p.periods + ' 期</b></div>' +
-        '<div class="plan-sub">' + (p.settled ? '已提前结清 · ' : '') + '已还 ' + p.paid + '/' + p.periods + ' 期 · 剩余 ' + money(L.planRemaining(p)) + (p.feeRate ? ' · 费率 ' + p.feeRate + '%' : '') + '</div>' +
+        '<div class="plan-sub">' + (p.settled ? '已提前结清 · ' : '') + '首期 ' + monthLabel + ' · 每月 ' + repayDay + ' 日还 · 已还 ' + p.paid + '/' + p.periods + ' 期 · 剩余 ' + money(L.planRemaining(p)) + (p.feeRate ? ' · 费率 ' + p.feeRate + '%' : '') + '</div>' +
         '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
         '<button class="repay" type="button" data-plan="' + p.id + '"' + (done ? ' disabled' : '') + '>' + (done ? '已还清' : '还这一笔（从资产账户扣）') + '</button>' +
         '<div class="plan-actions">' +
@@ -618,10 +623,15 @@
     var d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
-  function toInputDate(s) {
-    var a = String(s || '').split('-').map(Number);
-    if (a.length < 3 || !a[0]) return '';
-    return a[0] + '-' + String(a[1]).padStart(2, '0') + '-' + String(a[2]).padStart(2, '0');
+  function toInputMonth(m) {
+    var a = String(m || '').split('-').map(Number);
+    if (a.length < 2 || !a[0]) return '';
+    return a[0] + '-' + String(a[1]).padStart(2, '0');
+  }
+  function nextMonthInput() {
+    var d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    return toInputMonth(d.getFullYear() + '-' + (d.getMonth() + 1));
   }
   function normalizeDate(s) {
     var a = String(s || '').split('-').map(Number);
@@ -633,7 +643,7 @@
     $('#plan-name').value = p ? p.name : '';
     $('#plan-periods').value = p ? p.periods : '';
     $('#plan-monthly').value = p ? p.monthly : '';
-    $('#plan-start').value = p ? toInputDate(p.startDate) : todayISO();
+    $('#plan-start').value = p ? toInputMonth(L.planStartMonth(p)) : nextMonthInput();
     if (p) $('#plan-account').value = p.accountId;
     $('#plan-cancel').style.display = p ? 'inline-block' : 'none';
     $('#plan-save').textContent = p ? '保存修改' : '开始分期';
@@ -649,13 +659,12 @@
     var periods = Number($('#plan-periods').value);
     var monthly = Number($('#plan-monthly').value);
     var accId = $('#plan-account').value;
-    var startRaw = $('#plan-start').value;
-    var start = startRaw ? normalizeDate(startRaw) : todayISO();
+    var startMonth = $('#plan-start').value || nextMonthInput();
     var name = $('#plan-name').value || '分期';
     if (!(monthly > 0) || !(periods >= 1) || !accId) { toast('商品名 / 期数 / 每期金额 / 信用账户都要填'); return; }
     var p = wasEdit
-      ? L.updatePlan(editingPlan, { name: name, monthly: monthly, periods: periods, accountId: accId, startDate: start })
-      : L.addPlan({ accountId: accId, monthly: monthly, periods: periods, name: name, startDate: start });
+      ? L.updatePlan(editingPlan, { name: name, monthly: monthly, periods: periods, accountId: accId, startMonth: startMonth })
+      : L.addPlan({ accountId: accId, monthly: monthly, periods: periods, name: name, startMonth: startMonth });
     if (!p) { toast(wasEdit ? '期数不能少于已还期数' : '分期没建上'); return; }
     editingPlan = null;
     $('#plan-name').value = ''; $('#plan-periods').value = ''; $('#plan-monthly').value = '';
@@ -688,6 +697,7 @@
     if (e.key === 'Enter') $('#budget-save').click();
   });
 
+  L.ensurePlanModel();
   L.cleanDemo();
   var auto = L.autoRepayDue();
   var quick = quickAddFromURL();
@@ -719,6 +729,9 @@
 </script>
 </body>
 </html>
+
+
+
 
 
 

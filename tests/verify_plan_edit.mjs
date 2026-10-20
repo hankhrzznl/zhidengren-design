@@ -1,4 +1,4 @@
-import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -21,8 +21,8 @@ await page.evaluate(() => {
 await page.goto(BASE + "/v3/expense.html", { waitUntil: "load" });
 await page.waitForTimeout(600);
 await page.evaluate(() => {
-  LightLedger.addPlan({ accountId: "c1", periods: 12, monthly: 100, name: "耳机", startDate: "2026-9-25" });
-  LightLedger.addPlan({ accountId: "c1", periods: 24, monthly: 200, name: "手机", startDate: "2026-9-25" });
+  LightLedger.addPlan({ accountId: "c1", periods: 12, monthly: 100, name: "耳机", startMonth: "2026-11" });
+  LightLedger.addPlan({ accountId: "c1", periods: 24, monthly: 200, name: "手机", startMonth: "2026-11" });
 });
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(700);
@@ -115,5 +115,6 @@ console.log(`\n分期改错校验：${results.filter((r) => r[0] === "PASS").len
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 
 

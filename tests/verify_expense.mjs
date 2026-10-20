@@ -1,4 +1,4 @@
-import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errors = [];
@@ -215,12 +215,14 @@ await page.waitForTimeout(400);
 const renamed = await expenseFrame.evaluate(() => [...document.querySelectorAll(".acct .n")].map((x) => x.textContent.trim()).join("/"));
 ok("账户可改名", editVisible && renamed.includes("微信零钱"), renamed);
 
-/* 分期到期自动记一期：把计划改成两个月前开始，重载页面 */
+/* 分期到期自动记一期：把计划改成两个月前开始、账户还款日设为 1 号，重载页面 */
 await expenseFrame.evaluate(() => {
   const db = JSON.parse(localStorage.getItem("lifeflow-ledger-v1"));
-  const d = new Date(); d.setMonth(d.getMonth() - 2);
-  const past = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
-  db.plans[0].startDate = past; db.plans[0].paid = 0;
+  const d = new Date(); d.setMonth(d.getMonth() - 1);
+  db.plans[0].startMonth = d.getFullYear() + "-" + (d.getMonth() + 1);
+  db.plans[0].paid = 0;
+  const acc = db.accounts.find((a) => a.id === db.plans[0].accountId);
+  if (acc) acc.repayDay = 1;
   localStorage.setItem("lifeflow-ledger-v1", JSON.stringify(db));
 });
 await expenseFrame.evaluate(() => location.reload());
@@ -265,6 +267,7 @@ console.log(`\n记账校验：${results.filter((r) => r[0] === "PASS").length}/$
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 
 
 

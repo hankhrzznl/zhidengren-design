@@ -135,6 +135,14 @@ ok('结清后信用待还减少剩余金额', near(beforeSettle - L.totals().cre
 ok('结清后该月不再算它的 200', near(janBefore - L.monthlyDue('2027-1').total, 200), String(janBefore - L.monthlyDue('2027-1').total));
 ok('重复结清返回 null', L.settlePlan(pB.id, bank.id) === null);
 
+/* 8.11 还款日跟账户走，不跟商品走 */
+const testAcc = L.addAccount({ name: '测试卡', type: 'credit', opening: 0, limit: 1000, billDay: 5, repayDay: 20 });
+const testPlan = L.addPlan({ accountId: testAcc.id, monthly: 100, periods: 3, startMonth: '2026-10', name: '还款日测试' });
+L.autoRepayDue('2026-10-19');
+ok('19 号还没到账户还款日，不自动还', L.plans().find((p) => p.id === testPlan.id).paid === 0, String(L.plans().find((p) => p.id === testPlan.id).paid));
+L.autoRepayDue('2026-10-20');
+ok('20 号到账户还款日，才自动还一期', L.plans().find((p) => p.id === testPlan.id).paid === 1, String(L.plans().find((p) => p.id === testPlan.id).paid));
+
 /* 9. 非法输入 */
 ok('金额 0 拒绝', L.addTx({ type: 'expense', amount: 0, accountId: bank.id }) === null);
 ok('转给自己拒绝', L.addTx({ type: 'transfer', amount: 10, accountId: bank.id, toId: bank.id }) === null);
@@ -179,6 +187,8 @@ for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : ''
 const failed = rows.filter((r) => r[0] === 'FAIL').length;
 console.log(`\n账本内核校验：${pass}/${rows.length} PASS`);
 process.exit(failed ? 1 : 0);
+
+
 
 
 
