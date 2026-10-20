@@ -123,6 +123,18 @@ L.deletePlan(pA.id);
 ok('删除后计划消失', !L.plans().some((p) => p.id === pA.id));
 ok('删除同时撤销本金与还款流水', near(b4 - L.totals().creditUsed, 1400), String(b4 - L.totals().creditUsed));
 
+/* 8.10 提前结清 */
+const pB2 = L.plans().find((p) => p.id === pB.id);
+const remainAmt = L.planRemaining(pB2);
+const beforeSettle = L.totals().creditUsed;
+const janBefore = L.monthlyDue('2027-1').total;
+const st = L.settlePlan(pB.id, bank.id);
+ok('提前结清金额 = 剩余期数 × 月供', st && near(st.amount, remainAmt), JSON.stringify(st && { a: st.amount, r: remainAmt }));
+ok('结清后计划标记 settled 且已还满', L.plans().find((p) => p.id === pB.id).settled === true && L.plans().find((p) => p.id === pB.id).paid === 24);
+ok('结清后信用待还减少剩余金额', near(beforeSettle - L.totals().creditUsed, remainAmt), String(beforeSettle - L.totals().creditUsed));
+ok('结清后该月不再算它的 200', near(janBefore - L.monthlyDue('2027-1').total, 200), String(janBefore - L.monthlyDue('2027-1').total));
+ok('重复结清返回 null', L.settlePlan(pB.id, bank.id) === null);
+
 /* 9. 非法输入 */
 ok('金额 0 拒绝', L.addTx({ type: 'expense', amount: 0, accountId: bank.id }) === null);
 ok('转给自己拒绝', L.addTx({ type: 'transfer', amount: 10, accountId: bank.id, toId: bank.id }) === null);
@@ -167,6 +179,8 @@ for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : ''
 const failed = rows.filter((r) => r[0] === 'FAIL').length;
 console.log(`\n账本内核校验：${pass}/${rows.length} PASS`);
 process.exit(failed ? 1 : 0);
+
+
 
 
 

@@ -368,13 +368,14 @@
   function renderPlans() {
     var db = L.load();
     var due = L.monthlyDue();
+    var bill = L.monthlyDue(null, true);
+    var paidThisMonth = Math.max(0, bill.total - due.total);
     var dueByAcc = {};
     due.items.forEach(function (it) { dueByAcc[it.accountId] = (dueByAcc[it.accountId] || 0) + it.monthly; });
     $('#due-month').textContent = money(due.total);
     var payBtn = $('#pay-month');
-    var unpaid = due.items.filter(function (i) { return !i.paid; });
-    payBtn.disabled = unpaid.length === 0;
-    payBtn.textContent = due.total === 0 ? '本月无需还' : (unpaid.length ? '还本期 ' + money(due.total) : '本月已还 ' + money(due.total));
+    payBtn.disabled = due.items.length === 0;
+    payBtn.textContent = due.total > 0 ? '还本期 ' + money(due.total) : (paidThisMonth > 0 ? '本月已还 ' + money(paidThisMonth) : '本月无需还');
     $('#plan-upcoming').innerHTML = L.upcoming(6).map(function (u) {
       return '<span class="up' + (u.month === due.month ? ' on' : '') + '">' + u.label + ' ' + money(u.total) + '</span>';
     }).join('');
@@ -388,10 +389,12 @@
       var dueThis = due.items.some(function (i) { return i.planId === p.id; });
       return '<div class="plan-row">' +
         '<div class="plan-top"><span>' + accountName(p.accountId) + ' · ' + (p.name || '分期') + (dueThis && !done ? ' <em class="due-tag">本月</em>' : '') + '</span><b>' + money(p.monthly) + ' × ' + p.periods + ' 期</b></div>' +
-        '<div class="plan-sub">已还 ' + p.paid + '/' + p.periods + ' 期 · 剩余 ' + money(L.planRemaining(p)) + (p.feeRate ? ' · 费率 ' + p.feeRate + '%' : '') + '</div>' +
+        '<div class="plan-sub">' + (p.settled ? '已提前结清 · ' : '') + '已还 ' + p.paid + '/' + p.periods + ' 期 · 剩余 ' + money(L.planRemaining(p)) + (p.feeRate ? ' · 费率 ' + p.feeRate + '%' : '') + '</div>' +
         '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
         '<button class="repay" type="button" data-plan="' + p.id + '"' + (done ? ' disabled' : '') + '>' + (done ? '已还清' : '还这一笔（从资产账户扣）') + '</button>' +
-        '<div class="plan-actions"><button class="pbtn" type="button" data-edit="' + p.id + '">编辑</button><button class="pbtn danger" type="button" data-del="' + p.id + '">删除</button></div>' +
+        '<div class="plan-actions">' +
+        (!done ? '<button class="pbtn" type="button" data-settle="' + p.id + '">提前结清 ' + money(L.planRemaining(p)) + '</button>' : '') +
+        '<button class="pbtn" type="button" data-edit="' + p.id + '">编辑</button><button class="pbtn danger" type="button" data-del="' + p.id + '">删除</button></div>' +
         '</div>';
     }).join('');
     Array.prototype.forEach.call(el.querySelectorAll('[data-edit]'), function (b) {
@@ -407,6 +410,22 @@
         editingPlan = null;
         $('#plan-form').classList.remove('on');
         renderAll(); toast('分期已删除');
+      });
+    });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-settle]'), function (b) {
+      b.addEventListener('click', function () {
+        var db2 = L.load();
+        var plan = db2.plans.find(function (x) { return x.id === b.getAttribute('data-settle'); });
+        if (!plan) return;
+        var amount = L.planRemaining(plan);
+        var left = plan.periods - plan.paid;
+        if (!confirm('提前结清「' + (plan.name || '分期') + '」？剩 ' + left + ' 期，共 ' + money(amount) + '，会从第一个资产账户一次性扣。')) return;
+        var from = db2.accounts.filter(function (a) { return a.type === 'asset'; })[0];
+        if (!from) { toast('先建一个资产账户'); return; }
+        var r = L.settlePlan(plan.id, from.id);
+        if (!r) { toast('这笔分期已经结清了'); return; }
+        writeFact('提前结清', r.amount);
+        renderAll(); toast('已提前结清 ' + money(r.amount));
       });
     });
     Array.prototype.forEach.call(el.querySelectorAll('.repay[data-plan]'), function (b) {

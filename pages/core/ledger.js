@@ -233,13 +233,16 @@
 
   function planRemaining(plan) { return Math.max(0, plan.periods - plan.paid) * plan.monthly; }
 
-  /* 某个月应还多少：每笔分期各自按自己的期数排，12 期和 24 期不会互相牵连 */
-  function monthlyDue(month) {
+  /* 某个月应还多少：每笔分期各自按自己的期数排，12 期和 24 期不会互相牵连
+     默认只算「还没还」的期；includePaid=true 时把已还的也算进来（用来显示本月账单） */
+  function monthlyDue(month, includePaid) {
     var db = load();
     var mk = month || monthKey();
     var items = [], total = 0;
     db.plans.forEach(function (p) {
+      if (p.settled) return;
       for (var n = 1; n <= p.periods; n++) {
+        if (!includePaid && n <= p.paid) continue;
         var d = addMonths(p.startDate, n);
         var m = d.slice(0, d.lastIndexOf('-'));
         if (m === mk) {
@@ -302,7 +305,7 @@
     return db.tx.filter(function (t) {
       if (t.meta && t.meta.planId) return t.meta.planId === plan.id;
       var cat = t.category || '';
-      return (cat === '分期本金' || cat === '分期还款' || cat === '分期自动还款') && t.note === plan.name;
+      return (cat === '分期本金' || cat === '分期还款' || cat === '分期自动还款' || cat === '提前结清') && t.note === plan.name;
     });
   }
 
@@ -353,6 +356,24 @@
     db.tx = db.tx.filter(function (t) { return txs.indexOf(t) < 0; });
     db.plans = db.plans.filter(function (x) { return x.id !== planId; });
     return save(db);
+  }
+
+  /* 提前结清：把剩余期数一次性从资产账户还掉，计划标记 settled */
+  function settlePlan(planId, fromAccountId) {
+    if (!fromAccountId) return null;
+    var db = load();
+    var p = db.plans.find(function (x) { return x.id === planId; });
+    if (!p || p.settled || p.paid >= p.periods) return null;
+    var amount = planRemaining(p);
+    db.tx.push({
+      id: id('tx_'), ts: Date.now(), date: dateKey(), type: 'repay',
+      amount: amount, accountId: fromAccountId, toId: p.accountId,
+      category: '提前结清', note: p.name, meta: { planId: p.id }
+    });
+    p.paid = p.periods;
+    p.settled = true;
+    if (!save(db)) return null;
+    return { plan: p, amount: Math.round(amount * 100) / 100 };
   }
 
   /* ---- 账单日 / 还款日 ---- */
@@ -623,6 +644,7 @@
     monthlyDue: monthlyDue,
     updatePlan: updatePlan,
     deletePlan: deletePlan,
+    settlePlan: settlePlan,
     billingInfo: billingInfo,
     upcoming: upcoming,
     payMonth: payMonth,
@@ -638,6 +660,7 @@
     dateKey: dateKey
   };
 })(typeof window !== 'undefined' ? window : globalThis);
+
 
 
 

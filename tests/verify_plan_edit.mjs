@@ -1,4 +1,4 @@
-﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -65,6 +65,24 @@ const ledgerAfter = await page.evaluate(() => {
 });
 ok("本金流水同步更新", ledgerAfter.periods === 10 && ledgerAfter.monthly === 150 && ledgerAfter.principal === 1500 && ledgerAfter.tx === 1500, JSON.stringify(ledgerAfter));
 
+/* 提前结清耳机Pro：剩 10 期 × 150 = 1500 */
+await page.evaluate(() => { window.confirm = () => true; });
+await page.locator('.plan-row', { hasText: '耳机Pro' }).locator('[data-settle]').click();
+await page.waitForTimeout(600);
+const settled = await page.evaluate(() => {
+  const row = [...document.querySelectorAll(".plan-row")].find((x) => x.textContent.includes("耳机Pro"));
+  const db = JSON.parse(localStorage.getItem("lifeflow-ledger-v1"));
+  return {
+    text: row ? row.textContent.replace(/\s+/g, " ") : "",
+    credit: document.querySelector("#stat-credit")?.textContent,
+    settle: row ? !!row.querySelector("[data-settle]") : true,
+    paid: db.plans.find((x) => x.name === "耳机Pro").paid,
+    settled: db.plans.find((x) => x.name === "耳机Pro").settled,
+  };
+});
+const settledCredit = String(settled.credit || "").replace(/[^0-9]/g, "");
+ok("提前结清：剩余一次性还掉并标记结清", /已提前结清/.test(settled.text) && settledCredit === "4800" && settled.paid === 10 && settled.settled === true && settled.settle === false, JSON.stringify(settled));
+
 /* 删除第二笔 */
 await page.evaluate(() => { window.confirm = () => true; });
 await page.locator('.plan-row', { hasText: '手机' }).locator('[data-del]').click();
@@ -76,7 +94,7 @@ const afterDel = await page.evaluate(() => ({
   plans: JSON.parse(localStorage.getItem("lifeflow-ledger-v1")).plans.length,
 }));
 const afterDelCredit = String(afterDel.credit || "").replace(/[^0-9]/g, "");
-ok("删除一笔分期并撤销本金", afterDel.rows === 1 && !/手机/.test(afterDel.text) && afterDelCredit === "1500" && afterDel.plans === 1, JSON.stringify(afterDel));
+ok("删除一笔分期并撤销本金", afterDel.rows === 1 && !/手机/.test(afterDel.text) && afterDelCredit === "0" && afterDel.plans === 1, JSON.stringify(afterDel));
 
 /* 删掉剩下的 */
 await page.click(".plan-row [data-del]");
