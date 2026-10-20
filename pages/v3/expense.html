@@ -246,6 +246,7 @@
 <script src="../core/store.js"></script>
 <script src="../core/ledger.js"></script>
 <script src="../core/bill-parse.js"></script>
+<script src="../core/cloud-inbox.js"></script>
 <script>
 (function () {
   var L = window.LightLedger;
@@ -735,6 +736,9 @@
   renderAll();
   if (quick) showQuick(quick);
   if (auto) toast('自动记了 ' + auto + ' 期分期');
+  if (window.LightInbox) {
+    window.LightInbox.pull().then(function (r) { if (r && r.added) { renderAll(); toast('云收件箱记了 ' + r.added + ' 笔'); } }).catch(function () {});
+  }
 
   $('#eye').addEventListener('click', function () {
     hidden = !hidden;
@@ -758,6 +762,7 @@
 </script>
 </body>
 </html>
+
 
 
 

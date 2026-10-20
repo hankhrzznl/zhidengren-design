@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -78,6 +78,20 @@
     <p class="note">短信自动化：快捷指令 → 自动化 → 信息 → 包含「消费」→ 立即运行 → 同样的「打开 URL」。</p>
   </div>
 
+  <div class="sec">云收件箱（可选 · 需要 Supabase 项目）</div>
+  <div class="card">
+    <p class="note" style="margin-top:0">配好后，快捷指令用「获取 URL 内容」直接 POST，不用打开 Safari；记账页打开时自动拉取。数据只存在你自己的 Supabase 项目里。</p>
+    <div class="fields" style="flex-direction:column">
+      <input id="inbox-url" placeholder="https://xxxx.supabase.co/functions/v1/inbox" style="height:40px;border-radius:10px;border:1px solid var(--line);background:var(--sheet);color:var(--text-1);font-size:12px;padding:0 10px">
+      <input id="inbox-token" placeholder="INBOX_TOKEN（你自己设的长随机串）" style="height:40px;border-radius:10px;border:1px solid var(--line);background:var(--sheet);color:var(--text-1);font-size:12px;padding:0 10px">
+    </div>
+    <div class="btns">
+      <button type="button" class="btn" id="inbox-save">保存</button>
+      <button type="button" class="btn ghost" id="inbox-pull">立即拉取</button>
+    </div>
+    <p class="note" id="inbox-status">未配置。部署步骤见 docs/自动记账-Supabase收件箱.md。</p>
+  </div>
+
   <div class="sec">不想配快捷指令？</div>
   <div class="card">
     <p class="note" style="margin:0">回到记账页，用「粘贴账单」：复制微信/支付宝账单后点一下，金额、商户、分类会自动填好，确认「记下」即可。</p>
@@ -86,6 +100,7 @@
   <div class="toast" id="toast"></div>
 
 <script src="../core/ledger.js"></script>
+<script src="../core/cloud-inbox.js"></script>
 <script>
 (function () {
   var L = window.LightLedger;
@@ -125,9 +140,36 @@
   $('#test').addEventListener('click', function () {
     location.href = build(true);
   });
+
+  /* 云收件箱配置 */
+  var cfg = window.LightInbox && window.LightInbox.config();
+  if (cfg && cfg.url) {
+    $('#inbox-url').value = cfg.url;
+    $('#inbox-token').value = cfg.token || '';
+    $('#inbox-status').textContent = '已配置：' + cfg.url;
+  }
+  $('#inbox-save').addEventListener('click', function () {
+    var url = $('#inbox-url').value.trim();
+    var token = $('#inbox-token').value.trim();
+    if (!url || !token) { $('#inbox-status').textContent = 'URL 和 token 都要填'; return; }
+    window.LightInbox.saveConfig({ url: url, token: token });
+    $('#inbox-status').textContent = '已保存：' + url;
+    toast('云收件箱已保存');
+  });
+  $('#inbox-pull').addEventListener('click', async function () {
+    $('#inbox-status').textContent = '拉取中…';
+    try {
+      var r = await window.LightInbox.pull();
+      $('#inbox-status').textContent = '拉取完成：新增 ' + r.added + ' 笔，共 ' + r.total + ' 笔';
+    } catch (e) {
+      $('#inbox-status').textContent = '拉取失败：' + (e.message === 'no-config' ? '先保存 URL 和 token' : e.message);
+    }
+  });
+
   init();
 })();
 </script>
 </body>
 </html>
+
 

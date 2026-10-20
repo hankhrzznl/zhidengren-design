@@ -1,4 +1,4 @@
-import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -51,6 +51,21 @@ await page.waitForTimeout(300);
 const copied = await page.evaluate(() => ({ text: window.__copied, toast: document.querySelector("#toast")?.textContent }));
 ok("复制按钮复制模板", copied.text === tpl2 && /已复制/.test(copied.toast || ""), JSON.stringify(copied));
 
+/* 云收件箱配置区 */
+const cloudUi = await page.evaluate(() => ({
+  url: !!document.querySelector("#inbox-url"),
+  save: !!document.querySelector("#inbox-save"),
+  pull: !!document.querySelector("#inbox-pull"),
+}));
+ok("自动记账页有云收件箱配置", cloudUi.url && cloudUi.save && cloudUi.pull, JSON.stringify(cloudUi));
+
+await page.fill("#inbox-url", "https://demo.supabase.co/functions/v1/inbox");
+await page.fill("#inbox-token", "secret-token");
+await page.click("#inbox-save");
+await page.waitForTimeout(300);
+const cloudCfg = await page.evaluate(() => JSON.parse(localStorage.getItem("lifeflow-inbox-config") || "null"));
+ok("云收件箱地址与 token 已保存", cloudCfg && cloudCfg.token === "secret-token" && /supabase\.co/.test(cloudCfg.url), JSON.stringify(cloudCfg));
+await page.evaluate(() => localStorage.removeItem("lifeflow-inbox-config"));
 /* 测试一次 → 跳到记账页并真的记 0.01 */
 await page.click("#test");
 await page.waitForTimeout(900);
@@ -67,3 +82,5 @@ console.log(`\n自动记账落地页：${results.filter((r) => r[0] === "PASS").
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
+
