@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -73,7 +73,9 @@
   .to-lab{display:flex;align-items:center;font-size:11.5px;color:var(--text-3)}
   .amount{display:flex;align-items:baseline;gap:8px;border-bottom:1px solid var(--line);padding:2px 0 10px;margin-bottom:10px}
   .amount span{font-size:18px;color:var(--text-2)}
-  .amount .paste{flex:none;height:32px;padding:0 10px;border-radius:99px;border:1px solid var(--line);background:var(--sheet);color:var(--text-2);font:inherit;font-size:11px;cursor:pointer}
+  .amount .paste{flex:none;display:inline-flex;align-items:center;gap:4px;height:34px;padding:0 11px;border-radius:99px;border:1px solid var(--brand);background:transparent;color:var(--brand);font:inherit;font-size:11.5px;font-weight:600;cursor:pointer}
+  .amount .paste svg{width:14px;height:14px}
+  .amount .paste:active{background:var(--sheet)}
   .amount input{flex:1;min-width:0;border:0;background:transparent;color:var(--text-1);font-size:30px;font-weight:650;outline:none;font-variant-numeric:tabular-nums}
   .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
   .chip{font:inherit;font-size:11.5px;padding:6px 10px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--text-2);cursor:pointer}
@@ -195,7 +197,7 @@
 
   <div class="sec"><h2>记一笔</h2><span></span></div>
   <div class="card">
-    <div class="amount"><span>¥</span><input id="amt-input" inputmode="decimal" placeholder="0.00" autocomplete="off"><button type="button" class="paste" id="paste-btn">粘贴账单</button></div>
+    <div class="amount"><span>¥</span><input id="amt-input" inputmode="decimal" placeholder="0.00" autocomplete="off"><button type="button" class="paste" id="paste-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z"/><path d="M7 5H5.5A1.5 1.5 0 0 0 4 6.5v13A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 18.5 5H17"/></svg>粘贴账单</button></div>
     <div class="chips" id="type-chips">
       <button class="chip on" type="button" data-type="expense">支出</button>
       <button class="chip" type="button" data-type="income">收入</button>
@@ -794,6 +796,7 @@
 </script>
 </body>
 </html>
+
 
 
 
