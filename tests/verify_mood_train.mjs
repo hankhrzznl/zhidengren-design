@@ -1,4 +1,4 @@
-﻿import { chromium, EXE, BASE, OUT, PAGES } from "./_env.mjs";
+import { chromium, EXE, BASE, OUT, PAGES } from "./_env.mjs";
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errors = [];
@@ -19,6 +19,7 @@ await page.evaluate(() => [...document.querySelectorAll(".ob-wide .mi")].find((x
 await page.waitForTimeout(3400);
 const moodFrame = page.frames().find((f) => f.url().endsWith("v3/mood.html"));
 ok("情绪 iframe 打开", !!moodFrame);
+if (moodFrame) { try { await moodFrame.waitForFunction(() => !!window.LightStore, { timeout: 20000 }); } catch (e) {} }
 ok("情绪页加载 store", await moodFrame.evaluate(() => !!window.LightStore));
 await moodFrame.click('#emoji-picker [data-score="5"]');
 await moodFrame.click("#mood-save");

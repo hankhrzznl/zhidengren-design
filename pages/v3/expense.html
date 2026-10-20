@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -42,6 +42,18 @@
   .acct .v{font-size:18px;font-weight:650;margin-top:6px;font-variant-numeric:tabular-nums;display:block}
   .acct .v.credit{color:var(--red)}
   .acct .s{font-size:10px;color:var(--text-3);margin-top:2px;display:block}
+  .acct .d{font-size:9.5px;color:var(--text-3);margin-top:1px;display:block;white-space:nowrap}
+  .remind-card{margin-top:12px}
+  .remind-head{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-2);margin-bottom:8px}
+  .remind-head span:last-child{color:var(--text-3);font-size:10.5px}
+  .remind-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:12px}
+  .remind-row:first-child{border-top:0}
+  .remind-row .rn{flex:1;min-width:0}
+  .remind-row .rn b{display:block;font-weight:500;color:var(--text-1)}
+  .remind-row .rn span{font-size:10.5px;color:var(--text-3)}
+  .remind-row .rd{font-size:10.5px;color:var(--text-2);background:var(--sheet);border-radius:99px;padding:3px 8px;white-space:nowrap}
+  .remind-row .rd.hot{color:var(--red)}
+  .remind-row .ra{font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px}
   .month-card{margin-top:12px}
   .month-top{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-2)}
@@ -118,6 +130,11 @@
     </div>
   </div>
 
+  <div class="card remind-card" id="remind-card" style="display:none">
+    <div class="remind-head"><span>账单 / 还款提醒</span><span id="remind-note"></span></div>
+    <div id="remind-list"></div>
+  </div>
+
   <div class="card month-card">
     <div class="month-top">
       <span>本月预算</span>
@@ -146,6 +163,10 @@
     <div class="fields">
       <input id="acc-opening" inputmode="decimal" placeholder="当前余额 / 已用">
       <input id="acc-limit" inputmode="decimal" placeholder="额度（信用）">
+    </div>
+    <div class="fields" id="acc-days" style="display:none">
+      <input id="acc-billday" inputmode="numeric" placeholder="账单日（1–28）">
+      <input id="acc-repayday" inputmode="numeric" placeholder="还款日（1–28）">
     </div>
     <button class="save" type="button" id="acc-save">保存账户</button>
     <button class="save ghost" type="button" id="acc-cancel" style="display:none">取消编辑</button>
@@ -286,7 +307,8 @@
       return '<button type="button" class="acct' + (selected === a.id ? ' on' : '') + '" data-acc="' + a.id + '">' +
         '<span class="n"><i style="background:' + (a.color || '#4DC3FF') + '"></i>' + a.name + '</span>' +
         '<span class="v' + (credit ? ' credit' : '') + '">' + (credit ? '待还 ' : '') + money(bal) + '</span>' +
-        '<span class="s">' + (credit ? ('额度 ' + money(a.limit || 0) + (due ? ' · 本月 ' + money(due) : '')) : '资产') + '</span></button>';
+        '<span class="s">' + (credit ? ('额度 ' + money(a.limit || 0) + (due ? ' · 本月 ' + money(due) : '')) : '资产') + '</span>' +
+        (credit ? '<span class="d">账单 ' + (a.billDay || 1) + ' 号 · 还款 ' + (a.repayDay || 10) + ' 号</span>' : '') + '</button>';
     }).join('');
     if (!db.accounts.length) {
       strip.innerHTML = '<button type="button" class="acct-empty" id="acc-first"><b>＋ 添加第一个账户</b><span>微信 / 支付宝 / 银行卡 / 花呗</span></button>';
@@ -396,7 +418,24 @@
   }
 
   function renderAll() {
-    renderStats(); renderMonth(); renderAccounts(); renderSelects(); renderPlans(); renderList();
+    renderStats(); renderRemind(); renderMonth(); renderAccounts(); renderSelects(); renderPlans(); renderList();
+  }
+
+  function renderRemind() {
+    var list = L.billingInfo();
+    var card = $('#remind-card');
+    if (!list.length) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    var soon = list.filter(function (x) { return x.daysToRepay <= 7; }).length;
+    $('#remind-note').textContent = soon ? (soon + ' 个账户 7 天内还款') : '按账单日 / 还款日';
+    $('#remind-list').innerHTML = list.map(function (x) {
+      var hot = x.daysToRepay <= 3 ? ' hot' : '';
+      var when = x.daysToRepay === 0 ? '今天还款' : ('还有 ' + x.daysToRepay + ' 天');
+      return '<div class="remind-row"><span class="rn"><b>' + x.name + '</b>' +
+        '<span>账单 ' + x.billLabel + ' · 还款 ' + x.repayLabel + '</span></span>' +
+        '<span class="rd' + hot + '">' + when + '</span>' +
+        '<span class="ra">' + money(x.due) + '</span></div>';
+    }).join('');
   }
 
   function writeFact(label, amount) {
@@ -415,10 +454,19 @@
     $('#acc-type').value = acc ? acc.type : 'asset';
     $('#acc-opening').value = acc ? acc.opening : '';
     $('#acc-limit').value = acc && acc.limit ? acc.limit : '';
+    $('#acc-billday').value = acc && acc.billDay ? acc.billDay : 1;
+    $('#acc-repayday').value = acc && acc.repayDay ? acc.repayDay : 10;
     $('#acc-type').disabled = !!acc;
+    syncAccType();
     $('#acc-save').textContent = acc ? '保存修改' : '保存账户';
     $('#acc-cancel').style.display = acc ? 'block' : 'none';
   }
+  function syncAccType() {
+    var credit = $('#acc-type').value === 'credit';
+    $('#acc-days').style.display = credit ? 'flex' : 'none';
+    $('#acc-limit').placeholder = credit ? '额度（信用）' : '当前余额';
+  }
+  $('#acc-type').addEventListener('change', syncAccType);
   $('#acc-add').addEventListener('click', function () { openAccForm(null); });
   $('#acc-edit').addEventListener('click', function () {
     var a = L.accountById(L.load(), selected);
@@ -433,8 +481,8 @@
     var name = $('#acc-name').value.trim();
     if (!name) { toast('先写账户名'); return; }
     var acc = editing
-      ? L.updateAccount(editing, { name: name, opening: $('#acc-opening').value, limit: $('#acc-limit').value })
-      : L.addAccount({ name: name, type: $('#acc-type').value, opening: $('#acc-opening').value, limit: $('#acc-limit').value });
+      ? L.updateAccount(editing, { name: name, opening: $('#acc-opening').value, limit: $('#acc-limit').value, billDay: $('#acc-billday').value, repayDay: $('#acc-repayday').value })
+      : L.addAccount({ name: name, type: $('#acc-type').value, opening: $('#acc-opening').value, limit: $('#acc-limit').value, billDay: $('#acc-billday').value, repayDay: $('#acc-repayday').value });
     if (!acc) { toast('账户没存上'); return; }
     editing = null;
     $('#acc-form').classList.remove('on');
@@ -512,6 +560,7 @@
 
   L.cleanDemo();
   var auto = L.autoRepayDue();
+  syncAccType();
   applyEye();
   renderAll();
   if (auto) toast('自动记了 ' + auto + ' 期分期');
@@ -538,6 +587,9 @@
 </script>
 </body>
 </html>
+
+
+
 
 
 

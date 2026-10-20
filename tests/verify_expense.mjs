@@ -1,4 +1,4 @@
-﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errors = [];
@@ -67,6 +67,29 @@ const accs = await expenseFrame.evaluate(() => ({
 ok("记账有多个账户（微信/支付宝/银行卡/花呗/白条）", accs.n >= 5 && accs.names.join("/").includes("微信钱包") && accs.names.join("/").includes("花呗"), JSON.stringify(accs));
 ok("第一笔支出后净资产为负", (accs.net || "").includes("−"), accs.net);
 
+/* 信用账户卡显示账单日 / 还款日；可编辑 */
+const cardDays = await expenseFrame.evaluate(() => {
+  const el = [...document.querySelectorAll(".acct")].find((x) => x.textContent.includes("花呗"));
+  return el ? el.textContent.replace(/\s+/g, " ") : "";
+});
+ok("信用账户卡显示账单日/还款日", /账单 1 号/.test(cardDays) && /还款 10 号/.test(cardDays), cardDays);
+
+await expenseFrame.evaluate(() => {
+  [...document.querySelectorAll(".acct")].find((x) => x.textContent.includes("花呗")).click();
+});
+await page.waitForTimeout(250);
+await expenseFrame.click("#acc-edit");
+const daysShown = await expenseFrame.evaluate(() => getComputedStyle(document.querySelector("#acc-days")).display !== "none");
+await expenseFrame.fill("#acc-billday", "5");
+await expenseFrame.fill("#acc-repayday", "20");
+await expenseFrame.click("#acc-save");
+await page.waitForTimeout(400);
+const cardDays2 = await expenseFrame.evaluate(() => {
+  const el = [...document.querySelectorAll(".acct")].find((x) => x.textContent.includes("花呗"));
+  return el ? el.textContent.replace(/\s+/g, " ") : "";
+});
+ok("账单日/还款日可改并显示在账户上", daysShown && /账单 5 号/.test(cardDays2) && /还款 20 号/.test(cardDays2), cardDays2);
+
 await expenseFrame.evaluate(() => {
   const sel = document.querySelector("#rec-account");
   sel.value = [...sel.options].find((o) => o.textContent.includes("花呗")).value;
@@ -112,6 +135,13 @@ const plans2 = await expenseFrame.evaluate(() => ({
 const plans2Credit = String(plans2.credit || "").replace(/[^0-9]/g, "");
 ok("12 期与 24 期两笔分期并存", plans2.rows === 2 && /100 × 12|100 ×12/.test(plans2.text) && /200 × 24|200 ×24/.test(plans2.text) && plans2Credit === "6100", JSON.stringify(plans2));
 ok("分期显示本月应还与未来 6 个月", plans2.ups === 6 && /¥/.test(plans2.due || "") && /还本期|本月已还|本月无需还/.test(plans2.pay || ""), JSON.stringify({ due: plans2.due, ups: plans2.ups, pay: plans2.pay }));
+
+/* 账单 / 还款提醒卡 */
+const remind = await expenseFrame.evaluate(() => ({
+  show: getComputedStyle(document.querySelector("#remind-card")).display !== "none",
+  text: document.querySelector("#remind-list")?.textContent.replace(/\s+/g, " ") || "",
+}));
+ok("账单/还款提醒卡列出信用账户", remind.show && /花呗/.test(remind.text) && /账单 \d+月\d+日/.test(remind.text) && /还款 \d+月\d+日/.test(remind.text), JSON.stringify(remind));
 
 await expenseFrame.click(".repay[data-plan]");
 await page.waitForTimeout(600);

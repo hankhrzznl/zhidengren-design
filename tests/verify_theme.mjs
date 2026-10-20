@@ -1,4 +1,4 @@
-﻿// 日间 / 夜间主题 · 全链路校验（5 个 tab + 模块页 iframe 同步）
+// 日间 / 夜间主题 · 全链路校验（5 个 tab + 模块页 iframe 同步）
 // 用法：node tests/verify_theme.mjs
 import { spawn } from "node:child_process";
 import { chromium, EXE, BASE, OUT, PAGES } from "./_env.mjs";
@@ -96,7 +96,16 @@ check("日间 · 记一笔保持 + 有主题入口", await page.evaluate(() =>
 await page.evaluate(() => document.querySelector('#avatarBtn').click());
 await page.waitForTimeout(250);
 await page.evaluate(() => [...document.querySelectorAll(".ob-wide .mi")].find((x) => x.textContent.includes("穿搭")).click());
-await page.waitForTimeout(2200);
+try {
+  await page.waitForFunction(() => {
+    const f = document.getElementById("modFrame");
+    try {
+      const d = f.contentDocument;
+      return d && d.body && d.documentElement.getAttribute("data-theme") && d.querySelector(".wd-hero");
+    } catch (e) { return false; }
+  }, { timeout: 20000 });
+} catch (e) {}
+await page.waitForTimeout(300);
 const modLight = await page.evaluate(() => {
   const d = document.getElementById("modFrame").contentDocument;
   const sh = d.getElementById("shell-theme");
@@ -171,6 +180,7 @@ const failed = checks.filter((c) => !c.ok);
 for (const c of checks) console.log(`${c.ok ? "PASS" : "FAIL"}  ${c.name}`);
 console.log(`\n主题校验：${checks.length - failed.length}/${checks.length} PASS`);
 process.exit(failed.length ? 1 : 0);
+
 
 
 

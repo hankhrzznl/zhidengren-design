@@ -103,6 +103,15 @@ ok('一次还本月两笔', paidMonth.count === 2 && near(paidMonth.total, 300),
 ok('还后信用待还减少 300', near(beforePay - L.totals().creditUsed, 300), String(L.totals().creditUsed));
 ok('重复还本月不重复扣', L.payMonth('2026-2', bank.id).count === 0);
 
+/* 8.8 账单日 / 还款日 */
+const bi = L.billingInfo('2026-10-20');
+const hbBill = bi.find((x) => x.accountId === huabei.id);
+ok('默认账单 1 号 / 还款 10 号', hbBill && hbBill.billDate === '2026-11-1' && hbBill.repayDate === '2026-11-10', JSON.stringify(hbBill));
+L.updateAccount(huabei.id, { billDay: 5, repayDay: 20 });
+const hbBill2 = L.billingInfo('2026-10-20').find((x) => x.accountId === huabei.id);
+ok('账单 5 号 / 还款 20 号（还款在账单后）', hbBill2.billDate === '2026-11-5' && hbBill2.repayDate === '2026-11-20', JSON.stringify(hbBill2));
+ok('提醒带天数与本月应还', hbBill2.daysToRepay > 0 && hbBill2.due >= 0, JSON.stringify({ days: hbBill2.daysToRepay, due: hbBill2.due }));
+
 /* 9. 非法输入 */
 ok('金额 0 拒绝', L.addTx({ type: 'expense', amount: 0, accountId: bank.id }) === null);
 ok('转给自己拒绝', L.addTx({ type: 'transfer', amount: 10, accountId: bank.id, toId: bank.id }) === null);
@@ -147,6 +156,8 @@ for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : ''
 const failed = rows.filter((r) => r[0] === 'FAIL').length;
 console.log(`\n账本内核校验：${pass}/${rows.length} PASS`);
 process.exit(failed ? 1 : 0);
+
+
 
 
 

@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    执灯人 · 账本内核 ledger.js（v1）
    ------------------------------------------------------------
    职责：账户、流水、分期的纯数据层；钱怎么算都在这里，页面只负责画。
@@ -294,6 +294,49 @@
     return { count: count, total: Math.round(total * 100) / 100 };
   }
 
+  /* ---- 账单日 / 还款日 ---- */
+  function nextDayOfMonth(day, from) {
+    day = Math.min(28, Math.max(1, Math.round(num(day) || 1)));
+    var d = from ? new Date(from) : new Date();
+    var y = d.getFullYear(), m = d.getMonth(), today = d.getDate();
+    var target = new Date(y, m, day);
+    if (day < today) target = new Date(y, m + 1, day);
+    return target;
+  }
+  function ymd(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+  function md(d) { return (d.getMonth() + 1) + '月' + d.getDate() + '日'; }
+  function dayDiff(a, b) {
+    var x = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
+    var y = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+    return Math.round((x - y) / 86400000);
+  }
+  /* 每个信用账户下一期账单日 / 还款日 + 本月应还 */
+  function billingInfo(today) {
+    var db = load();
+    var t = today ? new Date(today) : new Date();
+    var dueByAcc = {};
+    monthlyDue().items.forEach(function (it) { dueByAcc[it.accountId] = (dueByAcc[it.accountId] || 0) + it.monthly; });
+    return db.accounts.filter(function (a) { return a.type === 'credit'; }).map(function (a) {
+      var bill = nextDayOfMonth(a.billDay || 1, t);
+      var repay = nextDayOfMonth(a.repayDay || 10, t);
+      /* 还款日在账单日之前，说明是「下个月还」 */
+      if (repay.getTime() <= bill.getTime()) repay = new Date(repay.getFullYear(), repay.getMonth() + 1, repay.getDate());
+      return {
+        accountId: a.id,
+        name: a.name,
+        billDay: a.billDay || 1,
+        repayDay: a.repayDay || 10,
+        billDate: ymd(bill),
+        repayDate: ymd(repay),
+        billLabel: md(bill),
+        repayLabel: md(repay),
+        daysToBill: dayDiff(bill, t),
+        daysToRepay: dayDiff(repay, t),
+        due: Math.round((dueByAcc[a.id] || 0) * 100) / 100
+      };
+    }).sort(function (x, y) { return x.daysToRepay - y.daysToRepay; });
+  }
+
   /* ---- 本月预算 / 分类汇总 ---- */
   function setBudget(amount, month) {
     var db = load();
@@ -516,6 +559,7 @@
     repayPlan: repayPlan,
     planRemaining: planRemaining,
     monthlyDue: monthlyDue,
+    billingInfo: billingInfo,
     upcoming: upcoming,
     payMonth: payMonth,
     setBudget: setBudget,
@@ -530,4 +574,5 @@
     dateKey: dateKey
   };
 })(typeof window !== 'undefined' ? window : globalThis);
+
 
