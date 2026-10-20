@@ -112,6 +112,17 @@ const hbBill2 = L.billingInfo('2026-10-20').find((x) => x.accountId === huabei.i
 ok('账单 5 号 / 还款 20 号（还款在账单后）', hbBill2.billDate === '2026-11-5' && hbBill2.repayDate === '2026-11-20', JSON.stringify(hbBill2));
 ok('提醒带天数与本月应还', hbBill2.daysToRepay > 0 && hbBill2.due >= 0, JSON.stringify({ days: hbBill2.daysToRepay, due: hbBill2.due }));
 
+/* 8.9 分期改错 / 删除 */
+const upd = L.updatePlan(pA.id, { name: '耳机2', monthly: 150, periods: 10 });
+ok('分期可改名称/期数/月供', upd && upd.name === '耳机2' && upd.periods === 10 && upd.monthly === 150 && near(upd.principal, 1500), JSON.stringify(upd));
+const prinTx = L.load().tx.find((t) => t.meta && t.meta.planId === pA.id && t.category === '分期本金');
+ok('本金流水同步到 1500', prinTx && near(prinTx.amount, 1500) && prinTx.note === '耳机2', JSON.stringify(prinTx && { a: prinTx.amount, n: prinTx.note }));
+ok('期数不能改到已还以下', L.updatePlan(pA.id, { periods: 0 }) === null);
+const b4 = L.totals().creditUsed;
+L.deletePlan(pA.id);
+ok('删除后计划消失', !L.plans().some((p) => p.id === pA.id));
+ok('删除同时撤销本金与还款流水', near(b4 - L.totals().creditUsed, 1400), String(b4 - L.totals().creditUsed));
+
 /* 9. 非法输入 */
 ok('金额 0 拒绝', L.addTx({ type: 'expense', amount: 0, accountId: bank.id }) === null);
 ok('转给自己拒绝', L.addTx({ type: 'transfer', amount: 10, accountId: bank.id, toId: bank.id }) === null);
@@ -156,6 +167,8 @@ for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : ''
 const failed = rows.filter((r) => r[0] === 'FAIL').length;
 console.log(`\n账本内核校验：${pass}/${rows.length} PASS`);
 process.exit(failed ? 1 : 0);
+
+
 
 
 

@@ -201,7 +201,8 @@
       amount: principal,
       accountId: plan.accountId,
       category: '分期本金',
-      note: plan.name
+      note: plan.name,
+      meta: { planId: plan.id }
     });
     if (!save(db)) return null;
     return plan;
@@ -222,7 +223,8 @@
       accountId: fromAccountId,
       toId: plan.accountId,
       category: '分期还款',
-      note: plan.name
+      note: plan.name,
+      meta: { planId: plan.id }
     });
     plan.paid += 1;
     if (!save(db)) return null;
@@ -284,7 +286,8 @@
         accountId: fromAccountId,
         toId: p.accountId,
         category: '分期还款',
-        note: p.name
+        note: p.name,
+        meta: { planId: p.id }
       });
       p.paid += 1;
       count += 1;
@@ -292,6 +295,64 @@
     });
     if (count) save(db);
     return { count: count, total: Math.round(total * 100) / 100 };
+  }
+
+  /* 分期改错：改名称/期数/每期/账户/首期，并同步那条「本金」流水 */
+  function planTxList(db, plan) {
+    return db.tx.filter(function (t) {
+      if (t.meta && t.meta.planId) return t.meta.planId === plan.id;
+      var cat = t.category || '';
+      return (cat === '分期本金' || cat === '分期还款' || cat === '分期自动还款') && t.note === plan.name;
+    });
+  }
+
+  function updatePlan(planId, patch) {
+    patch = patch || {};
+    var db = load();
+    var p = db.plans.find(function (x) { return x.id === planId; });
+    if (!p) return null;
+    var txs = planTxList(db, p);
+    var periods = patch.periods != null ? Math.round(num(patch.periods)) : p.periods;
+    var monthly = patch.monthly != null ? num(patch.monthly) : p.monthly;
+    if (periods < 1 || periods < p.paid || monthly <= 0) return null;
+    p.periods = periods;
+    p.monthly = Math.round(monthly * 100) / 100;
+    if (patch.name != null) p.name = String(patch.name).slice(0, 20) || p.name;
+    if (patch.accountId) p.accountId = patch.accountId;
+    if (patch.startDate) p.startDate = patch.startDate;
+    p.principal = Math.round(p.monthly * p.periods * 100) / 100;
+
+    var prin = txs.filter(function (t) { return t.category === '分期本金'; })[0];
+    if (prin) {
+      prin.amount = p.principal;
+      prin.accountId = p.accountId;
+      prin.date = p.startDate;
+      prin.note = p.name;
+    } else {
+      db.tx.push({
+        id: id('tx_'), ts: Date.now(), date: p.startDate, type: 'expense',
+        amount: p.principal, accountId: p.accountId, category: '分期本金',
+        note: p.name, meta: { planId: p.id }
+      });
+    }
+    txs.forEach(function (t) {
+      if (t.category === '分期本金') return;
+      t.note = p.name;
+      t.toId = p.accountId;
+    });
+    if (!save(db)) return null;
+    return p;
+  }
+
+  /* 删除分期并撤销它带来的本金与还款流水（余额会回到记账前） */
+  function deletePlan(planId) {
+    var db = load();
+    var p = db.plans.find(function (x) { return x.id === planId; });
+    if (!p) return false;
+    var txs = planTxList(db, p);
+    db.tx = db.tx.filter(function (t) { return txs.indexOf(t) < 0; });
+    db.plans = db.plans.filter(function (x) { return x.id !== planId; });
+    return save(db);
   }
 
   /* ---- 账单日 / 还款日 ---- */
@@ -478,7 +539,8 @@
           accountId: from.id,
           toId: p.accountId,
           category: '分期自动还款',
-          note: p.name
+          note: p.name,
+          meta: { planId: p.id }
         });
         p.paid += 1;
         n += 1;
@@ -559,6 +621,8 @@
     repayPlan: repayPlan,
     planRemaining: planRemaining,
     monthlyDue: monthlyDue,
+    updatePlan: updatePlan,
+    deletePlan: deletePlan,
     billingInfo: billingInfo,
     upcoming: upcoming,
     payMonth: payMonth,
@@ -574,5 +638,6 @@
     dateKey: dateKey
   };
 })(typeof window !== 'undefined' ? window : globalThis);
+
 
 
