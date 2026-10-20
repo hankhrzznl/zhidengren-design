@@ -111,6 +111,7 @@
   .empty{padding:18px;text-align:center;color:var(--text-3);font-size:12px;border:1px dashed var(--line);border-radius:12px}
   .form{display:none;margin-top:10px}
   .form.on{display:block}
+  .form-hint{margin:2px 0 10px;font-size:10.5px;line-height:1.6;color:var(--text-3)}
   .acct-empty{width:100%;padding:16px;border:1px dashed var(--line);border-radius:16px;background:var(--card);color:var(--text-2);font:inherit;font-size:12.5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
   .acct-empty b{color:var(--brand);font-size:13px}
   .acct-empty span{font-size:10.5px;color:var(--text-3)}
@@ -175,6 +176,7 @@
       <input id="acc-billday" inputmode="numeric" placeholder="账单日（1–28）">
       <input id="acc-repayday" inputmode="numeric" placeholder="还款日（1–28）">
     </div>
+    <p class="form-hint" id="acc-hint"></p>
     <button class="save" type="button" id="acc-save">保存账户</button>
     <button class="save ghost" type="button" id="acc-cancel" style="display:none">取消编辑</button>
   </div>
@@ -560,6 +562,9 @@
     var credit = $('#acc-type').value === 'credit';
     $('#acc-days').style.display = credit ? 'flex' : 'none';
     $('#acc-limit').placeholder = credit ? '额度（信用）' : '当前余额';
+    $('#acc-hint').textContent = credit
+      ? '账单日 / 还款日只对信用账户生效，用于提醒；所有分期都按这个还款日汇总。'
+      : '资产账户没有账单日；要记花呗 / 白条，请把类型选成「信用」。';
   }
   $('#acc-type').addEventListener('change', syncAccType);
   $('#acc-add').addEventListener('click', function () { openAccForm(null); });
@@ -729,6 +734,7 @@
 </script>
 </body>
 </html>
+
 
 
 
