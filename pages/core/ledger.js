@@ -60,20 +60,7 @@
 
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
 
-  /* 默认账户：先能用，再让用户改名/改余额 */
-  function ensureSeed() {
-    var db = load();
-    if (db.accounts.length) return db;
-    db.accounts = [
-      { id: 'acc_wechat', name: '微信钱包', type: 'asset', kind: 'wechat', opening: 0, color: '#3EB575' },
-      { id: 'acc_alipay', name: '支付宝', type: 'asset', kind: 'alipay', opening: 0, color: '#1677FF' },
-      { id: 'acc_bank1', name: '招商银行卡', type: 'asset', kind: 'bank', opening: 0, color: '#C0392B' },
-      { id: 'acc_huabei', name: '花呗', type: 'credit', kind: 'huabei', opening: 0, limit: 5000, billDay: 1, repayDay: 10, color: '#8B5CF6' },
-      { id: 'acc_baitiao', name: '白条', type: 'credit', kind: 'baitiao', opening: 0, limit: 5000, billDay: 1, repayDay: 10, color: '#D97706' }
-    ];
-    save(db);
-    return db;
-  }
+  /* 不再预置演示账户：账本从空开始，用户自己加 */
 
   function listAccounts() { return load().accounts.slice(); }
 
@@ -388,44 +375,64 @@
     return n;
   }
 
-  /* 旧「记账」页的数据迁移：一次性把历史条目导入微信钱包 */  function migrateLegacy() {
-    var KEY_OLD = 'lifeflow-expense-items';
-    var FLAG = 'lifeflow-ledger-migrated';
+  /* 清演示数据：
+     - 旧「记账」页内置的 6 条示例（按备注+金额识别）
+     - 只剩默认 5 个空账户时，整本清掉
+     - 旧 key 与迁移标记一并删掉，避免再次导入 */
+  var LEGACY_DEMO = [
+    { note: '午餐 · 沙拉碗', amount: 38 },
+    { note: '地铁通勤', amount: 6 },
+    { note: '日用品补给', amount: 126.5 },
+    { note: '晚餐 · 家常菜', amount: 52 },
+    { note: '水电燃气', amount: 214 },
+    { note: '周末电影', amount: 88 }
+  ];
+  var DEFAULT_IDS = ['acc_wechat', 'acc_alipay', 'acc_bank1', 'acc_huabei', 'acc_baitiao'];
+
+  function cleanDemo() {
+    var changed = false;
     try {
-      if (root.localStorage.getItem(FLAG)) return 0;
-      var raw = root.localStorage.getItem(KEY_OLD);
       var db = load();
-      var n = 0;
-      if (raw) {
-        var old = JSON.parse(raw);
-        var items = (old && old.items) || [];
-        items.forEach(function (it) {
-          var amount = num(it.amount);
-          if (amount <= 0) return;
-          db.tx.push({
-            id: id('tx_'),
-            ts: Number(it.ts) || Date.now(),
-            date: it.date || dateKey(),
-            type: 'expense',
-            amount: amount,
-            accountId: 'acc_wechat',
-            category: it.cat || it.category || '日常',
-            note: String(it.note || '').slice(0, 60)
-          });
-          n++;
+      var before = db.tx.length;
+      db.tx = db.tx.filter(function (t) {
+        return !LEGACY_DEMO.some(function (d) {
+          return String(t.note || '') === d.note && Math.abs(num(t.amount) - d.amount) < 0.01;
         });
+      });
+      if (db.tx.length !== before) changed = true;
+
+      var onlyDefault = db.accounts.length > 0 && db.accounts.every(function (a) { return DEFAULT_IDS.indexOf(a.id) >= 0; });
+      var allZero = db.accounts.every(function (a) { return num(a.opening) === 0 && num(a.limit) === 0; });
+      if (onlyDefault && allZero && db.tx.length === 0 && db.plans.length === 0) {
+        root.localStorage.removeItem(KEY);
+        changed = true;
+      } else if (changed) {
+        save(db);
       }
-      if (n) save(db);
-      root.localStorage.setItem(FLAG, '1');
-      return n;
-    } catch (e) { return 0; }
+      root.localStorage.removeItem('lifeflow-expense-items');
+      root.localStorage.removeItem('lifeflow-expense-budget');
+      root.localStorage.removeItem('lifeflow-ledger-migrated');
+    } catch (e) {}
+    return changed;
+  }
+
+  /* 用户手动清空整本账 */
+  function reset() {
+    try {
+      root.localStorage.removeItem(KEY);
+      root.localStorage.removeItem('lifeflow-expense-items');
+      root.localStorage.removeItem('lifeflow-expense-budget');
+      root.localStorage.removeItem('lifeflow-ledger-migrated');
+      return true;
+    } catch (e) { return false; }
   }
 
   root.LightLedger = {
     KEY: KEY,
     load: load,
     save: save,
-    ensureSeed: ensureSeed,
+    cleanDemo: cleanDemo,
+    reset: reset,
     listAccounts: listAccounts,
     accountById: accountById,
     addAccount: addAccount,
@@ -446,7 +453,6 @@
     autoRepayDue: autoRepayDue,
     totals: totals,
     monthKey: monthKey,
-    dateKey: dateKey,
-    migrateLegacy: migrateLegacy
+    dateKey: dateKey
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -21,6 +21,34 @@ await page.waitForTimeout(3400);
 const expenseFrame = page.frames().find((f) => f.url().endsWith("v3/expense.html"));
 ok("记账 iframe 打开", !!expenseFrame);
 ok("记账页加载 store", await expenseFrame.evaluate(() => !!window.LightStore));
+
+/* 默认空账本：没有演示账户/流水 */
+const blank = await expenseFrame.evaluate(() => ({
+  accts: document.querySelectorAll(".acct").length,
+  first: !!document.querySelector("#acc-first"),
+  wipe: !!document.querySelector("#wipe"),
+  rows: document.querySelectorAll(".item").length,
+}));
+ok("记账默认空账本（无演示数据）", blank.accts === 0 && blank.first && blank.wipe && blank.rows === 0, JSON.stringify(blank));
+
+/* 种入 5 个真实账户（非默认 id，避免被 cleanDemo 当成演示清掉） */
+await expenseFrame.evaluate(() => {
+  localStorage.setItem("lifeflow-ledger-v1", JSON.stringify({
+    v: 1,
+    accounts: [
+      { id: "a1", name: "微信钱包", type: "asset", kind: "wechat", opening: 0, color: "#3EB575" },
+      { id: "a2", name: "支付宝", type: "asset", kind: "alipay", opening: 0, color: "#1677FF" },
+      { id: "a3", name: "招商银行卡", type: "asset", kind: "bank", opening: 0, color: "#C0392B" },
+      { id: "a4", name: "花呗", type: "credit", kind: "huabei", opening: 0, limit: 5000, color: "#8B5CF6" },
+      { id: "a5", name: "白条", type: "credit", kind: "baitiao", opening: 0, limit: 5000, color: "#D97706" }
+    ],
+    tx: [],
+    plans: []
+  }));
+});
+await expenseFrame.evaluate(() => location.reload());
+await page.waitForTimeout(900);
+
 await expenseFrame.fill("#amt-input", "12");
 await expenseFrame.click("#rec-save");
 await page.waitForTimeout(1200);
@@ -131,6 +159,17 @@ const autoPay = await expenseFrame.evaluate(() => {
   };
 });
 ok("到期自动记一期（可补多期）", /已还 2\/12/.test(autoPay.sub) && autoPay.auto === 2 && autoPay.paid === 2, JSON.stringify(autoPay));
+
+/* 手动清空 */
+await expenseFrame.evaluate(() => { window.confirm = () => true; });
+await expenseFrame.click("#wipe");
+await page.waitForTimeout(500);
+const wiped = await expenseFrame.evaluate(() => ({
+  accts: document.querySelectorAll(".acct").length,
+  first: !!document.querySelector("#acc-first"),
+  store: !!localStorage.getItem("lifeflow-ledger-v1"),
+}));
+ok("清空账本后回到空状态", wiped.accts === 0 && wiped.first && !wiped.store, JSON.stringify(wiped));
 
 await page.click("#modBack");
 await page.waitForTimeout(500);

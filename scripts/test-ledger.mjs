@@ -22,17 +22,13 @@ function ok(name, cond, detail = '') {
 }
 const near = (a, b) => Math.abs(Number(a) - Number(b)) < 0.005;
 
-/* 1. 种子账户 */
-L.ensureSeed();
-const accs = L.listAccounts();
-ok('默认账户 5 个（微信/支付宝/银行卡/花呗/白条）', accs.length === 5, accs.map((a) => a.name).join('/'));
-ok('默认资产 3 个 / 信用 2 个', accs.filter((a) => a.type === 'asset').length === 3 && accs.filter((a) => a.type === 'credit').length === 2);
-
-/* 2. 建账户 + 期初 */
+/* 1. 空账本 + 手动建账户（不再预置演示账户） */
+ok('初始账本为空', L.listAccounts().length === 0, String(L.listAccounts().length));
 const bank = L.addAccount({ name: '招商储蓄卡', type: 'asset', opening: 1000 });
+const wechat = L.addAccount({ name: '微信钱包', type: 'asset', kind: 'wechat' });
+const huabei = L.addAccount({ name: '花呗', type: 'credit', kind: 'huabei', limit: 5000 });
+ok('资产 2 个 / 信用 1 个', L.listAccounts().filter((a) => a.type === 'asset').length === 2 && L.listAccounts().filter((a) => a.type === 'credit').length === 1);
 ok('新增资产账户带期初', bank && near(L.accountBalance(L.load(), bank.id), 1000), String(bank && L.accountBalance(L.load(), bank.id)));
-const wechat = accs.find((a) => a.kind === 'wechat');
-const huabei = accs.find((a) => a.kind === 'huabei');
 
 /* 3. 支出 / 收入 */
 L.addTx({ type: 'expense', amount: 100, accountId: bank.id, category: '餐饮' });
@@ -80,7 +76,7 @@ ok("分类汇总按金额降序", cats.length >= 2 && cats[0].amount >= cats[1].
 L.setBudget(0); ok("预算可清零", L.budgetOf() === 0, String(L.budgetOf()));
 
 /* 8.6 月报与自动还款 */
-const hb2 = accs.find((a) => a.kind === 'huabei');
+const hb2 = huabei;
 const mp = L.addPlan({ accountId: hb2.id, principal: 600, periods: 6, startDate: '2026-8-15' });
 const dueN = L.autoRepayDue('2026-10-19');
 ok('到期自动补 2 期', dueN === 2 && L.plans().find((p) => p.id === mp.id).paid === 2, String(dueN));
@@ -105,17 +101,38 @@ const tx = L.addTx({ type: 'expense', amount: 9, accountId: wechat.id });
 L.removeTx(tx.id);
 ok('删除流水后条数还原', L.load().tx.length === before, `${before}->${L.load().tx.length}`);
 
-/* 11. 旧数据迁移 */
-mem.set('lifeflow-ledger-v1', JSON.stringify({ v: 1, accounts: [], tx: [], plans: [] }));
-mem.set('lifeflow-expense-items', JSON.stringify({ v: 2, items: [{ amount: 12, date: '2026-10-1', cat: '餐饮' }, { amount: 8, date: '2026-10-2', cat: '交通' }] }));
-mem.delete('lifeflow-ledger-migrated');
-const n = L.migrateLegacy();
-ok('旧记账条目迁移 2 条', n === 2 && L.load().tx.length === 2, String(n));
-ok('迁移只跑一次', L.migrateLegacy() === 0);
+/* 11. 清演示数据 */
+const DEFAULT_ACCS = [
+  { id: 'acc_wechat', name: '微信钱包', type: 'asset', opening: 0 },
+  { id: 'acc_alipay', name: '支付宝', type: 'asset', opening: 0 },
+  { id: 'acc_bank1', name: '招商银行卡', type: 'asset', opening: 0 },
+  { id: 'acc_huabei', name: '花呗', type: 'credit', opening: 0, limit: 0 },
+  { id: 'acc_baitiao', name: '白条', type: 'credit', opening: 0, limit: 0 }
+];
+mem.set('lifeflow-ledger-v1', JSON.stringify({
+  v: 1, accounts: DEFAULT_ACCS, plans: [],
+  tx: [{ id: 'seed-x', date: '2026-10-1', type: 'expense', amount: 38, accountId: 'acc_wechat', category: '餐饮', note: '午餐 · 沙拉碗' }]
+}));
+ok('清演示：只剩默认空账户时整本清掉', L.cleanDemo() === true && L.listAccounts().length === 0, JSON.stringify(L.listAccounts().length));
+
+mem.set('lifeflow-ledger-v1', JSON.stringify({
+  v: 1, plans: [],
+  accounts: [{ id: 'real-1', name: '我的卡', type: 'asset', opening: 0 }],
+  tx: [
+    { id: 'demo-1', date: '2026-10-1', type: 'expense', amount: 38, accountId: 'real-1', category: '餐饮', note: '午餐 · 沙拉碗' },
+    { id: 'real-1', date: '2026-10-2', type: 'expense', amount: 10, accountId: 'real-1', category: '日常', note: '真实支出' }
+  ]
+}));
+L.cleanDemo();
+ok('清演示：保留真实流水', L.load().tx.length === 1 && L.load().tx[0].note === '真实支出', JSON.stringify(L.load().tx.map((t) => t.note)));
+
+/* 12. 手动清空 */
+ok('reset 清掉整本账', L.reset() === true && L.listAccounts().length === 0 && L.load().tx.length === 0);
 
 for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : '');
 const failed = rows.filter((r) => r[0] === 'FAIL').length;
 console.log(`\n账本内核校验：${pass}/${rows.length} PASS`);
 process.exit(failed ? 1 : 0);
+
 
 

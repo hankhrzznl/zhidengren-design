@@ -30,7 +30,8 @@ await page.waitForTimeout(2600);
 
 const frame = page.frames().find((f) => f.url().endsWith("v3/water.html"));
 ok("饮水 iframe 打开", !!frame);
-const water0 = await frame.evaluate(() => document.querySelector("#water-total")?.textContent);
+if (frame) { try { await frame.waitForFunction(() => !!window.LightStore && document.querySelector("#water-total")?.textContent === "0", { timeout: 20000 }); } catch (e) {} }
+const water0 = frame ? await frame.evaluate(() => document.querySelector("#water-total")?.textContent) : null;
 ok("饮水初始为 0（无假 1350）", water0 === "0", water0);
 ok("饮水页加载 store", await frame.evaluate(() => !!window.LightStore));
 
@@ -102,5 +103,6 @@ console.log(`\n回路校验：${results.filter((x) => x[0] === "PASS").length}/$
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((x) => x[0] === "FAIL") ? 1 : 0);
+
 
 
