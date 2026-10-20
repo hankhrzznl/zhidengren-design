@@ -111,7 +111,7 @@ const plans2 = await expenseFrame.evaluate(() => ({
 }));
 const plans2Credit = String(plans2.credit || "").replace(/[^0-9]/g, "");
 ok("12 期与 24 期两笔分期并存", plans2.rows === 2 && /100 × 12|100 ×12/.test(plans2.text) && /200 × 24|200 ×24/.test(plans2.text) && plans2Credit === "6100", JSON.stringify(plans2));
-ok("分期显示本月应还与未来 6 个月", plans2.ups === 6 && /¥/.test(plans2.due || "") && /还本期|本月已还清|本月无需还/.test(plans2.pay || ""), JSON.stringify({ due: plans2.due, ups: plans2.ups, pay: plans2.pay }));
+ok("分期显示本月应还与未来 6 个月", plans2.ups === 6 && /¥/.test(plans2.due || "") && /还本期|本月已还|本月无需还/.test(plans2.pay || ""), JSON.stringify({ due: plans2.due, ups: plans2.ups, pay: plans2.pay }));
 
 await expenseFrame.click(".repay[data-plan]");
 await page.waitForTimeout(600);
@@ -235,6 +235,7 @@ console.log(`\n记账校验：${results.filter((r) => r[0] === "PASS").length}/$
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 
 
 

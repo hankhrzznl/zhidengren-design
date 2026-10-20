@@ -344,7 +344,7 @@
     var payBtn = $('#pay-month');
     var unpaid = due.items.filter(function (i) { return !i.paid; });
     payBtn.disabled = unpaid.length === 0;
-    payBtn.textContent = due.total === 0 ? '本月无需还' : (unpaid.length ? '还本期 ' + money(due.total) : '本月已还清');
+    payBtn.textContent = due.total === 0 ? '本月无需还' : (unpaid.length ? '还本期 ' + money(due.total) : '本月已还 ' + money(due.total));
     $('#plan-upcoming').innerHTML = L.upcoming(6).map(function (u) {
       return '<span class="up' + (u.month === due.month ? ' on' : '') + '">' + u.label + ' ' + money(u.total) + '</span>';
     }).join('');
@@ -538,6 +538,7 @@
 </script>
 </body>
 </html>
+
 
 
 
