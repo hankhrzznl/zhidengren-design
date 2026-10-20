@@ -237,6 +237,24 @@ const autoPay = await expenseFrame.evaluate(() => {
 });
 ok("到期自动记一期（可补多期）", /已还 2\/12/.test(autoPay.sub) && autoPay.auto === 2 && autoPay.paid === 2, JSON.stringify(autoPay));
 
+/* 每月对账提醒卡 */
+await expenseFrame.evaluate(() => { window.LightReminder.save({ day: 1 }); });
+await expenseFrame.evaluate(() => location.reload());
+await page.waitForTimeout(900);
+const monthly = await expenseFrame.evaluate(() => ({
+  show: getComputedStyle(document.querySelector("#monthly-card")).display !== "none",
+  text: document.querySelector("#monthly-text")?.textContent || "",
+  doneBtn: getComputedStyle(document.querySelector("#monthly-done")).display,
+}));
+ok("记账页显示每月对账提醒", monthly.show && /该导出/.test(monthly.text) && monthly.doneBtn !== "none", JSON.stringify(monthly));
+
+await expenseFrame.click("#monthly-done");
+await page.waitForTimeout(300);
+const marked = await expenseFrame.evaluate(() => ({
+  cfg: JSON.parse(localStorage.getItem("lifeflow-import-reminder") || "null"),
+  text: document.querySelector("#monthly-text")?.textContent || "",
+}));
+ok("标记本月完成后不再待办", marked.cfg && !!marked.cfg.lastDone && /已完成/.test(marked.text), JSON.stringify(marked));
 /* 手动清空 */
 await expenseFrame.evaluate(() => { window.confirm = () => true; });
 await expenseFrame.click("#wipe");
@@ -267,6 +285,8 @@ console.log(`\n记账校验：${results.filter((r) => r[0] === "PASS").length}/$
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
+
 
 
 

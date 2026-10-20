@@ -65,6 +65,17 @@ await page.click("#inbox-save");
 await page.waitForTimeout(300);
 const cloudCfg = await page.evaluate(() => JSON.parse(localStorage.getItem("lifeflow-inbox-config") || "null"));
 ok("云收件箱地址与 token 已保存", cloudCfg && cloudCfg.token === "secret-token" && /supabase\.co/.test(cloudCfg.url), JSON.stringify(cloudCfg));
+/* 每月对账提醒 */
+await page.fill("#rem-day", "5");
+await page.click("#rem-save");
+await page.waitForTimeout(300);
+const rem = await page.evaluate(() => ({
+  cfg: JSON.parse(localStorage.getItem("lifeflow-import-reminder") || "null"),
+  status: document.querySelector("#rem-status")?.textContent,
+  ics: window.LightReminder.ics(5),
+}));
+ok("每月对账日可保存", rem.cfg && rem.cfg.day === 5 && /每月 5 日/.test(rem.status || ""), JSON.stringify(rem.cfg));
+ok("能生成每月重复的日历提醒", /RRULE:FREQ=MONTHLY;BYMONTHDAY=5/.test(rem.ics) && /VALARM/.test(rem.ics));
 await page.evaluate(() => localStorage.removeItem("lifeflow-inbox-config"));
 /* 测试一次 → 跳到记账页并真的记 0.01 */
 await page.click("#test");
@@ -82,5 +93,6 @@ console.log(`\n自动记账落地页：${results.filter((r) => r[0] === "PASS").
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 
 

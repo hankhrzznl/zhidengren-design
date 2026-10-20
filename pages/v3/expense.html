@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -45,6 +45,10 @@
   .acct .s{font-size:10px;color:var(--text-3);margin-top:2px;display:block}
   .acct .d{font-size:9.5px;color:var(--text-3);margin-top:1px;display:block;white-space:nowrap}
   .remind-card{margin-top:12px}
+  .monthly-card{margin-top:12px}
+  .monthly-text{margin:2px 0 8px;font-size:12px;line-height:1.7;color:var(--text-2)}
+  .monthly-btns{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px}
+  .monthly-btns button{border:1px solid var(--line);background:transparent;color:var(--text-2);border-radius:99px;padding:5px 10px;font:inherit;font-size:11px;cursor:pointer}
   .remind-head{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-2);margin-bottom:8px}
   .remind-head span:last-child{color:var(--text-3);font-size:10.5px}
   .remind-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:12px}
@@ -143,6 +147,12 @@
   <div class="card remind-card" id="remind-card" style="display:none">
     <div class="remind-head"><span>账单 / 还款提醒</span><span id="remind-note"></span></div>
     <div id="remind-list"></div>
+  </div>
+
+  <div class="card monthly-card" id="monthly-card" style="display:none">
+    <div class="remind-head"><span>每月对账</span><a class="rep-link" href="quick-setup.html">设置</a></div>
+    <p class="monthly-text" id="monthly-text"></p>
+    <div class="monthly-btns"><a class="rep-link" href="bill-import.html">去导入 →</a><button type="button" id="monthly-done">本月已完成</button></div>
   </div>
 
   <div class="card month-card">
@@ -247,6 +257,7 @@
 <script src="../core/ledger.js"></script>
 <script src="../core/bill-parse.js"></script>
 <script src="../core/cloud-inbox.js"></script>
+<script src="../core/reminder.js"></script>
 <script>
 (function () {
   var L = window.LightLedger;
@@ -475,7 +486,21 @@
   }
 
   function renderAll() {
-    renderStats(); renderRemind(); renderMonth(); renderAccounts(); renderSelects(); renderPlans(); renderList();
+    renderStats(); renderRemind(); renderMonthly(); renderMonth(); renderAccounts(); renderSelects(); renderPlans(); renderList();
+  }
+
+  function renderMonthly() {
+    var card = $('#monthly-card');
+    if (!window.LightReminder) { card.style.display = 'none'; return; }
+    var info = window.LightReminder.dueInfo();
+    if (!info.enabled) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    var text = '每月 ' + info.day + ' 日：导出支付宝/微信账单 CSV，导入补零钱。';
+    if (info.done) text = '本月对账已完成（每月 ' + info.day + ' 日）。下个月见。';
+    else if (info.should) text = '该导出 ' + (info.days < 0 ? '（已过 ' + (-info.days) + ' 天）' : '（今天）') + '：支付宝/微信 → 账单 → 导出 CSV → 导入。';
+    else text = '还有 ' + info.days + ' 天到每月对账日（' + info.day + ' 日）。';
+    $('#monthly-text').textContent = text;
+    $('#monthly-done').style.display = info.done ? 'none' : 'inline-block';
   }
 
   function renderRemind() {
@@ -727,6 +752,13 @@
     if (e.key === 'Enter') $('#budget-save').click();
   });
 
+  $('#monthly-done').addEventListener('click', function () {
+    if (!window.LightReminder) return;
+    window.LightReminder.markDone();
+    renderMonthly();
+    toast('本月对账已完成');
+  });
+
   L.ensurePlanModel();
   L.cleanDemo();
   var auto = L.autoRepayDue();
@@ -762,6 +794,8 @@
 </script>
 </body>
 </html>
+
+
 
 
 
