@@ -1,8 +1,8 @@
-/* 执灯人 · Service Worker —— 网络优先：在线拿最新版并回写缓存，离线回退缓存
+﻿/* 执灯人 · Service Worker —— 网络优先：在线拿最新版并回写缓存，离线回退缓存
    历史坑：原先用 cache.addAll() 预缓存，其中 ./assets/tab-avatar.png 已删除（第七轮改为内联 SVG 头像）、
    ./styles/main.css 没有任何页面加载；addAll 是全成全败语义，一个 404 就让 install 整体 reject，
    SW 从此永远不激活且控制台不报错。现改为逐条 add + 单条容错。 */
-const CACHE = 'lifeflow-hub-v6';
+const CACHE = 'lifeflow-hub-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -46,21 +46,36 @@ self.addEventListener('fetch', function (e) {
   try { url = new URL(e.request.url); } catch (err) { return; }
   if (url.origin !== self.location.origin) return;
 
+  /* 页面导航：缓存优先，立刻给上次的页面，同时在后台更新。
+     弱网/国内线路下「打开要等一分钟」的根因就是每次都在等网络。 */
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      caches.open(CACHE).then(function (c) {
+        return c.match(e.request).then(function (hit) {
+          var update = fetch(e.request).then(function (res) {
+            if (res && res.ok) c.put(e.request, res.clone()).catch(function () {});
+            return res;
+          }).catch(function () { return null; });
+          return hit || update.then(function (res) {
+            return res || c.match('./index.html') || c.match('./');
+          });
+        });
+      })
+    );
+    return;
+  }
+
+  /* 静态资源：stale-while-revalidate，命中缓存立即返回，后台再更新 */
   e.respondWith(
-    fetch(e.request).then(function (res) {
-      // 只回写成功的同源响应，避免把 opaque / 4xx 塞满缓存
-      if (res && res.ok) {
-        var copy = res.clone();
-        caches.open(CACHE).then(function (c) { return c.put(e.request, copy); }).catch(function () {});
-      }
-      return res;
-    }).catch(function () {
-      return caches.match(e.request).then(function (hit) {
-        if (hit) return hit;
-        // 离线且是页面导航时回退到手机端首页
-        if (e.request.mode === 'navigate') return caches.match('./index.html');
-        return Response.error();
+    caches.open(CACHE).then(function (c) {
+      return c.match(e.request).then(function (hit) {
+        var update = fetch(e.request).then(function (res) {
+          if (res && res.ok) c.put(e.request, res.clone()).catch(function () {});
+          return res;
+        }).catch(function () { return null; });
+        return hit || update.then(function (res) { return res || Response.error(); });
       });
     })
   );
 });
+

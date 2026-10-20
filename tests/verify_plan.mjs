@@ -1,4 +1,4 @@
-import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
 const errors = [];
@@ -113,7 +113,9 @@ ok("电脑端可翻到下周", (nextWeek.sub || "") !== (week.sub || "") && next
 await page.click("#wThis");
 await page.waitForTimeout(400);
 const backToday = await page.evaluate(() => document.querySelector("#vSub")?.textContent);
-ok("电脑端可回到今天", (backToday || "").includes(String(new Date().getDate())), backToday);
+const monday = (() => { const d = new Date(); const off = (d.getDay() + 6) % 7; const m = new Date(d); m.setDate(d.getDate() - off); return m; })();
+const mondayLabel = `${monday.getMonth() + 1} 月 ${monday.getDate()} 日`;
+ok("电脑端可回到今天", (backToday || "").includes(mondayLabel), backToday);
 
 /* 周视图点某一天 → 进那天的日视图 */
 await page.click('#segDW [data-v="week"]');
@@ -188,4 +190,5 @@ console.log(`\n计划回路校验：${results.filter((r) => r[0] === "PASS").len
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 
