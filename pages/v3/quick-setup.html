@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -34,6 +34,7 @@
   .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text-2)}
   ol{margin:8px 0 0;padding-left:18px;font-size:12px;line-height:1.9;color:var(--text-2)}
   ol b{color:var(--text-1)}
+  .rep-link{color:var(--brand);text-decoration:none}
   .note{font-size:11px;line-height:1.8;color:var(--text-3);margin-top:10px}
   .toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,10px);opacity:0;pointer-events:none;background:var(--brand);color:var(--brand-ink);padding:8px 16px;border-radius:99px;font-size:12px;transition:all .2s}
   .toast.on{opacity:1;transform:translate(-50%,0)}
@@ -90,6 +91,18 @@
       <button type="button" class="btn ghost" id="inbox-pull">立即拉取</button>
     </div>
     <p class="note" id="inbox-status">未配置。部署步骤见 docs/自动记账-Supabase收件箱.md。</p>
+  </div>
+
+  <div class="sec">微信 / 支付宝零钱</div>
+  <div class="card">
+    <p class="note" style="margin-top:0">零钱付款没有银行短信，两条路：</p>
+    <p class="note">① 付款后截图 → 分享给「记一笔」快捷指令（快捷指令里加「从图像提取文本」）；</p>
+    <p class="note">② 每月导出账单 CSV，一次性补全：<a class="rep-link" href="bill-import.html">导入账单 CSV →</a></p>
+  </div>
+
+  <div class="sec">现金 / 临时</div>
+  <div class="card">
+    <p class="note" style="margin:0">用 Siri「记一笔」或背面轻点，输入金额即可；也可以直接打开记账页手动记。</p>
   </div>
 
   <div class="sec">不想配快捷指令？</div>
@@ -171,5 +184,7 @@
 </script>
 </body>
 </html>
+
+
 
 

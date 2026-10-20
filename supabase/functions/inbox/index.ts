@@ -1,4 +1,4 @@
-// 执灯人 · 自动记账云收件箱（Supabase Edge Function）
+﻿// 执灯人 · 自动记账云收件箱（Supabase Edge Function）
 // 部署：supabase functions deploy inbox --no-verify-jwt
 // 环境变量：INBOX_TOKEN=<自己设的长随机串>
 // 已有 SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 由 Supabase 注入。
@@ -53,7 +53,7 @@ serve(async (req) => {
       note: String(b.note || "").slice(0, 80),
       account: String(b.account || "").slice(0, 30),
       date: b.date || null,
-      source: "shortcut"
+      source: String(b.source || "shortcut").slice(0, 20)
     };
     const r = await fetch(`${base}/rest/v1/inbox`, {
       method: "POST",
@@ -68,3 +68,4 @@ serve(async (req) => {
 
   return json({ error: "method" }, 405);
 });
+

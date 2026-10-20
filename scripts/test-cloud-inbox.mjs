@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 云收件箱客户端验收：node scripts/test-cloud-inbox.mjs
  * 用 mock fetch 模拟 Supabase Edge Function，验证拉取、去重、缺账户不丢。
  */
@@ -31,10 +31,11 @@ const cloud = [
   { id: 'c3', amount: 12, type: 'expense', cat: '交通', note: '地铁', account: '不存在的卡' }
 ];
 let calls = 0;
+let current = cloud;
 globalThis.fetch = async (url, init) => {
   calls++;
   if (String(url).indexOf('token=t0ken') < 0) return { ok: false, status: 403, json: async () => ({}) };
-  return { ok: true, status: 200, json: async () => cloud };
+  return { ok: true, status: 200, json: async () => current };
 };
 
 const first = await Inbox.pull();
@@ -55,6 +56,14 @@ L.addAccount({ name: '现金', type: 'asset', opening: 0 });
 const retry = await Inbox.pull();
 ok('补账户后能补记之前跳过的', retry.added === 3 && L.load().tx.length === 3, JSON.stringify(retry));
 
+/* 跨来源去重：短信 + Apple Pay 同一笔，只记一次 */
+current = [
+  { id: 'd1', amount: 66, type: 'expense', cat: '购物', note: '超市', account: '现金', date: '2026-10-20', source: 'sms', created_at: '2026-10-20T10:00:00Z' },
+  { id: 'd2', amount: 66, type: 'expense', cat: '购物', note: '超市', account: '现金', date: '2026-10-20', source: 'applepay', created_at: '2026-10-20T10:00:05Z' }
+];
+const dedup = await Inbox.pull();
+ok('短信与 Apple Pay 同一笔只记一次', dedup.added === 1 && dedup.skipped === 1, JSON.stringify(dedup));
+ok('账本保留来源标记', L.load().tx.some((t) => t.amount === 66 && t.meta && t.meta.source === 'sms'), JSON.stringify(L.load().tx.filter((t) => t.amount === 66)));
 /* 未配置 */
 Inbox.saveConfig({ url: '', token: '' });
 let err = '';
@@ -64,3 +73,4 @@ ok('未配置时给出明确错误', err === 'no-config', err);
 for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : '');
 console.log(`\n云收件箱校验：${pass}/${rows.length} PASS`);
 process.exit(rows.some((r) => r[0] === 'FAIL') ? 1 : 0);
+

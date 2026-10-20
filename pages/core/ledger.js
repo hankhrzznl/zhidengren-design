@@ -149,6 +149,7 @@
       if (!input.toId || input.toId === input.accountId) return null;
       tx.toId = input.toId;
     }
+    if (input.meta && typeof input.meta === 'object') tx.meta = input.meta;
     db.tx.push(tx);
     if (!save(db)) return null;
     return tx;
@@ -708,6 +709,7 @@
     dateKey: dateKey
   };
 })(typeof window !== 'undefined' ? window : globalThis);
+
 
 
 

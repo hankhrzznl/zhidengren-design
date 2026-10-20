@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    云收件箱 cloud-inbox.js（可选）
    作用：快捷指令不打开 Safari，直接 POST 到 Supabase Edge Function；
         记账页打开时把收件箱里没处理过的条目拉进本地账本。
@@ -57,22 +57,37 @@
     var data = await res.json();
     var rows = Array.isArray(data) ? data : (data.items || []);
     var done = seen();
+    var db = root.LightLedger.load();
+    var addedTx = [];
     var added = 0, skipped = 0;
     rows.forEach(function (r) {
       if (!r || !r.id) return;
       if (done.indexOf(r.id) >= 0) { skipped++; return; }
       var acc = accountFor(r);
       if (!acc) { skipped++; return; }
+      var d = dateOf(r);
+      var src = String(r.source || 'shortcut');
+      var t0 = r.created_at ? new Date(r.created_at).getTime() : Date.now();
+      var dup = db.tx.concat(addedTx).some(function (t) {
+        if (t.date !== d || Math.abs(Number(t.amount) - Number(r.amount)) > 0.001) return false;
+        var s0 = t.meta && t.meta.source;
+        if (!s0 || s0 === src) return false;
+        var at = t.meta && t.meta.cloudAt ? new Date(t.meta.cloudAt).getTime() : 0;
+        return at > 0 && Math.abs(at - t0) < 5 * 60 * 1000;
+      });
+      if (dup) { skipped++; return; }
       var tx = root.LightLedger.addTx({
         type: r.type === 'income' ? 'income' : 'expense',
         amount: Number(r.amount),
         accountId: acc.id,
         category: r.cat || '日常',
         note: r.note || '',
-        date: dateOf(r)
+        date: d,
+        meta: { cloudId: r.id, source: src, cloudAt: r.created_at || new Date().toISOString() }
       });
       if (!tx) { skipped++; return; }
       done.push(r.id);
+      addedTx.push(tx);
       added++;
     });
     markSeen(done);
@@ -87,3 +102,5 @@
     clearSeen: clearSeen
   };
 })(typeof window !== 'undefined' ? window : globalThis);
+
+

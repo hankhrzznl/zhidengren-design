@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>导入账单 · 执灯人</title>
+<style>
+  :root{
+    --bg:#0B0F1A; --card:#121826; --sheet:#1A2332; --line:rgba(232,234,242,.08);
+    --text-1:#E8EAF2; --text-2:#9AA3B5; --text-3:#5A6478; --brand:#4DC3FF; --brand-ink:#06121F;
+  }
+  [data-theme="light"]{
+    --bg:#F7F4EF; --card:#FFFFFF; --sheet:#F2ECE3; --line:rgba(38,34,30,.10);
+    --text-1:#26221E; --text-2:#6E675E; --text-3:#A39C90; --brand:#002FA7; --brand-ink:#FFFFFF;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text-1);font-family:"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;padding:20px 16px 40px}
+  .head{display:flex;align-items:baseline;gap:10px;margin:2px 0 14px}
+  .head a{font-size:12px;color:var(--text-3);text-decoration:none}
+  .head h1{font-size:22px;margin:0}
+  p.lead{font-size:12px;line-height:1.8;color:var(--text-2);margin:0 0 14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+  .sec{font-size:11px;color:var(--text-3);letter-spacing:.14em;margin:20px 0 8px}
+  .drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 10px;border:1px dashed var(--line);border-radius:14px;color:var(--text-2);font-size:12.5px;text-align:center}
+  .drop b{color:var(--brand);font-size:13px}
+  input[type=file]{display:none}
+  .btn{height:40px;padding:0 16px;border:0;border-radius:10px;background:var(--brand);color:var(--brand-ink);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text-2)}
+  .btns{display:flex;gap:8px;margin-top:10px}
+  .rows{display:flex;flex-direction:column;margin-top:6px}
+  .row{display:flex;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:11.5px;color:var(--text-2)}
+  .row:first-child{border-top:0}
+  .row .d{width:66px;flex:none;color:var(--text-3);font-variant-numeric:tabular-nums}
+  .row .n{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .a{font-variant-numeric:tabular-nums;color:var(--text-1)}
+  .row .a.in{color:#3EB575}
+  .stat{font-size:12px;color:var(--text-2);line-height:1.8;margin-top:8px}
+  .stat b{color:var(--text-1)}
+  .toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,10px);opacity:0;pointer-events:none;background:var(--brand);color:var(--brand-ink);padding:8px 16px;border-radius:99px;font-size:12px;transition:all .2s}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+  <div class="head"><a href="expense.html">← 记账</a><h1>导入账单</h1></div>
+  <p class="lead">支付宝/微信导出 CSV 后，在这里一次性导入。会按「日期 + 金额 + 商户」去重，重复导入不会多记。</p>
+
+  <div class="card">
+    <label class="drop" for="file" id="drop">
+      <b>选择 CSV 文件</b>
+      <span>支付宝：账单 → 开具交易流水证明<br>微信：钱包 → 账单 → 下载账单 → 解压得到 CSV</span>
+    </label>
+    <input type="file" id="file" accept=".csv,text/csv">
+    <div class="stat" id="stat">还没有选择文件。</div>
+    <div class="btns">
+      <button type="button" class="btn" id="import" disabled>导入</button>
+      <button type="button" class="btn ghost" id="clear">清空</button>
+    </div>
+  </div>
+
+  <div class="sec">预览</div>
+  <div class="card"><div class="rows" id="preview"><div class="stat">导入前会显示前 5 笔。</div></div></div>
+
+  <div class="toast" id="toast"></div>
+
+<script src="../core/store.js"></script>
+<script src="../core/ledger.js"></script>
+<script src="../core/bill-parse.js"></script>
+<script src="../core/bill-csv.js"></script>
+<script>
+(function () {
+  var L = window.LightLedger, C = window.LightBillCsv;
+  var $ = function (s) { return document.querySelector(s); };
+  var parsed = null, fileName = '';
+  function toast(msg) {
+    var el = $('#toast'); el.textContent = msg; el.classList.add('on');
+    clearTimeout(el._t); el._t = setTimeout(function () { el.classList.remove('on'); }, 2000);
+  }
+  function money(n) { return '¥' + (Math.round(n * 100) / 100).toLocaleString('zh-CN'); }
+
+  function accountFor(row) {
+    var list = L.listAccounts();
+    var hint = row.account || '';
+    var keys = ['花呗', '白条', '微信', '支付宝', '招商', '银行', '现金', '零钱', '余额'];
+    var hit = keys.filter(function (k) { return hint.indexOf(k) >= 0; })[0] || '';
+    if (hit) {
+      var byName = list.filter(function (a) { return a.name.indexOf(hit) >= 0; })[0];
+      if (byName) return byName;
+    }
+    return list.filter(function (a) { return a.type === 'asset'; })[0] || list[0] || null;
+  }
+  function keyOf(t) { return [t.date || '', Math.round(Number(t.amount) * 100), String(t.note || '').trim()].join('|'); }
+
+  function render() {
+    if (!parsed) {
+      $('#stat').textContent = '还没有选择文件。';
+      $('#preview').innerHTML = '<div class="stat">导入前会显示前 5 笔。</div>';
+      $('#import').disabled = true;
+      return;
+    }
+    var dates = parsed.rows.map(function (r) { return r.date; }).sort();
+    $('#stat').innerHTML = '识别为 <b>' + (parsed.source === 'alipay' ? '支付宝' : parsed.source === 'wechat' ? '微信' : '未知') +
+      '</b> · 可导入 <b>' + parsed.rows.length + '</b> 笔' +
+      (parsed.skipped ? ' · 跳过 ' + parsed.skipped + ' 行（不计收支/无金额）' : '') +
+      (dates.length ? '<br>' + dates[0] + ' → ' + dates[dates.length - 1] : '');
+    $('#preview').innerHTML = parsed.rows.slice(0, 5).map(function (r) {
+      return '<div class="row"><span class="d">' + r.date + '</span><span class="n">' + (r.note || r.cat) +
+        '</span><span class="a' + (r.type === 'income' ? ' in' : '') + '">' + (r.type === 'income' ? '+' : '−') + money(r.amount) + '</span></div>';
+    }).join('') || '<div class="stat">没有可导入的行。</div>';
+    $('#import').disabled = parsed.rows.length === 0;
+  }
+
+  $('#drop').addEventListener('click', function () { $('#file').click(); });
+  $('#file').addEventListener('change', function () {
+    var f = $('#file').files[0];
+    if (!f) return;
+    fileName = f.name;
+    var reader = new FileReader();
+    reader.onload = function () {
+      parsed = C.parse(reader.result);
+      render();
+      if (!parsed.rows.length) toast('没认出账单格式');
+    };
+    reader.readAsText(f, 'utf-8');
+  });
+
+  $('#clear').addEventListener('click', function () {
+    parsed = null; fileName = '';
+    $('#file').value = '';
+    render();
+  });
+
+  $('#import').addEventListener('click', function () {
+    if (!parsed || !parsed.rows.length) return;
+    var db = L.load();
+    var seen = {};
+    db.tx.forEach(function (t) { seen[keyOf(t)] = true; });
+    var added = 0, dup = 0, noAcc = 0;
+    parsed.rows.forEach(function (r) {
+      var k = keyOf(r);
+      if (seen[k]) { dup++; return; }
+      var acc = accountFor(r);
+      if (!acc) { noAcc++; return; }
+      var tx = L.addTx({ type: r.type, amount: r.amount, accountId: acc.id, category: r.cat, note: r.note, date: r.date });
+      if (!tx) { noAcc++; return; }
+      seen[k] = true;
+      added++;
+      try {
+        if (window.LightStore) window.LightStore.record({ mod: '记账', metric: 'entries', value: 1, date: r.date, meta: { label: '导入', amount: r.amount, source: r.source } });
+      } catch (e) {}
+    });
+    toast('导入 ' + added + ' 笔' + (dup ? '，跳过重复 ' + dup : '') + (noAcc ? '，缺账户 ' + noAcc : ''));
+    parsed = null; $('#file').value = '';
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
