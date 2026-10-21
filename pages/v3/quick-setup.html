@@ -17,203 +17,82 @@
   body{margin:0;background:var(--bg);color:var(--text-1);font-family:"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;padding:20px 16px 40px}
   .head{display:flex;align-items:baseline;gap:10px;margin:2px 0 14px}
   .head a{font-size:12px;color:var(--text-3);text-decoration:none}
-  .head h1{font-size:22px;margin:0;letter-spacing:.02em}
-  p.lead{margin:0 0 16px;font-size:12px;line-height:1.8;color:var(--text-2)}
+  .head h1{font-size:22px;margin:0}
+  p.lead{margin:0 0 14px;font-size:12px;line-height:1.8;color:var(--text-2)}
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
-  .sec{font-size:11px;color:var(--text-3);letter-spacing:.14em;margin:20px 0 8px}
-  .route{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:12px;line-height:1.7}
-  .route:first-of-type{border-top:0}
-  .route b{display:block;font-size:12.5px;color:var(--text-1);margin-bottom:2px}
-  .route span{color:var(--text-2)}
-  .tag{flex:none;width:22px;height:22px;border-radius:7px;background:var(--sheet);color:var(--brand);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
-  .fields{display:flex;gap:8px;margin:8px 0}
-  .fields select{flex:1;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--sheet);color:var(--text-1);font-size:12.5px;padding:0 10px}
-  code{display:block;word-break:break-all;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.7;background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--text-1)}
-  .btns{display:flex;gap:8px;margin-top:8px}
-  .btn{flex:1;height:38px;border-radius:10px;border:0;background:var(--brand);color:var(--brand-ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+  .sec{font-size:11px;color:var(--text-3);letter-spacing:.14em;margin:20px 0 8px;scroll-margin-top:16px}
+  .plan-title{font-size:14px;font-weight:650;color:var(--text-1);margin-bottom:6px}
+  .flow{font-size:12px;line-height:1.9;color:var(--text-2);background:var(--sheet);border-radius:12px;padding:10px 12px}
+  .fields{display:flex;align-items:center;gap:8px;margin:8px 0}
+  .fields input{width:70px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--sheet);color:var(--text-1);font-size:14px;padding:0 10px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 14px;border:0;border-radius:10px;background:var(--brand);color:var(--brand-ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none}
   .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text-2)}
+  .btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .note{font-size:11px;line-height:1.8;color:var(--text-3);margin:8px 0 0}
+  .note a{color:var(--brand)}
   ol{margin:8px 0 0;padding-left:18px;font-size:12px;line-height:1.9;color:var(--text-2)}
   ol b{color:var(--text-1)}
-  .rep-link{color:var(--brand);text-decoration:none}
-  .note{font-size:11px;line-height:1.8;color:var(--text-3);margin-top:10px}
   .toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,10px);opacity:0;pointer-events:none;background:var(--brand);color:var(--brand-ink);padding:8px 16px;border-radius:99px;font-size:12px;transition:all .2s}
   .toast.on{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
   <div class="head"><a href="expense.html">← 记账</a><h1>自动记账</h1></div>
-  <p class="lead">iOS 不允许 App 后台读微信 / 支付宝账单，所以做法是：<b>用快捷指令把「金额」拼成一条记账链接</b>，打开就记好。下面按覆盖面从高到低排。</p>
+  <p class="lead">你的方案：每月 1 号，导出支付宝 + 微信账单 CSV，导入一次；平时现金/临时手动记。<b>不需要银行短信、Apple Pay、Supabase 或快捷指令。</b></p>
 
   <div class="card">
-    <div class="route"><span class="tag">1</span><div><b>分享 / 复制账单（微信、支付宝）</b><span>复制账单文本 → 点一下「记一笔」快捷指令。覆盖最广，需要一次配置。</span></div></div>
-    <div class="route"><span class="tag">2</span><div><b>银行短信自动（真自动）</b><span>收到含「消费」的短信 → 自动解析金额 → 打开链接。</span></div></div>
-    <div class="route"><span class="tag">3</span><div><b>Apple Pay 自动（iOS 17+）</b><span>「交易」自动化，只覆盖 Apple Pay，需实测。</span></div></div>
-    <div class="route"><span class="tag">4</span><div><b>Siri / 背面轻点（最快手动）</b><span>「嘿 Siri，记一笔」或双击手机背面。</span></div></div>
+    <div class="plan-title">每月 1 号 · 3 分钟</div>
+    <div class="flow">支付宝 CSV + 微信 CSV → 导入账单 → 本月已完成</div>
+    <div class="btns">
+      <a class="btn" href="bill-import.html">去导入账单</a>
+      <a class="btn ghost" href="#rem">设置提醒</a>
+    </div>
   </div>
 
-  <div class="sec">生成你的记账链接</div>
+  <div class="sec" id="rem">每月对账提醒</div>
   <div class="card">
     <div class="fields">
-      <select id="acc"></select>
-      <select id="cat">
-        <option>餐饮</option><option>交通</option><option>购物</option><option>日常</option><option>房租</option><option>还款</option>
-      </select>
-    </div>
-    <code id="tpl">https://my-lifeos.com/app/v3/expense.html?quick=[金额]&amp;cat=餐饮&amp;account=微信钱包</code>
-    <div class="btns">
-      <button type="button" class="btn" id="copy">复制模板</button>
-      <button type="button" class="btn ghost" id="test">测试一次</button>
-    </div>
-    <p class="note">快捷指令里把 <b>[金额]</b> 换成「数字」变量即可；<b>account</b> 也可以删掉，默认用第一个资产账户。</p>
-  </div>
-
-  <div class="sec">快捷指令怎么建</div>
-  <div class="card">
-    <ol>
-      <li>打开「快捷指令」→ 右上角 <b>＋</b> → 命名「记一笔」；</li>
-      <li>点详情 → 打开 <b>在共享表单中显示</b>，接收类型选 <b>文本</b>；</li>
-      <li>加动作 <b>「从输入中获取数字」</b>（或「匹配文本」正则 <code style="display:inline">(?:¥|￥)\s*([0-9]+(?:\.[0-9]{1,2})?)</code>）；</li>
-      <li>加动作 <b>「打开 URL」</b>，粘贴上面复制的模板，把 <b>[金额]</b> 换成第 3 步的数字变量；</li>
-      <li>保存。之后在微信/支付宝账单里复制文本 → 分享 → 选「记一笔」。</li>
-    </ol>
-    <p class="note">短信自动化：快捷指令 → 自动化 → 信息 → 包含「消费」→ 立即运行 → 同样的「打开 URL」。</p>
-  </div>
-
-  <div class="sec">云收件箱（可选 · 需要 Supabase 项目）</div>
-  <div class="card">
-    <p class="note" style="margin-top:0">配好后，快捷指令用「获取 URL 内容」直接 POST，不用打开 Safari；记账页打开时自动拉取。数据只存在你自己的 Supabase 项目里。</p>
-    <div class="fields" style="flex-direction:column">
-      <input id="inbox-url" placeholder="https://xxxx.supabase.co/functions/v1/inbox" style="height:40px;border-radius:10px;border:1px solid var(--line);background:var(--sheet);color:var(--text-1);font-size:12px;padding:0 10px">
-      <input id="inbox-token" placeholder="INBOX_TOKEN（你自己设的长随机串）" style="height:40px;border-radius:10px;border:1px solid var(--line);background:var(--sheet);color:var(--text-1);font-size:12px;padding:0 10px">
-    </div>
-    <div class="btns">
-      <button type="button" class="btn" id="inbox-save">保存</button>
-      <button type="button" class="btn ghost" id="inbox-pull">立即拉取</button>
-      <button type="button" class="btn ghost" id="inbox-test">发送测试</button>
-    </div>
-    <p class="note" id="inbox-status">未配置。部署步骤见 docs/自动记账-Supabase收件箱.md。</p>
-  </div>
-
-  <div class="sec">每月对账提醒</div>
-  <div class="card">
-    <p class="note" style="margin-top:0">每月固定一天，导出支付宝/微信账单 CSV 并导入，补齐零钱消费。日子你自己定。</p>
-    <div class="fields" style="align-items:center">
       <span class="note" style="margin:0">每月</span>
-      <input id="rem-day" type="number" min="1" max="28" value="5" style="width:70px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--sheet);color:var(--text-1);font-size:14px;padding:0 10px">
+      <input id="rem-day" type="number" min="1" max="28" value="1">
       <span class="note" style="margin:0">日</span>
       <button type="button" class="btn" id="rem-save">保存</button>
     </div>
     <p class="note" id="rem-status">还没设置。</p>
     <div class="btns">
-      <a class="btn ghost" href="bill-import.html" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none">去导入</a>
+      <a class="btn ghost" href="bill-import.html">去导入</a>
       <button type="button" class="btn" id="rem-ics">添加到日历</button>
       <button type="button" class="btn ghost" id="rem-done">本月已完成</button>
     </div>
     <ol>
-      <li><b>支付宝</b>：我的 → 账单 → 右上角「…」→ 开具交易流水证明 / 导出账单 → 选时间段 → 填邮箱 → 邮件里解压出 CSV。</li>
-      <li><b>微信</b>：我 → 服务 → 钱包 → 账单 → 常见问题 → 下载账单 → 用于个人对账 → 选时间段 → 填邮箱 → 解压出 CSV。</li>
-      <li><b>导入</b>：<a class="rep-link" href="bill-import.html">导入账单</a> → 选 CSV → 看预览 → 导入（按日期+金额+商户去重）。</li>
-      <li><b>提醒</b>：点「添加到日历」下载 .ics，用 iPhone 日历打开，会每月重复并在当天提醒；或让 Siri 每月这天提醒你。</li>
+      <li><b>支付宝</b>：我的 → 账单 → 右上角「…」→ 开具交易流水证明 / 导出账单 → 选整月 → 填邮箱 → 邮件里解压出 CSV。</li>
+      <li><b>微信</b>：我 → 服务 → 钱包 → 账单 → 常见问题 → 下载账单 → 用于个人对账 → 选整月 → 填邮箱 → 解压出 CSV。</li>
+      <li><b>导入</b>：<a href="bill-import.html">导入账单</a> → 选 CSV → 看预览 → 导入（按日期+金额+商户去重）。</li>
+      <li><b>完成</b>：点「本月已完成」，下个月自动重新提醒。</li>
     </ol>
   </div>
 
-  <div class="sec">微信 / 支付宝零钱</div>
+  <div class="sec">导入时会自动跳过</div>
   <div class="card">
-    <p class="note" style="margin-top:0">零钱付款没有银行短信，两条路：</p>
-    <p class="note">① 付款后截图 → 分享给「记一笔」快捷指令（快捷指令里加「从图像提取文本」）；</p>
-    <p class="note">② 每月导出账单 CSV，一次性补全：<a class="rep-link" href="bill-import.html">导入账单 CSV →</a></p>
+    <p class="note" style="margin:0">转账 / 充值 / 提现 / 还款 默认跳过，避免把「账户之间挪钱」记成消费；导入页可以手动关掉这个开关。</p>
   </div>
 
   <div class="sec">现金 / 临时</div>
   <div class="card">
-    <p class="note" style="margin:0">用 Siri「记一笔」或背面轻点，输入金额即可；也可以直接打开记账页手动记。</p>
+    <p class="note" style="margin:0">直接打开记账页手动记；复制了账单文本的话，点金额框右边的「粘贴账单」自动填。</p>
   </div>
 
-  <div class="sec">不想配快捷指令？</div>
-  <div class="card">
-    <p class="note" style="margin:0">回到记账页，用「粘贴账单」：复制微信/支付宝账单后点一下，金额、商户、分类会自动填好，确认「记下」即可。</p>
-  </div>
+  <p class="note">Supabase 云收件箱与 iOS 快捷指令已停用，不需要配置；代码保留但不再使用。</p>
 
   <div class="toast" id="toast"></div>
 
-<script src="../core/ledger.js"></script>
-<script src="../core/cloud-inbox.js"></script>
 <script src="../core/reminder.js"></script>
 <script>
 (function () {
-  var L = window.LightLedger;
   var $ = function (s) { return document.querySelector(s); };
   function toast(msg) {
     var el = $('#toast'); el.textContent = msg; el.classList.add('on');
     clearTimeout(el._t); el._t = setTimeout(function () { el.classList.remove('on'); }, 1800);
   }
-  function build(useAmount) {
-    var acc = $('#acc').value;
-    var cat = $('#cat').value;
-    var base = location.origin + location.pathname.replace(/[^/]*$/, 'expense.html') + '?quick=' + (useAmount ? '0.01' : '[金额]') + '&cat=' + encodeURIComponent(cat);
-    if (acc) base += '&account=' + encodeURIComponent(acc);
-    if (useAmount) base += '&note=' + encodeURIComponent('测试');
-    return base;
-  }
-  function render() {
-    $('#tpl').textContent = build(false);
-  }
-  function init() {
-    var accs = L.listAccounts();
-    $('#acc').innerHTML = '<option value="">默认（第一个资产账户）</option>' + accs.map(function (a) {
-      return '<option value="' + a.name + '">' + a.name + (a.type === 'credit' ? '（信用）' : '') + '</option>';
-    }).join('');
-    render();
-  }
-  $('#acc').addEventListener('change', render);
-  $('#cat').addEventListener('change', render);
-  $('#copy').addEventListener('click', function () {
-    var text = build(false);
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () { toast('模板已复制'); }, function () { toast('复制失败，请长按选择'); });
-    } else {
-      toast('请长按模板手动复制');
-    }
-  });
-  $('#test').addEventListener('click', function () {
-    location.href = build(true);
-  });
-
-  /* 云收件箱配置 */
-  var cfg = window.LightInbox && window.LightInbox.config();
-  if (cfg && cfg.url) {
-    $('#inbox-url').value = cfg.url;
-    $('#inbox-token').value = cfg.token || '';
-    $('#inbox-status').textContent = '已配置：' + cfg.url;
-  }
-  $('#inbox-save').addEventListener('click', function () {
-    var url = $('#inbox-url').value.trim();
-    var token = $('#inbox-token').value.trim();
-    if (!url || !token) { $('#inbox-status').textContent = 'URL 和 token 都要填'; return; }
-    window.LightInbox.saveConfig({ url: url, token: token });
-    $('#inbox-status').textContent = '已保存：' + url;
-    toast('云收件箱已保存');
-  });
-  $('#inbox-test').addEventListener('click', async function () {
-    $('#inbox-status').textContent = '发送测试中…';
-    try {
-      var r2 = await window.LightInbox.testPush();
-      $('#inbox-status').textContent = '测试成功：已写入 0.01 并拉取 ' + r2.added + ' 笔';
-    } catch (e) {
-      $('#inbox-status').textContent = '测试失败：' + (e.message === 'no-config' ? '先保存 URL 和 token' : e.message);
-    }
-  });
-  $('#inbox-pull').addEventListener('click', async function () {
-    $('#inbox-status').textContent = '拉取中…';
-    try {
-      var r = await window.LightInbox.pull();
-      $('#inbox-status').textContent = '拉取完成：新增 ' + r.added + ' 笔，共 ' + r.total + ' 笔';
-    } catch (e) {
-      $('#inbox-status').textContent = '拉取失败：' + (e.message === 'no-config' ? '先保存 URL 和 token' : e.message);
-    }
-  });
-
-  /* 每月对账提醒 */
   function renderRem() {
     var info = window.LightReminder.dueInfo();
     if (!info.enabled) { $('#rem-status').textContent = '还没设置。'; return; }
@@ -223,18 +102,19 @@
     else text += ' · 还有 ' + info.days + ' 天';
     $('#rem-status').textContent = text;
   }
-  var rem = window.LightReminder.config();
-  if (rem.day) $('#rem-day').value = rem.day;
+  var cfg = window.LightReminder.config();
+  if (cfg.day) $('#rem-day').value = cfg.day;
   renderRem();
+
   $('#rem-save').addEventListener('click', function () {
-    var day = Math.min(28, Math.max(1, Number($('#rem-day').value) || 5));
+    var day = Math.min(28, Math.max(1, Number($('#rem-day').value) || 1));
     window.LightReminder.save({ day: day });
     $('#rem-day').value = day;
     renderRem();
     toast('每月 ' + day + ' 日提醒已保存');
   });
   $('#rem-ics').addEventListener('click', function () {
-    var day = Math.min(28, Math.max(1, Number($('#rem-day').value) || 5));
+    var day = Math.min(28, Math.max(1, Number($('#rem-day').value) || 1));
     var blob = new Blob([window.LightReminder.ics(day)], { type: 'text/calendar;charset=utf-8' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -248,15 +128,7 @@
     renderRem();
     toast('本月对账已完成');
   });
-
-  init();
 })();
 </script>
 </body>
 </html>
-
-
-
-
-
-

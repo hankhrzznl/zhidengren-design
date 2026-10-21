@@ -34,6 +34,8 @@
   .row .n{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .row .a{font-variant-numeric:tabular-nums;color:var(--text-1)}
   .row .a.in{color:#3EB575}
+  .skip{display:flex;align-items:center;gap:8px;margin:10px 0 2px;font-size:11.5px;color:var(--text-2);cursor:pointer}
+  .skip input{width:16px;height:16px;accent-color:var(--brand)}
   .stat{font-size:12px;color:var(--text-2);line-height:1.8;margin-top:8px}
   .stat b{color:var(--text-1)}
   .toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,10px);opacity:0;pointer-events:none;background:var(--brand);color:var(--brand-ink);padding:8px 16px;border-radius:99px;font-size:12px;transition:all .2s}
@@ -50,6 +52,7 @@
       <span>支付宝：账单 → 开具交易流水证明<br>微信：钱包 → 账单 → 下载账单 → 解压得到 CSV</span>
     </label>
     <input type="file" id="file" accept=".csv,text/csv">
+    <label class="skip"><input type="checkbox" id="skip-transfer" checked> 跳过转账 / 充值 / 提现 / 还款（避免重复）</label>
     <div class="stat" id="stat">还没有选择文件。</div>
     <div class="btns">
       <button type="button" class="btn" id="import" disabled>导入</button>
@@ -90,6 +93,12 @@
   }
   function keyOf(t) { return [t.date || '', Math.round(Number(t.amount) * 100), String(t.note || '').trim()].join('|'); }
 
+  function activeRows() {
+    if (!parsed) return [];
+    var skip = $('#skip-transfer').checked;
+    return parsed.rows.filter(function (r) { return !(skip && r.transfer); });
+  }
+
   function render() {
     if (!parsed) {
       $('#stat').textContent = '还没有选择文件。';
@@ -97,17 +106,22 @@
       $('#import').disabled = true;
       return;
     }
-    var dates = parsed.rows.map(function (r) { return r.date; }).sort();
+    var rows = activeRows();
+    var skippedTransfer = parsed.rows.filter(function (r) { return r.transfer; }).length;
+    var dates = rows.map(function (r) { return r.date; }).sort();
     $('#stat').innerHTML = '识别为 <b>' + (parsed.source === 'alipay' ? '支付宝' : parsed.source === 'wechat' ? '微信' : '未知') +
-      '</b> · 可导入 <b>' + parsed.rows.length + '</b> 笔' +
-      (parsed.skipped ? ' · 跳过 ' + parsed.skipped + ' 行（不计收支/无金额）' : '') +
+      '</b> · 可导入 <b>' + rows.length + '</b> 笔' +
+      ($('#skip-transfer').checked && skippedTransfer ? ' · 跳过转账/充值 ' + skippedTransfer + ' 笔' : '') +
+      (parsed.skipped ? ' · 忽略 ' + parsed.skipped + ' 行（不计收支/无金额）' : '') +
       (dates.length ? '<br>' + dates[0] + ' → ' + dates[dates.length - 1] : '');
-    $('#preview').innerHTML = parsed.rows.slice(0, 5).map(function (r) {
+    $('#preview').innerHTML = rows.slice(0, 5).map(function (r) {
       return '<div class="row"><span class="d">' + r.date + '</span><span class="n">' + (r.note || r.cat) +
         '</span><span class="a' + (r.type === 'income' ? ' in' : '') + '">' + (r.type === 'income' ? '+' : '−') + money(r.amount) + '</span></div>';
     }).join('') || '<div class="stat">没有可导入的行。</div>';
-    $('#import').disabled = parsed.rows.length === 0;
+    $('#import').disabled = rows.length === 0;
   }
+
+  $('#skip-transfer').addEventListener('change', render);
 
   $('#drop').addEventListener('click', function () { $('#file').click(); });
   $('#file').addEventListener('change', function () {
@@ -130,12 +144,13 @@
   });
 
   $('#import').addEventListener('click', function () {
-    if (!parsed || !parsed.rows.length) return;
+    var rows = activeRows();
+    if (!rows.length) { toast('没有可导入的行'); return; }
     var db = L.load();
     var seen = {};
     db.tx.forEach(function (t) { seen[keyOf(t)] = true; });
     var added = 0, dup = 0, noAcc = 0;
-    parsed.rows.forEach(function (r) {
+    rows.forEach(function (r) {
       var k = keyOf(r);
       if (seen[k]) { dup++; return; }
       var acc = accountFor(r);
@@ -158,3 +173,5 @@
 </script>
 </body>
 </html>
+
+

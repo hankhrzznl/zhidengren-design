@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    每月对账提醒 reminder.js
    用途：每月固定一天提醒导出支付宝/微信账单 CSV，导入补零钱消费。
    存储：localStorage['lifeflow-import-reminder'] = {day: 5, lastDone: '2026-10'}
@@ -47,7 +47,7 @@
     };
   }
   function ics(day) {
-    var d = day || config().day || 5;
+    var d = day || config().day || 1;
     var now = new Date();
     var start = new Date(now.getFullYear(), now.getMonth(), d);
     if (start.getTime() < new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) {
@@ -86,3 +86,4 @@
     monthKey: monthKey
   };
 })(typeof window !== 'undefined' ? window : globalThis);
+

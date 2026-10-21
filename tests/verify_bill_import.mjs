@@ -1,4 +1,4 @@
-import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -7,7 +7,8 @@ fs.writeFileSync(csvPath, [
   "交易时间,交易分类,交易对方,商品说明,收/支,金额,收/付款方式,交易状态,交易订单号,商家订单号,备注",
   "2026-10-20 12:30:00,餐饮美食,瑞幸咖啡,生椰拿铁,支出,19.90,花呗,交易成功,A001,M001,",
   "2026-10-19 08:00:00,交通出行,滴滴出行,快车,支出,38.50,招商银行储蓄卡(1234),交易成功,A002,M002,",
-  "2026-10-18 10:00:00,转账,张三,红包,收入,200.00,余额,交易成功,A003,M003,"
+  "2026-10-18 10:00:00,转账,张三,红包,收入,200.00,余额,交易成功,A003,M003,",
+  "2026-10-16 12:00:00,转账,李四,转账,支出,50.00,余额,交易成功,A004,M004,"
 ].join("\n"), "utf8");
 
 const browser = await chromium.launch({ executablePath: EXE });
@@ -39,7 +40,7 @@ const preview = await page.evaluate(() => ({
   rows: document.querySelectorAll("#preview .row").length,
   disabled: document.querySelector("#import")?.disabled,
 }));
-ok("识别支付宝 CSV 并预览 3 笔", /可导入 3 笔/.test(preview.stat || "") && preview.rows === 3 && preview.disabled === false, JSON.stringify(preview));
+ok("识别支付宝 CSV 并预览 3 笔（跳过 1 笔转账）", /可导入 3 笔/.test(preview.stat || "") && /跳过转账/.test(preview.stat || "") && preview.rows === 3 && preview.disabled === false, JSON.stringify(preview));
 
 await page.click("#import");
 await page.waitForTimeout(600);
@@ -61,9 +62,29 @@ const twice = await page.evaluate(() => ({
 }));
 ok("重复导入不重复记账", twice.tx === 3, JSON.stringify(twice));
 
+/* 关掉「跳过转账」后才导入那笔 50 */
+await page.setInputFiles("#file", csvPath);
+await page.waitForTimeout(500);
+await page.uncheck("#skip-transfer");
+await page.waitForTimeout(300);
+const withTransfer = await page.evaluate(() => ({
+  stat: document.querySelector("#stat")?.textContent.replace(/\s+/g, " "),
+  disabled: document.querySelector("#import")?.disabled,
+}));
+ok("关闭跳过后转账行出现", /可导入 4 笔/.test(withTransfer.stat || "") && withTransfer.disabled === false, JSON.stringify(withTransfer));
+
+await page.click("#import");
+await page.waitForTimeout(600);
+const all = await page.evaluate(() => {
+  const db = JSON.parse(localStorage.getItem("lifeflow-ledger-v1"));
+  return { tx: db.tx.length, has50: db.tx.some((t) => Number(t.amount) === 50) };
+});
+ok("手动关闭后可导入转账", all.tx === 4 && all.has50, JSON.stringify(all));
+
 await page.screenshot({ path: OUT + "bill-import.png" });
 for (const r of results) console.log(r[0].padEnd(5), r[1], r[2] ? "· " + r[2] : "");
 console.log(`\n账单导入校验：${results.filter((r) => r[0] === "PASS").length}/${results.length} PASS`);
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+

@@ -105,6 +105,7 @@
         note: note,
         account: account,
         cat: cat,
+        transfer: /转账|充值|提现|还款|余额宝|零钱通|理财通/.test(typeRaw + ' ' + note),
         source: source
       });
     });
@@ -113,4 +114,5 @@
 
   root.LightBillCsv = { parse: parse, splitCsv: splitCsv };
 })(typeof window !== 'undefined' ? window : globalThis);
+
 
