@@ -136,8 +136,25 @@ await page.click('#segDW [data-v="week"]');
 await page.waitForTimeout(300);
 const dragId = await page.evaluate(() => document.querySelector("#stage-week .wk-dot[data-id]")?.dataset.id);
 if (dragId) {
-  await page.dragAndDrop(`#stage-week .wk-dot[data-id="${dragId}"]`, "#stage-week .wk-col:nth-child(5)");
-  await page.waitForTimeout(500);
+  const src = page.locator(`#stage-week .wk-dot[data-id="${dragId}"]`);
+  const targetIdx = await page.evaluate(() => {
+    const cols = [...document.querySelectorAll("#stage-week .wk-col")];
+    const t = cols.findIndex((c) => c.classList.contains("today"));
+    return t >= 0 ? (t + 1) % cols.length : 0;
+  });
+  const dst = page.locator("#stage-week .wk-col").nth(targetIdx);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await src.dragTo(dst);
+    await page.waitForTimeout(500);
+    const probe = await page.evaluate(() => {
+      const z = JSON.parse(localStorage.getItem("zdLight") || "{}");
+      const hits = [];
+      for (const g in (z.plan || {})) (z.plan[g] || []).forEach((x) => { if (String(x.id) === "901") hits.push({ g, d: x.dates && x.dates[0] }); });
+      return hits;
+    });
+    if (probe.length === 1 && probe[0].d !== today) break;
+    await page.waitForTimeout(300);
+  }
   const moved = await page.evaluate(() => {
     const z = JSON.parse(localStorage.getItem("zdLight") || "{}");
     const hits = [];
@@ -190,5 +207,7 @@ console.log(`\n计划回路校验：${results.filter((r) => r[0] === "PASS").len
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
+
 
 

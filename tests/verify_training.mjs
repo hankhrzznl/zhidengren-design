@@ -1,0 +1,87 @@
+import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+
+const browser = await chromium.launch({ executablePath: EXE });
+const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+const errors = [];
+page.on("pageerror", (e) => errors.push(e.message));
+page.on("console", (m) => { if (m.type() === "error") errors.push("console:" + m.text()); });
+const results = [];
+const ok = (n, c, d = "") => results.push([c ? "PASS" : "FAIL", n, d]);
+
+await page.goto(BASE + "/index.html", { waitUntil: "load" });
+await page.evaluate(() => localStorage.clear());
+
+await page.goto(BASE + "/v3/training.html", { waitUntil: "load" });
+await page.waitForTimeout(600);
+
+const first = await page.evaluate(() => ({
+  title: document.querySelector(".top h1")?.textContent,
+  today: document.querySelector("#today-card")?.innerText.replace(/\s+/g, " "),
+  tabs: [...document.querySelectorAll("#seg button")].map((b) => b.textContent),
+  cycle: document.querySelectorAll(".cy").length,
+}));
+ok("训练页加载", first.title === "训练" && first.today.includes("Push"), JSON.stringify(first));
+ok("4 天循环与三段 tab", first.cycle === 4 && first.tabs.join("/") === "今日/进度/计划", JSON.stringify(first.tabs));
+
+await page.click("#start-btn");
+await page.waitForSelector("#session.on", { timeout: 5000 });
+ok("开始训练打开播放器", await page.isVisible("#session.on"));
+
+const strength = page.locator(".ex-card").filter({ hasText: "杠铃卧推" }).first();
+await strength.locator('input[data-f="weight"]').first().fill("60");
+await strength.locator('input[data-f="reps"]').first().fill("8");
+await strength.locator("select[data-f=rpe]").first().selectOption("8");
+await strength.locator(".set-ok").first().click();
+await page.waitForTimeout(300);
+ok("组行可填重量/次数/RPE", await strength.locator(".set-row.done").count() === 1);
+
+const cardio = page.locator(".ex-card").filter({ hasText: "低冲击有氧" }).first();
+await cardio.locator('input[data-f="minutes"]').fill("15");
+await cardio.locator("[data-cardio-ok]").click();
+await page.waitForTimeout(200);
+await page.click("#finish-btn");
+await page.waitForSelector("#summary.on", { timeout: 5000 });
+const sum = await page.evaluate(() => ({
+  min: document.querySelector("#sum-min")?.textContent,
+  vol: document.querySelector("#sum-vol")?.textContent,
+  cardio: document.querySelector("#sum-cardio")?.textContent,
+}));
+ok("总结显示时长/容量/有氧", Number(sum.min) >= 1 && sum.vol === "480" && sum.cardio === "15", JSON.stringify(sum));
+
+const store = await page.evaluate(() => {
+  const d = window.LightStore.readDay(window.LightStore.today());
+  return { n: (d.byMod["运动"] || []).length, value: (d.byMod["运动"] || [])[0]?.value };
+});
+ok("一次 session 只写一条运动分钟", store.n === 1 && store.value >= 1, JSON.stringify(store));
+
+await page.click("#summary-close");
+await page.reload({ waitUntil: "load" });
+await page.waitForTimeout(700);
+ok("重载后不重复弹训练", !(await page.isVisible("#session.on")));
+
+await page.click('#seg button[data-view="progress"]');
+await page.waitForTimeout(300);
+await page.fill("#in-weight", "72.4");
+await page.fill("#in-waist", "81");
+await page.click("#save-body");
+await page.waitForTimeout(300);
+const body = await page.evaluate(() => ({
+  w: document.querySelector("#body-weight")?.textContent,
+  waist: document.querySelector("#body-waist")?.textContent,
+}));
+ok("体重/腰围可记录", body.w === "72.4" && body.waist === "81", JSON.stringify(body));
+
+await page.click('#seg button[data-view="plan"]');
+await page.waitForTimeout(300);
+const plan = await page.evaluate(() => ({
+  days: document.querySelectorAll(".plan-day").length,
+  text: document.querySelector("#plan-list")?.innerText || "",
+}));
+ok("计划页是 PPL 4 天", plan.days === 4 && /Push/.test(plan.text) && /Legs/.test(plan.text), JSON.stringify(plan.days));
+
+await page.screenshot({ path: OUT + "training-v2.png", fullPage: false });
+for (const r of results) console.log(r[0].padEnd(5), r[1], r[2] ? "· " + r[2] : "");
+console.log(`\n训练页校验：${results.filter((r) => r[0] === "PASS").length}/${results.length} PASS`);
+console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
+await browser.close();
+process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
