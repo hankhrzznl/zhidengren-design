@@ -400,6 +400,63 @@
       return (b.startedAt || '').localeCompare(a.startedAt || '');
     }).slice(0, n || 5);
   }
+  function weekStart(key) {
+    var d = parseDay(key || dateKey());
+    var off = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - off);
+    return dateKey(d);
+  }
+  function weeklyReport(date) {
+    var ws = weekStart(date), we = addDays(ws, 6);
+    var cur = completed().filter(function (s) { return s.date >= ws && s.date <= we; });
+    var prevList = completed().filter(function (s) { return s.date >= addDays(ws, -7) && s.date <= addDays(ws, -1); });
+    function agg(list) {
+      var out = { sessions: list.length, strength: 0, cardio: 0, minutes: 0, volume: 0, sets: 0 };
+      list.forEach(function (s) {
+        if ((s.exercises || []).some(function (e) { return e.kind === 'strength' && (e.sets || []).some(function (x) { return x.done; }); })) out.strength++;
+        out.cardio += cardioMin(s);
+        out.minutes += Number(s.durationMin) || 0;
+        out.volume += volume(s);
+        out.sets += doneSets(s);
+      });
+      return out;
+    }
+    var best = {};
+    var prs = [];
+    completed().sort(function (a, b) { return (a.startedAt || '').localeCompare(b.startedAt || ''); }).forEach(function (s) {
+      var isCur = s.date >= ws && s.date <= we;
+      (s.exercises || []).forEach(function (e) {
+        if (e.kind !== 'strength') return;
+        var top = 0, topSet = null;
+        (e.sets || []).forEach(function (x) {
+          if (!x.done) return;
+          var score = e1rm(x.weight, x.reps);
+          if (score > top) { top = score; topSet = x; }
+        });
+        if (!topSet) return;
+        var before = best[e.name] || 0;
+        if (isCur && before > 0 && top > before + 0.01) {
+          var existing = prs.filter(function (p) { return p.name === e.name; })[0];
+          var row = { name: e.name, weight: Number(topSet.weight), reps: Number(topSet.reps), e1rm: top, date: s.date };
+          if (existing) { if (row.e1rm > existing.e1rm) prs[prs.indexOf(existing)] = row; }
+          else prs.push(row);
+        }
+        if (top > before) best[e.name] = top;
+      });
+    });
+    function hasWeek(k) {
+      return completed().some(function (s) { return s.date >= k && s.date <= addDays(k, 6); });
+    }
+    var cursor = ws;
+    if (!hasWeek(cursor)) cursor = addDays(cursor, -7);
+    var streak = 0;
+    while (hasWeek(cursor) && streak < 104) { streak++; cursor = addDays(cursor, -7); }
+    return {
+      weekStart: ws, weekEnd: we,
+      range: ws.slice(5).replace('-', '/') + '–' + we.slice(5).replace('-', '/'),
+      current: agg(cur), prev: agg(prevList), prs: prs, streak: streak
+    };
+  }
 
   function bestLift(name) {
     var best = null;
@@ -501,7 +558,7 @@
     plan: plan, saveDay: saveDay, getProfile: getProfile, setProfile: setProfile, setStartDate: setStartDate,
     start: start, active: active, get: get, update: update, finish: finish, abandon: abandon, removeSession: removeSession,
     doneSets: doneSets, volume: volume, cardioMin: cardioMin, e1rm: e1rm,
-    stats: stats, muscleSets: muscleSets, bestE1rm: bestE1rm, bestLift: bestLift, prForSession: prForSession,
+    stats: stats, weeklyReport: weeklyReport, weekStart: weekStart, muscleSets: muscleSets, bestE1rm: bestE1rm, bestLift: bestLift, prForSession: prForSession,
     recent: recent, lastSet: lastSet, bodyAdd: bodyAdd, bodyList: bodyList, bodyLatest: bodyLatest,
     legacyRaw: legacyRaw, legacyList: legacyList, exportAll: exportAll, recordStore: recordStore
   };

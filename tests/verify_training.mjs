@@ -114,6 +114,12 @@ const prs = await page.evaluate(() => ({
   text: document.querySelector("#pr-list")?.innerText || "",
 }));
 ok("PR 卡显示最好成绩", prs.rows === 4 && /杠铃卧推/.test(prs.text) && /60×8/.test(prs.text), JSON.stringify(prs.text.replace(/\s+/g, " ")));
+const weekly = await page.evaluate(() => ({
+  range: document.querySelector("#weekly-range")?.textContent,
+  stats: document.querySelector("#weekly-stats")?.innerText.replace(/\s+/g, " "),
+  streak: document.querySelector("#weekly-streak")?.textContent,
+}));
+ok("周报显示本周范围与统计", /10\/19–10\/25/.test(weekly.range || "") && /1/.test(weekly.stats) && /480/.test(weekly.stats) && /15/.test(weekly.stats), JSON.stringify(weekly));
 const legacy = await page.evaluate(() => ({
   show: getComputedStyle(document.querySelector("#legacy-card")).display !== "none",
   text: document.querySelector("#legacy-list")?.innerText || "",

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -69,6 +69,10 @@
   .pr-row .pr-name{flex:1;color:var(--text-2)}
   .pr-row b{font-size:13px;font-variant-numeric:tabular-nums}
   .pr-row span{font-size:9.5px;color:var(--text-3)}
+  .week-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+  .wk-stat{background:var(--sheet);border-radius:12px;padding:10px 11px}
+  .wk-stat b{display:block;font-size:18px;letter-spacing:-.02em}
+  .wk-stat span{font-size:9.5px;color:var(--text-2)}
   .empty{font-size:11px;color:var(--text-3);line-height:1.8;margin:0}
   .body-form{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-top:12px}
   .field label{display:block;font-size:9.5px;color:var(--text-3);margin:0 0 5px 2px}
@@ -195,6 +199,13 @@
     </section>
 
     <section class="view" id="view-progress">
+      <div class="card" id="weekly-card">
+        <div class="sec" style="margin:0 2px 8px"><span>本周小结</span><b id="weekly-range"></b></div>
+        <div class="week-grid" id="weekly-stats"></div>
+        <p class="note" id="weekly-compare"></p>
+        <div class="sec" style="margin:16px 2px 6px"><span>本周 PR</span><b id="weekly-streak"></b></div>
+        <div id="weekly-prs"></div>
+      </div>
       <div class="card">
         <div class="sec" style="margin:0 2px 8px"><span>身体</span><b id="body-date">还没有记录</b></div>
         <div class="body-latest">
@@ -207,12 +218,6 @@
           <div class="field"><label>腰围 cm</label><input id="in-waist" type="number" inputmode="decimal" placeholder="80"></div>
           <button type="button" class="btn small" id="save-body">记录</button>
         </div>
-      </div>
-
-      <div class="stat-row">
-        <div class="stat"><b id="p-strength">0</b><span>力量 session</span></div>
-        <div class="stat"><b id="p-cardio">0</b><span>有氧 / 150′</span></div>
-        <div class="stat"><b id="p-minutes">0</b><span>训练分钟</span></div>
       </div>
 
       <div class="card chart"><h3>近 4 周容量</h3><div class="bars" id="volume-bars"></div></div>
@@ -650,9 +655,22 @@
   /* ---------- 进度 ---------- */
   function renderProgress() {
     var st = L.stats(7);
-    $('#p-strength').textContent = st.strength;
-    $('#p-cardio').textContent = st.cardio;
-    $('#p-minutes').textContent = st.minutes;
+    var wr = L.weeklyReport();
+    $('#weekly-range').textContent = wr.range;
+    $('#weekly-stats').innerHTML =
+      '<div class="wk-stat"><b>' + wr.current.strength + '</b><span>力量 session</span></div>' +
+      '<div class="wk-stat"><b>' + wr.current.cardio + '<small style="font-size:10px;color:var(--text-3)"> / 150′</small></b><span>有氧分钟</span></div>' +
+      '<div class="wk-stat"><b>' + wr.current.minutes + '</b><span>训练分钟</span></div>' +
+      '<div class="wk-stat"><b>' + fmt(wr.current.volume) + '</b><span>容量 kg</span></div>';
+    var vd = wr.prev.volume > 0 ? Math.round((wr.current.volume - wr.prev.volume) / wr.prev.volume * 100) : null;
+    var cd = wr.current.cardio - wr.prev.cardio;
+    $('#weekly-compare').textContent = (wr.prev.volume || wr.prev.cardio)
+      ? '较上周：容量 ' + (vd == null ? '—' : (vd > 0 ? '+' : '') + vd + '%') + ' · 有氧 ' + (cd > 0 ? '+' : '') + cd + '′'
+      : '上周无记录，先把这周练完。';
+    $('#weekly-streak').textContent = wr.streak > 0 ? '连续 ' + wr.streak + ' 周' : '—';
+    $('#weekly-prs').innerHTML = wr.prs.length ? wr.prs.map(function (p) {
+      return '<div class="pr-row"><span class="pr-name">' + esc(p.name) + '</span><b>' + p.weight + '×' + p.reps + '</b><span>' + p.date.slice(5).replace('-', '/') + '</span></div>';
+    }).join('') : '<p class="empty">本周还没有 PR，先把这周练完。</p>';
 
     var body = L.bodyLatest();
     $('#body-date').textContent = body ? body.date : '还没有记录';

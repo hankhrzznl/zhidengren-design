@@ -117,6 +117,13 @@ const b3 = s3.exercises.filter((e) => e.name === '杠铃卧推')[0];
 ok('编辑后的组数进入训练', b3.sets.length === 5 && b3.targetReps === '4–6', JSON.stringify({ n: b3.sets.length, r: b3.targetReps }));
 T.abandon(s3.id);
 
+/* 周报：当前周、连续周、上周对比 */
+const wr = T.weeklyReport(DAY);
+ok('周报周一到周日', T.weekStart(DAY) === '2026-10-19', T.weekStart(DAY));
+ok('周报统计本周力量/容量', wr.current.strength === 1 && wr.current.volume === 640, JSON.stringify(wr.current));
+ok('周报连续 1 周', wr.streak === 1, String(wr.streak));
+ok('周报上周无记录', wr.prev.volume === 0 && wr.prev.cardio === 0, JSON.stringify(wr.prev));
+
 /* 身体记录 */
 T.bodyAdd(DAY, 72.4, 81);
 T.bodyAdd('2026-10-30', 71.8, 80.5);

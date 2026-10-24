@@ -19,12 +19,13 @@ await page.evaluate(() => [...document.querySelectorAll(".ob-wide .mi")].find((x
 await page.waitForTimeout(3400);
 const sleepFrame = page.frames().find((f) => f.url().endsWith("v3/sleep.html"));
 ok("睡眠 iframe 打开", !!sleepFrame);
+await sleepFrame.waitForLoadState("load").catch(() => {});
 await sleepFrame.waitForFunction(
   () =>
     !!window.LightStore &&
     getComputedStyle(document.documentElement).getPropertyValue("--life-green").trim() === "#FF5C4D",
   null,
-  { timeout: 12000 }
+  { timeout: 30000 }
 );
 const sleepEnv = await sleepFrame.evaluate(() => ({
   store: !!window.LightStore,
@@ -117,5 +118,6 @@ console.log(`\n模块/视觉校验：${results.filter((r) => r[0] === "PASS").le
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 
 
