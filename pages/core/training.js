@@ -73,7 +73,7 @@
     }
   };
 
-  function blank() { return { v: 2, startDate: dateKey(), sessions: [], body: [], profile: { goal: 'lean' } }; }
+  function blank() { return { v: 2, startDate: dateKey(), sessions: [], body: [], profile: { goal: 'lean', deloadMode: 'A', forceDeload: false } }; }
   function db() {
     var d = null;
     try { d = JSON.parse(root.localStorage.getItem(KEY) || 'null'); } catch (e) {}
@@ -81,6 +81,8 @@
     if (!d.startDate) d.startDate = dateKey();
     if (!Array.isArray(d.body)) d.body = [];
     if (!d.profile) d.profile = { goal: 'lean' };
+    if (!d.profile.deloadMode) d.profile.deloadMode = 'A';
+    if (typeof d.profile.forceDeload !== 'boolean') d.profile.forceDeload = false;
     return d;
   }
   function save(d) {
@@ -98,6 +100,23 @@
     var d = db();
     var diff = daysBetween(d.startDate, date || dateKey());
     return Math.floor(diff / 7) % 4 === 3;
+  }
+  function isDeloadNow(date) {
+    return isDeload(date) || !!db().profile.forceDeload;
+  }
+  function getProfile() { return db().profile; }
+  function setProfile(patch) {
+    var d = db();
+    Object.keys(patch || {}).forEach(function (k) { d.profile[k] = patch[k]; });
+    save(d);
+    return d.profile;
+  }
+  function setStartDate(key) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(key || ''))) return null;
+    var d = db();
+    d.startDate = key;
+    save(d);
+    return key;
   }
   function monthAbility(date) {
     var d = parseDay(date || dateKey());
@@ -117,13 +136,14 @@
     return null;
   }
 
-  function makeSets(ex, deload) {
+  function makeSets(ex, deload, mode) {
     var sets = [];
     var n = deload ? 2 : ex.targetSets;
     var last = lastSet(ex.name);
+    var factor = mode === 'B' ? 0.9 : 0.8;
     for (var i = 0; i < n; i++) {
       var w = last && last.weight != null ? last.weight : '';
-      if (deload && w) w = Math.round(Number(w) * 0.85 / 2.5) * 2.5;
+      if (deload && w) w = Math.round(Number(w) * factor / 2.5) * 2.5;
       sets.push({
         weight: w,
         reps: last && last.reps != null ? last.reps : '',
@@ -134,7 +154,7 @@
     return sets;
   }
 
-  function buildExercises(day, deload, date) {
+  function buildExercises(day, deload, date, mode) {
     var out = [];
     if (!day || day.focus === 'rest') return out;
     var main = monthAbility(date);
@@ -162,7 +182,7 @@
         id: 'e_' + s.name, kind: 'strength', name: s.name, muscle: s.muscle,
         targetSets: deload ? 2 : s.sets, targetReps: deload ? '8–12' : s.reps, sets: []
       };
-      ex.sets = makeSets(ex, deload);
+      ex.sets = makeSets(ex, deload, mode);
       out.push(ex);
     });
     if (abilityEx) {
@@ -184,7 +204,9 @@
     if (active) return active;
     var c = cycle(today);
     if (c.day.focus === 'rest') return null;
-    var deload = isDeload(today);
+    var profile = d.profile || {};
+    var deload = isDeloadNow(today);
+    var mode = profile.deloadMode === 'B' ? 'B' : 'A';
     var s = {
       id: 's_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4),
       date: today,
@@ -193,12 +215,13 @@
       name: c.day.name + (deload ? ' · 减载' : ''),
       focus: c.day.focus,
       phase: deload ? 'deload' : 'build',
+      deloadMode: deload ? mode : null,
       startedAt: new Date().toISOString(),
       endedAt: null,
       durationMin: 0,
       status: 'active',
       warmupDone: [],
-      exercises: buildExercises(c.day, deload, today),
+      exercises: buildExercises(c.day, deload, today, mode),
       notes: ''
     };
     d.sessions.push(s);
@@ -324,6 +347,64 @@
     }).slice(0, n || 5);
   }
 
+  function bestLift(name) {
+    var best = null;
+    completed().forEach(function (s) {
+      (s.exercises || []).forEach(function (e) {
+        if (e.name !== name) return;
+        (e.sets || []).forEach(function (x) {
+          if (!x.done) return;
+          var score = e1rm(x.weight, x.reps);
+          if (!best || score > best.e1rm) best = { weight: Number(x.weight) || 0, reps: Number(x.reps) || 0, e1rm: score, date: s.date };
+        });
+      });
+    });
+    return best;
+  }
+  function prForSession(s) {
+    if (!s) return [];
+    var previous = completed().filter(function (x) { return x.id !== s.id; });
+    var out = [];
+    (s.exercises || []).forEach(function (e) {
+      if (e.kind !== 'strength') return;
+      var best = null;
+      (e.sets || []).forEach(function (x) {
+        if (!x.done) return;
+        var score = e1rm(x.weight, x.reps);
+        if (score > 0 && (!best || score > best.e1rm)) best = { weight: Number(x.weight), reps: Number(x.reps), e1rm: score };
+      });
+      if (!best) return;
+      var prev = 0;
+      previous.forEach(function (ps) {
+        (ps.exercises || []).forEach(function (pe) {
+          if (pe.name !== e.name) return;
+          (pe.sets || []).forEach(function (x) {
+            if (!x.done) return;
+            var score = e1rm(x.weight, x.reps);
+            if (score > prev) prev = score;
+          });
+        });
+      });
+      if (prev > 0 && best.e1rm > prev + 0.01) out.push({ name: e.name, weight: best.weight, reps: best.reps, e1rm: best.e1rm, prev: prev });
+    });
+    return out;
+  }
+  function legacyRaw() {
+    try { return JSON.parse(root.localStorage.getItem('lifeflow-train-records') || '[]'); } catch (e) { return []; }
+  }
+  function exportAll() {
+    var d = db();
+    return {
+      v: 2,
+      exportedAt: new Date().toISOString(),
+      startDate: d.startDate,
+      profile: d.profile,
+      sessions: d.sessions,
+      body: d.body,
+      legacy: legacyRaw()
+    };
+  }
+
   function bodyAdd(date, weight, waist) {
     var d = db(), key = date || dateKey();
     var row = { date: key, weight: weight == null || weight === '' ? null : Number(weight), waist: waist == null || waist === '' ? null : Number(waist) };
@@ -357,11 +438,12 @@
 
   root.LightTraining = {
     KEY: KEY, PLAN: PLAN, dateKey: dateKey, addDays: addDays, cycle: cycle,
-    isDeload: isDeload, monthAbility: monthAbility, ABILITY: ABILITY,
+    isDeload: isDeload, isDeloadNow: isDeloadNow, monthAbility: monthAbility, ABILITY: ABILITY,
+    getProfile: getProfile, setProfile: setProfile, setStartDate: setStartDate,
     start: start, active: active, get: get, update: update, finish: finish, abandon: abandon,
     doneSets: doneSets, volume: volume, cardioMin: cardioMin, e1rm: e1rm,
-    stats: stats, muscleSets: muscleSets, bestE1rm: bestE1rm, recent: recent,
-    lastSet: lastSet, bodyAdd: bodyAdd, bodyList: bodyList, bodyLatest: bodyLatest,
-    recordStore: recordStore
+    stats: stats, muscleSets: muscleSets, bestE1rm: bestE1rm, bestLift: bestLift, prForSession: prForSession,
+    recent: recent, lastSet: lastSet, bodyAdd: bodyAdd, bodyList: bodyList, bodyLatest: bodyLatest,
+    legacyRaw: legacyRaw, exportAll: exportAll, recordStore: recordStore
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -79,6 +79,22 @@ const plan = await page.evaluate(() => ({
 }));
 ok("计划页是 PPL 4 天", plan.days === 4 && /Push/.test(plan.text) && /Legs/.test(plan.text), JSON.stringify(plan.days));
 
+await page.click('#deload-mode button[data-mode="B"]');
+await page.waitForTimeout(250);
+const mode = await page.evaluate(() => JSON.parse(localStorage.getItem("lifeflow-train-v2")).profile.deloadMode);
+ok("减载模式可切到 B", mode === "B", String(mode));
+
+await page.click("#force-deload");
+await page.waitForTimeout(250);
+const forced = await page.evaluate(() => JSON.parse(localStorage.getItem("lifeflow-train-v2")).profile.forceDeload);
+ok("可手动进入减载", forced === true, String(forced));
+await page.click("#force-deload");
+
+const dlPromise = page.waitForEvent("download");
+await page.click("#export-data");
+const dl = await dlPromise;
+ok("可导出训练数据 JSON", /^lifeflow-train-\d{4}-\d{2}-\d{2}\.json$/.test(dl.suggestedFilename()), dl.suggestedFilename());
+
 await page.screenshot({ path: OUT + "training-v2.png", fullPage: false });
 for (const r of results) console.log(r[0].padEnd(5), r[1], r[2] ? "· " + r[2] : "");
 console.log(`\n训练页校验：${results.filter((r) => r[0] === "PASS").length}/${results.length} PASS`);
