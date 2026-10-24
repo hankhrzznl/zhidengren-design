@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    训练 v2 · 数据与指标
    方案：PPL 3 练 1 休 + 功能三项 + 低冲击有氧；3 周 build + 1 周 deload。
    存储：localStorage['lifeflow-train-v2'] = {v, startDate, sessions, body, profile}
@@ -127,7 +127,17 @@
   function isDeload(date) {
     var d = db();
     var diff = daysBetween(d.startDate, date || dateKey());
-    return Math.floor(diff / 7) % 4 === 3;
+    return ((Math.floor(diff / 7) % 4) + 4) % 4 === 3;
+  }
+  function block(date) {
+    var d = db();
+    var diff = daysBetween(d.startDate, date || dateKey());
+    var week = ((Math.floor(diff / 7) % 4) + 4) % 4;
+    return {
+      week: week + 1,
+      isDeload: week === 3,
+      daysToDeload: week === 3 ? 0 : (3 - week) * 7 - (diff % 7)
+    };
   }
   function isDeloadNow(date) {
     return isDeload(date) || !!db().profile.forceDeload;
@@ -286,6 +296,22 @@
     s.endedAt = new Date().toISOString();
     update(s);
     return s;
+  }
+  function removeSession(id) {
+    var d = db();
+    var i = d.sessions.findIndex(function (x) { return x.id === id; });
+    if (i < 0) return false;
+    var s = d.sessions.splice(i, 1)[0];
+    save(d);
+    if (root.LightStore) {
+      try {
+        var day = root.LightStore.readDay(s.date);
+        (day.records || []).forEach(function (r) {
+          if (r.meta && r.meta.sessionId === s.id) root.LightStore.remove(r.id);
+        });
+      } catch (e) {}
+    }
+    return true;
   }
 
   function doneSets(s) {
@@ -466,12 +492,13 @@
 
   root.LightTraining = {
     KEY: KEY, PLAN: PLAN, dateKey: dateKey, addDays: addDays, cycle: cycle,
-    isDeload: isDeload, isDeloadNow: isDeloadNow, monthAbility: monthAbility, ABILITY: ABILITY,
+    isDeload: isDeload, isDeloadNow: isDeloadNow, block: block, monthAbility: monthAbility, ABILITY: ABILITY,
     plan: plan, saveDay: saveDay, getProfile: getProfile, setProfile: setProfile, setStartDate: setStartDate,
-    start: start, active: active, get: get, update: update, finish: finish, abandon: abandon,
+    start: start, active: active, get: get, update: update, finish: finish, abandon: abandon, removeSession: removeSession,
     doneSets: doneSets, volume: volume, cardioMin: cardioMin, e1rm: e1rm,
     stats: stats, muscleSets: muscleSets, bestE1rm: bestE1rm, bestLift: bestLift, prForSession: prForSession,
     recent: recent, lastSet: lastSet, bodyAdd: bodyAdd, bodyList: bodyList, bodyLatest: bodyLatest,
     legacyRaw: legacyRaw, exportAll: exportAll, recordStore: recordStore
   };
 })(typeof window !== 'undefined' ? window : globalThis);
+

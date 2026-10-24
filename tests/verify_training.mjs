@@ -4,6 +4,7 @@ const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
+page.on("dialog", (d) => d.accept());
 page.on("console", (m) => { if (m.type() === "error") errors.push("console:" + m.text()); });
 const results = [];
 const ok = (n, c, d = "") => results.push([c ? "PASS" : "FAIL", n, d]);
@@ -22,6 +23,7 @@ const first = await page.evaluate(() => ({
 }));
 ok("训练页加载", first.title === "训练" && first.today.includes("Push"), JSON.stringify(first));
 ok("4 天循环与三段 tab", first.cycle === 4 && first.tabs.join("/") === "今日/进度/计划", JSON.stringify(first.tabs));
+ok("顶部显示第 1 周", /第 1 周/.test(await page.textContent("#cycle-label")), await page.textContent("#cycle-label"));
 
 /* 计划编辑：Push 第一个动作改成 4 组 × 5–6 */
 await page.click('#seg button[data-view="plan"]');
@@ -86,6 +88,11 @@ const body = await page.evaluate(() => ({
   waist: document.querySelector("#body-waist")?.textContent,
 }));
 ok("体重/腰围可记录", body.w === "72.4" && body.waist === "81", JSON.stringify(body));
+const prs = await page.evaluate(() => ({
+  rows: document.querySelectorAll("#pr-list .pr-row").length,
+  text: document.querySelector("#pr-list")?.innerText || "",
+}));
+ok("PR 卡显示最好成绩", prs.rows === 4 && /杠铃卧推/.test(prs.text) && /60×8/.test(prs.text), JSON.stringify(prs.text.replace(/\s+/g, " ")));
 
 await page.click('#seg button[data-view="plan"]');
 await page.waitForTimeout(300);
@@ -110,6 +117,16 @@ const dlPromise = page.waitForEvent("download");
 await page.click("#export-data");
 const dl = await dlPromise;
 ok("可导出训练数据 JSON", /^lifeflow-train-\d{4}-\d{2}-\d{2}\.json$/.test(dl.suggestedFilename()), dl.suggestedFilename());
+
+await page.click('#seg button[data-view="today"]');
+await page.waitForTimeout(250);
+await page.click("[data-del-session]");
+await page.waitForTimeout(400);
+const afterDel = await page.evaluate(() => {
+  const d = window.LightStore.readDay(window.LightStore.today());
+  return { n: (d.byMod["运动"] || []).length, empty: !document.querySelector("[data-del-session]") };
+});
+ok("删除最近训练并回滚分钟", afterDel.n === 0 && afterDel.empty, JSON.stringify(afterDel));
 
 await page.screenshot({ path: OUT + "training-v2.png", fullPage: false });
 for (const r of results) console.log(r[0].padEnd(5), r[1], r[2] ? "· " + r[2] : "");

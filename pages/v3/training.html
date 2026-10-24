@@ -63,6 +63,12 @@
   .recent .rn{flex:1;min-width:0}
   .recent .rm{font-size:10px;color:var(--text-2);margin-top:2px}
   .recent .rv{font-size:10px;color:var(--text-2);font-variant-numeric:tabular-nums}
+  .recent-del{width:24px;height:24px;border:0;background:transparent;color:var(--text-3);font-size:14px;cursor:pointer;flex:none}
+  .pr-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:11px}
+  .pr-row:first-child{border-top:0}
+  .pr-row .pr-name{flex:1;color:var(--text-2)}
+  .pr-row b{font-size:13px;font-variant-numeric:tabular-nums}
+  .pr-row span{font-size:9.5px;color:var(--text-3)}
   .empty{font-size:11px;color:var(--text-3);line-height:1.8;margin:0}
   .body-form{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-top:12px}
   .field label{display:block;font-size:9.5px;color:var(--text-3);margin:0 0 5px 2px}
@@ -205,6 +211,7 @@
 
       <div class="card chart"><h3>近 4 周容量</h3><div class="bars" id="volume-bars"></div></div>
       <div class="card chart"><h3>e1RM</h3><div class="e1rm" id="e1rm-list"></div></div>
+      <div class="card chart"><h3>PR</h3><div id="pr-list"></div></div>
       <div class="card chart"><h3>近 7 天肌群组数</h3><div id="muscle-list"></div></div>
       <p class="note">目标：每肌群每周 8–12 个有效组（RPE ≥ 7）；有氧每周 150–180 分钟。</p>
     </section>
@@ -230,6 +237,7 @@
           <button type="button" class="btn ghost small" id="export-data">导出数据</button>
         </div>
         <p class="note" id="legacy-note">旧记录：—</p>
+        <p class="note" id="deload-phase">—</p>
       </div>
 
       <p class="note">3 周 build + 1 周 deload；减载周组数减半、RPE 5–6，不换动作、不测试。</p>
@@ -347,6 +355,13 @@
     if (b) showView(b.getAttribute('data-view'));
   });
   document.addEventListener('click', function (e) {
+    var del = e.target.closest('[data-del-session]');
+    if (del) {
+      if (!confirm('删除这次训练？对应运动分钟也会一起移除。')) return;
+      L.removeSession(del.getAttribute('data-del-session'));
+      renderToday(); renderProgress(); toast('已删除');
+      return;
+    }
     var ed = e.target.closest('[data-edit]');
     if (ed) { openPlanEditor(ed.getAttribute('data-edit')); return; }
     var a = e.target.closest('a[data-view]');
@@ -360,7 +375,8 @@
     $('#today-sub').textContent = (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 · 周' + names[d.getDay()];
     var c = L.cycle();
     var deload = L.isDeloadNow();
-    $('#cycle-label').textContent = 'Day ' + (c.index + 1) + ' / 4' + (deload ? ' · 减载' : '');
+    var block = L.block();
+    $('#cycle-label').textContent = 'Day ' + (c.index + 1) + ' / 4 · ' + (deload ? '减载周' : '第 ' + block.week + ' 周');
     $('#cycle-strip').innerHTML = L.plan().map(function (p, i) {
       return '<div class="cy' + (i === c.index ? ' now' : '') + '"><b>' + p.name + '</b>' + (p.focus === 'rest' ? '恢复' : (i === c.index ? '今天' : ' ')) + '</div>';
     }).join('');
@@ -389,6 +405,7 @@
       if (ability) chips.push('<span class="chip' + (p.ability === L.monthAbility() ? ' main' : '') + '">' + (p.ability === L.monthAbility() ? '主项 ' : '') + ability.name + '</span>');
       if (p.cardio) chips.push('<span class="chip">有氧 ' + p.cardio + '′</span>');
       if (deload) chips.push('<span class="chip">减载 · RPE 6</span>');
+      else if (block.daysToDeload <= 7) chips.push('<span class="chip">下周减载</span>');
       card.innerHTML = '<div class="eyebrow">今天 · ' + p.desc + '</div><h2>' + p.name + '</h2>' +
         '<p>Day ' + (c.index + 1) + ' · 约 45–55 分钟</p><div class="chips">' + chips.join('') + '</div>' +
         '<button class="btn" id="start-btn">开始训练</button>';
@@ -418,7 +435,8 @@
     el.innerHTML = list.map(function (s) {
       return '<div class="recent"><span class="rd">' + s.date.slice(5).replace('-', '/') + '</span>' +
         '<div class="rn">' + esc(s.name) + '<div class="rm">' + (s.durationMin || 0) + ' 分钟 · ' + L.doneSets(s) + ' 组</div></div>' +
-        '<span class="rv">' + fmt(L.volume(s)) + ' kg</span></div>';
+        '<span class="rv">' + fmt(L.volume(s)) + ' kg</span>' +
+        '<button type="button" class="recent-del" data-del-session="' + s.id + '" aria-label="删除">×</button></div>';
     }).join('');
   }
 
@@ -644,6 +662,14 @@
       return '<div class="e1"><b>' + (v || '—') + '</b><span>' + name.replace('杠铃', '') + (v ? ' kg' : '') + '</span></div>';
     }).join('');
 
+    var prNames = ['杠铃深蹲', '杠铃卧推', '罗马尼亚硬拉', '引体 / 高位下拉'];
+    var prRows = prNames.map(function (name) {
+      var b = L.bestLift(name);
+      if (!b) return '<div class="pr-row"><span class="pr-name">' + name + '</span><b>—</b></div>';
+      return '<div class="pr-row"><span class="pr-name">' + name + '</span><b>' + b.weight + '×' + b.reps + '</b><span>' + b.date.slice(5).replace('-', '/') + '</span></div>';
+    });
+    $('#pr-list').innerHTML = prRows.join('');
+
     var ms = L.muscleSets(7);
     var order = ['chest', 'back', 'quads', 'hamstrings', 'shoulders', 'arms'];
     var rows = ['chest', 'back', 'quads', 'hamstrings', 'shoulders', 'biceps', 'triceps'].map(function (k) {
@@ -683,6 +709,10 @@
     $('#force-deload').textContent = p.forceDeload ? '取消本周减载' : '本周减载';
     var n = L.legacyRaw().length;
     $('#legacy-note').textContent = n ? '旧记录：' + n + ' 条仍保留在本地；导出会一起带上' : '旧记录：无';
+    var b = L.block();
+    $('#deload-phase').textContent = p.forceDeload
+      ? '本周手动减载 · 结束即可取消'
+      : (b.isDeload ? '本周是第 4 周减载' : '第 ' + b.week + ' 周 · 还有 ' + b.daysToDeload + ' 天减载');
   }
 
   $('#deload-mode').addEventListener('click', function (e) {

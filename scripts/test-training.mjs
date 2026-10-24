@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 训练 v2 纯逻辑验收：node scripts/test-training.mjs
  */
 import fs from 'node:fs';
@@ -84,6 +84,18 @@ localStorage.setItem('lifeflow-train-records', JSON.stringify([{ name: '旧动�
 const exp = T.exportAll();
 ok('导出包含 session 与旧记录', exp.sessions.filter((x) => x.status === 'completed').length === 2 && exp.legacy.length === 1, JSON.stringify({ s: exp.sessions.length, l: exp.legacy.length }));
 
+/* 删除 session 同时回滚运动事实 */
+const beforeDel = records.length;
+ok('删除 session 成功', T.removeSession(s2.id) === true);
+ok('删除 session 回滚运动分钟', records.length === beforeDel - 1, JSON.stringify({ before: beforeDel, after: records.length }));
+
+/* 减载倒计时 */
+const b1 = T.block(DAY);
+ok('第 1 周还有 21 天减载', b1.week === 1 && b1.daysToDeload === 21, JSON.stringify(b1));
+T.setStartDate('2026-10-02');
+ok('第 4 周标记减载', T.block(DAY).isDeload === true, JSON.stringify(T.block(DAY)));
+T.setStartDate('2026-10-23');
+
 /* 起点可改 */
 T.setStartDate('2026-10-22');
 ok('改起点后今天是 Pull', T.cycle(DAY).day.id === 'pull', T.cycle(DAY).day.id);
@@ -109,5 +121,6 @@ ok('体重记录按日期排序', T.bodyLatest().weight === 71.8 && T.bodyList()
 for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : '');
 console.log(`\n训练逻辑校验：${pass}/${rows.length} PASS`);
 process.exit(rows.some((r) => r[0] === 'FAIL') ? 1 : 0);
+
 
 
