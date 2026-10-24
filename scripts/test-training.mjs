@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 训练 v2 纯逻辑验收：node scripts/test-training.mjs
  */
 import fs from 'node:fs';
@@ -87,6 +87,19 @@ ok('导出包含 session 与旧记录', exp.sessions.filter((x) => x.status === 
 /* 起点可改 */
 T.setStartDate('2026-10-22');
 ok('改起点后今天是 Pull', T.cycle(DAY).day.id === 'pull', T.cycle(DAY).day.id);
+
+/* 计划编辑：保存后立即进入下一次训练 */
+T.setStartDate('2026-10-23');
+const p0 = T.plan()[0];
+p0.name = '推日';
+p0.strength[0].sets = 5;
+p0.strength[0].reps = '4–6';
+T.saveDay(p0);
+ok('计划可保存并读取', T.plan()[0].name === '推日' && T.plan()[0].strength[0].sets === 5, JSON.stringify(T.plan()[0].strength[0]));
+const s3 = T.start(DAY);
+const b3 = s3.exercises.filter((e) => e.name === '杠铃卧推')[0];
+ok('编辑后的组数进入训练', b3.sets.length === 5 && b3.targetReps === '4–6', JSON.stringify({ n: b3.sets.length, r: b3.targetReps }));
+T.abandon(s3.id);
 
 /* 身体记录 */
 T.bodyAdd(DAY, 72.4, 81);

@@ -85,7 +85,7 @@
   .muscle .track{flex:1;height:7px;border-radius:99px;background:var(--sheet);overflow:hidden}
   .muscle .track i{display:block;height:100%;background:var(--green);border-radius:99px}
   .muscle b{width:22px;text-align:right;font-size:10px;color:var(--text-2);font-weight:500}
-  .plan-day{display:flex;gap:12px;padding:13px 0;border-top:1px solid var(--line)}
+  .plan-day{display:flex;gap:12px;padding:13px 0;border-top:1px solid var(--line);align-items:flex-start}
   .plan-day:first-child{border-top:0}
   .plan-day .pd{width:36px;flex:none;text-align:center;font-size:9.5px;color:var(--text-3)}
   .plan-day .pd b{display:block;font-size:13px;color:var(--text-1);margin-top:2px}
@@ -93,6 +93,11 @@
   .plan-day .pm b{font-size:12.5px}
   .plan-day .pm p{margin:3px 0 0;font-size:10.5px;line-height:1.65;color:var(--text-2)}
   .plan-day.now .pm b{color:var(--accent)}
+  .edit-day{flex:none;border:1px solid var(--line);background:transparent;color:var(--text-2);border-radius:8px;font:inherit;font-size:9.5px;padding:4px 7px;cursor:pointer}
+  .pe-row{display:grid;grid-template-columns:1.4fr 40px 52px 66px 26px;gap:6px;align-items:center;margin:6px 0}
+  .pe-row input,.pe-row select{width:100%;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--sheet);color:var(--text-1);font:inherit;font-size:11px;padding:0 6px}
+  .pe-head{display:grid;grid-template-columns:1.4fr 40px 52px 66px 26px;gap:6px;font-size:9px;color:var(--text-3);margin-top:12px}
+  .pe-del{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--text-3);font-size:12px;cursor:pointer}
   .note{font-size:10.5px;line-height:1.75;color:var(--text-3);margin:10px 2px 0}
   .overlay{position:fixed;inset:0;background:var(--bg);z-index:50;display:none;flex-direction:column}
   .overlay.on{display:flex}
@@ -264,6 +269,33 @@
   </div>
 </div>
 
+<div class="overlay" id="plan-editor" style="z-index:70">
+  <div class="sheet-head">
+    <button class="icon-btn" id="pe-close" aria-label="关闭">←</button>
+    <div class="sh-name"><b id="pe-title">编辑训练日</b><span>只影响这个循环日</span></div>
+    <button class="btn small" id="pe-save">保存</button>
+  </div>
+  <div class="sheet-body">
+    <div class="field"><label>训练日名称</label><input id="pe-name" maxlength="12" placeholder="Push"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+      <div class="field"><label>功能三项</label>
+        <select id="pe-ability" style="width:100%;height:36px;border:1px solid var(--line);border-radius:9px;background:var(--sheet);color:var(--text-1);font:inherit;font-size:12px;padding:0 8px">
+          <option value="">无</option>
+          <option value="power">爆发力</option>
+          <option value="rotation">负重旋转</option>
+          <option value="carry">农夫行走</option>
+        </select>
+      </div>
+      <div class="field"><label>有氧分钟</label><input id="pe-cardio" type="number" min="0" max="60" placeholder="15"></div>
+    </div>
+    <div class="sec" style="margin:18px 2px 0"><span>力量动作</span><b>组 / 次</b></div>
+    <div class="pe-head"><span>动作</span><span>组</span><span>次</span><span>肌群</span><span></span></div>
+    <div id="pe-exercises"></div>
+    <button type="button" class="add-set" id="pe-add" style="margin-top:10px">+ 加动作</button>
+    <p class="note">名称最多 12 字；组数 1–8；减载周会自动压到 2 组，不会改你保存的计划。</p>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="../core/store.js"></script>
@@ -315,6 +347,8 @@
     if (b) showView(b.getAttribute('data-view'));
   });
   document.addEventListener('click', function (e) {
+    var ed = e.target.closest('[data-edit]');
+    if (ed) { openPlanEditor(ed.getAttribute('data-edit')); return; }
     var a = e.target.closest('a[data-view]');
     if (a) { e.preventDefault(); showView(a.getAttribute('data-view')); }
   });
@@ -327,7 +361,7 @@
     var c = L.cycle();
     var deload = L.isDeloadNow();
     $('#cycle-label').textContent = 'Day ' + (c.index + 1) + ' / 4' + (deload ? ' · 减载' : '');
-    $('#cycle-strip').innerHTML = L.PLAN.map(function (p, i) {
+    $('#cycle-strip').innerHTML = L.plan().map(function (p, i) {
       return '<div class="cy' + (i === c.index ? ' now' : '') + '"><b>' + p.name + '</b>' + (p.focus === 'rest' ? '恢复' : (i === c.index ? '今天' : ' ')) + '</div>';
     }).join('');
 
@@ -630,13 +664,13 @@
   function renderPlan() {
     var c = L.cycle();
     var main = L.monthAbility();
-    $('#plan-list').innerHTML = L.PLAN.map(function (p, i) {
+    $('#plan-list').innerHTML = L.plan().map(function (p, i) {
       var detail = [];
       if (p.strength.length) detail.push(p.strength.map(function (s) { return s.name + ' ' + s.sets + '×' + s.reps; }).join(' · '));
       if (p.ability) detail.push((p.ability === main ? '主项 · ' : '辅项 · ') + L.ABILITY[p.ability].name);
       if (p.cardio) detail.push('低冲击有氧 ' + p.cardio + ' 分钟');
       if (!detail.length) detail.push('走路 30–40 分钟 / 完全休息');
-      return '<div class="plan-day' + (i === c.index ? ' now' : '') + '"><div class="pd"><b>' + ({ push: '推', pull: '拉', legs: '腿', rest: '休' }[p.id] || p.name.slice(0, 1)) + '</b></div><div class="pm"><b>' + p.name + '</b><p>' + detail.join('<br>') + '</p></div></div>';
+      return '<div class="plan-day' + (i === c.index ? ' now' : '') + '"><div class="pd"><b>' + ({ push: '推', pull: '拉', legs: '腿', rest: '休' }[p.id] || p.name.slice(0, 1)) + '</b></div><div class="pm"><b>' + p.name + '</b><p>' + detail.join('<br>') + '</p></div><button type="button" class="edit-day" data-edit="' + p.id + '">编辑</button></div>';
     }).join('');
     renderPlanSettings();
   }
@@ -678,6 +712,72 @@
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
     toast('已导出');
+  });
+
+  /* ---------- 计划编辑 ---------- */
+  var editDay = null;
+  var MUSCLE_OPTS = [['chest', '胸'], ['back', '背'], ['shoulders', '肩'], ['rear_delts', '后束'], ['biceps', '二头'], ['triceps', '三头'], ['quads', '股四'], ['hamstrings', '腘绳'], ['calves', '小腿'], ['other', '其他']];
+
+  function muscleOptions(cur) {
+    return MUSCLE_OPTS.map(function (x) { return '<option value="' + x[0] + '"' + (x[0] === cur ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('');
+  }
+  function openPlanEditor(id) {
+    var p = L.plan().filter(function (x) { return x.id === id; })[0];
+    if (!p) return;
+    editDay = JSON.parse(JSON.stringify(p));
+    $('#pe-title').textContent = p.name;
+    $('#pe-name').value = p.name;
+    $('#pe-ability').value = p.ability || '';
+    $('#pe-cardio').value = p.cardio || 0;
+    renderPe();
+    $('#plan-editor').classList.add('on');
+  }
+  function renderPe() {
+    $('#pe-exercises').innerHTML = (editDay.strength || []).map(function (x, i) {
+      return '<div class="pe-row" data-i="' + i + '">' +
+        '<input data-f="name" value="' + esc(x.name) + '" placeholder="动作">' +
+        '<input data-f="sets" type="number" min="1" max="8" value="' + (x.sets || 3) + '">' +
+        '<input data-f="reps" value="' + esc(x.reps) + '" placeholder="8–12">' +
+        '<select data-f="muscle">' + muscleOptions(x.muscle) + '</select>' +
+        '<button type="button" class="pe-del" data-del="' + i + '">×</button></div>';
+    }).join('');
+  }
+  $('#pe-add').addEventListener('click', function () {
+    editDay.strength = editDay.strength || [];
+    editDay.strength.push({ name: '', muscle: 'chest', sets: 3, reps: '8–12' });
+    renderPe();
+  });
+  $('#pe-exercises').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-del]');
+    if (!b) return;
+    editDay.strength.splice(Number(b.getAttribute('data-del')), 1);
+    renderPe();
+  });
+  $('#pe-close').addEventListener('click', function () {
+    $('#plan-editor').classList.remove('on');
+  });
+  $('#pe-save').addEventListener('click', function () {
+    var rows = $$('#pe-exercises .pe-row').map(function (row) {
+      return {
+        name: row.querySelector('[data-f="name"]').value,
+        sets: Number(row.querySelector('[data-f="sets"]').value),
+        reps: row.querySelector('[data-f="reps"]').value,
+        muscle: row.querySelector('[data-f="muscle"]').value
+      };
+    });
+    var saved = L.saveDay({
+      id: editDay.id,
+      name: $('#pe-name').value,
+      focus: editDay.focus,
+      desc: editDay.desc,
+      ability: $('#pe-ability').value || null,
+      cardio: Number($('#pe-cardio').value) || 0,
+      strength: rows
+    });
+    if (!saved) { toast('保存失败'); return; }
+    $('#plan-editor').classList.remove('on');
+    renderPlan(); renderToday();
+    toast('计划已保存');
   });
 
   function boot() {

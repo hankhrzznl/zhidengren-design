@@ -23,11 +23,27 @@ const first = await page.evaluate(() => ({
 ok("训练页加载", first.title === "训练" && first.today.includes("Push"), JSON.stringify(first));
 ok("4 天循环与三段 tab", first.cycle === 4 && first.tabs.join("/") === "今日/进度/计划", JSON.stringify(first.tabs));
 
+/* 计划编辑：Push 第一个动作改成 4 组 × 5–6 */
+await page.click('#seg button[data-view="plan"]');
+await page.waitForTimeout(250);
+await page.click('[data-edit="push"]');
+await page.waitForSelector("#plan-editor.on", { timeout: 5000 });
+const firstRow = page.locator("#pe-exercises .pe-row").first();
+await firstRow.locator('[data-f="sets"]').fill("4");
+await firstRow.locator('[data-f="reps"]').fill("5–6");
+await page.click("#pe-save");
+await page.waitForTimeout(300);
+const editedPlan = await page.evaluate(() => JSON.parse(localStorage.getItem("lifeflow-train-v2")).plan[0].strength[0]);
+ok("计划可改组数/次数", editedPlan.sets === 4 && editedPlan.reps === "5–6", JSON.stringify(editedPlan));
+await page.click('#seg button[data-view="today"]');
+await page.waitForTimeout(250);
+
 await page.click("#start-btn");
 await page.waitForSelector("#session.on", { timeout: 5000 });
 ok("开始训练打开播放器", await page.isVisible("#session.on"));
 
 const strength = page.locator(".ex-card").filter({ hasText: "杠铃卧推" }).first();
+ok("计划编辑进入训练", /4 × 5–6/.test(await strength.locator(".ex-head").innerText()), await strength.locator(".ex-head").innerText());
 await strength.locator('input[data-f="weight"]').first().fill("60");
 await strength.locator('input[data-f="reps"]').first().fill("8");
 await strength.locator("select[data-f=rpe]").first().selectOption("8");

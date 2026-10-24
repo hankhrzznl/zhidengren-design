@@ -73,7 +73,8 @@
     }
   };
 
-  function blank() { return { v: 2, startDate: dateKey(), sessions: [], body: [], profile: { goal: 'lean', deloadMode: 'A', forceDeload: false } }; }
+  function clonePlan() { return JSON.parse(JSON.stringify(PLAN)); }
+  function blank() { return { v: 2, startDate: dateKey(), sessions: [], body: [], profile: { goal: 'lean', deloadMode: 'A', forceDeload: false }, plan: clonePlan() }; }
   function db() {
     var d = null;
     try { d = JSON.parse(root.localStorage.getItem(KEY) || 'null'); } catch (e) {}
@@ -83,6 +84,7 @@
     if (!d.profile) d.profile = { goal: 'lean' };
     if (!d.profile.deloadMode) d.profile.deloadMode = 'A';
     if (typeof d.profile.forceDeload !== 'boolean') d.profile.forceDeload = false;
+    if (!Array.isArray(d.plan) || d.plan.length !== 4) d.plan = clonePlan();
     return d;
   }
   function save(d) {
@@ -94,7 +96,33 @@
     var d = db(), today = date || dateKey();
     var diff = daysBetween(d.startDate, today);
     var idx = ((diff % 4) + 4) % 4;
-    return { index: idx, day: PLAN[idx], startDate: d.startDate, diff: diff };
+    return { index: idx, day: d.plan[idx], startDate: d.startDate, diff: diff };
+  }
+  function plan() { return db().plan; }
+  function saveDay(day) {
+    if (!day || !day.id) return null;
+    var d = db();
+    var i = d.plan.findIndex(function (p) { return p.id === day.id; });
+    if (i < 0) return null;
+    var clean = {
+      id: day.id,
+      name: String(day.name || '').slice(0, 12) || d.plan[i].name,
+      focus: day.focus || d.plan[i].focus,
+      desc: String(day.desc || '').slice(0, 32),
+      ability: day.ability || null,
+      cardio: Math.max(0, Math.min(60, Number(day.cardio) || 0)),
+      strength: (day.strength || []).filter(function (x) { return x && String(x.name || '').trim(); }).map(function (x) {
+        return {
+          name: String(x.name).trim().slice(0, 16),
+          muscle: x.muscle || 'other',
+          sets: Math.max(1, Math.min(8, Number(x.sets) || 3)),
+          reps: String(x.reps || '8–12').slice(0, 12)
+        };
+      }).slice(0, 8)
+    };
+    d.plan[i] = clean;
+    save(d);
+    return clean;
   }
   function isDeload(date) {
     var d = db();
@@ -439,7 +467,7 @@
   root.LightTraining = {
     KEY: KEY, PLAN: PLAN, dateKey: dateKey, addDays: addDays, cycle: cycle,
     isDeload: isDeload, isDeloadNow: isDeloadNow, monthAbility: monthAbility, ABILITY: ABILITY,
-    getProfile: getProfile, setProfile: setProfile, setStartDate: setStartDate,
+    plan: plan, saveDay: saveDay, getProfile: getProfile, setProfile: setProfile, setStartDate: setStartDate,
     start: start, active: active, get: get, update: update, finish: finish, abandon: abandon,
     doneSets: doneSets, volume: volume, cardioMin: cardioMin, e1rm: e1rm,
     stats: stats, muscleSets: muscleSets, bestE1rm: bestE1rm, bestLift: bestLift, prForSession: prForSession,
