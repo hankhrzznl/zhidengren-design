@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -588,6 +588,42 @@ body[data-tab="assistant"] .tabbar{opacity:0;pointer-events:none;transform:trans
 .dec-row .dec-x svg{width:12px;height:12px}
 .dec-add{margin-top:8px;width:100%;height:40px;border-radius:4px;border:1px dashed var(--mo-3);background:var(--card2);color:var(--mo-2);font:400 12.5px var(--cjk)}
 .dec-cnt{font:400 11.5px var(--cjk);color:var(--txt3);text-align:center;margin-top:8px}
+</style>
+<style id="floors-css">
+/* 今日保底：一张卡 + 一个底部面板 */
+.fl-card{margin:14px 0 6px;padding:14px 15px;border-radius:18px;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 22px rgba(0,0,0,.10)}
+.fl-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.fl-head span{font:600 11px var(--cjk);letter-spacing:.10em;color:var(--txt2)}
+.fl-head b{font:600 11px var(--cjk);padding:3px 8px;border-radius:99px;background:var(--card2);color:var(--txt2)}
+.fl-card[data-color="green"] .fl-head b{background:rgba(70,170,120,.16);color:#4FBF8B}
+.fl-card[data-color="yellow"] .fl-head b{background:rgba(210,160,70,.16);color:#D6A84A}
+.fl-card[data-color="red"] .fl-head b{background:rgba(220,90,80,.16);color:#E07A6E}
+.fl-risk{font:400 12px/1.6 var(--cjk);color:var(--txt2);margin:7px 0 10px}
+.fl-chips{display:flex;flex-wrap:wrap;gap:7px}
+.fl-chip{border:1px solid var(--line);background:transparent;color:var(--txt2);border-radius:99px;padding:7px 11px;font:500 11.5px var(--cjk)}
+.fl-chip.on{background:rgba(77,195,255,.13);border-color:rgba(77,195,255,.35);color:var(--brand)}
+.fl-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px}
+.fl-pause{font:400 10px var(--cjk);color:var(--txt3);line-height:1.5}
+.fl-edit{border:0;background:transparent;color:var(--brand);font:600 11.5px var(--cjk);padding:4px 0}
+.fl-sheet{position:fixed;inset:0;z-index:220;display:none;align-items:flex-end;background:rgba(0,0,0,.45)}
+.fl-sheet.on{display:flex}
+.fl-panel{width:100%;max-height:88vh;overflow:auto;background:var(--card);border-radius:22px 22px 0 0;padding:18px 16px 24px;color:var(--txt)}
+.fl-sheet-h{display:flex;align-items:center;justify-content:space-between}
+.fl-sheet-h b{font:650 16px var(--cjk)}
+.fl-close{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--txt2);font-size:17px}
+.fl-label{font:600 10px var(--cjk);letter-spacing:.12em;color:var(--txt3);margin:16px 0 8px}
+.fl-score{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
+.fl-score:first-child{border-top:0}
+.fl-score span{font:400 12px var(--cjk);color:var(--txt2)}
+.fl-dots{display:flex;gap:5px}
+.fl-dot{width:27px;height:27px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--txt3);font:500 11px var(--cjk)}
+.fl-dot.on{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.fl-tight,.fl-pick{display:flex;flex-wrap:wrap;gap:7px}
+.fl-opt{border:1px solid var(--line);background:transparent;color:var(--txt2);border-radius:11px;padding:9px 10px;font:500 11.5px var(--cjk);text-align:left}
+.fl-opt.on{background:rgba(77,195,255,.13);border-color:rgba(77,195,255,.35);color:var(--brand)}
+.fl-opt small{display:block;font-size:9px;color:var(--txt3);margin-top:2px}
+.fl-note{font:400 10.5px/1.6 var(--cjk);color:var(--txt3);margin:12px 0 0}
+.fl-save{width:100%;height:46px;margin-top:16px;border:0;border-radius:13px;background:var(--brand);color:var(--brand-ink);font:650 13px var(--cjk)}
 </style>
 <style id="v3-skin">
 /* ============================================================
@@ -1306,6 +1342,13 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
         </div>
       </header>
       <div class="title-row"><h1 id="todoTitle">待办</h1><button class="mini-add js-addfocus" data-target="high" aria-label="添加"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-linecap="round" stroke-width="2.4"/></svg></button></div>
+
+      <section class="fl-card" id="floorsCard" data-color="unknown">
+        <div class="fl-head"><span>今日保底</span><b id="flColor">未设置</b></div>
+        <p class="fl-risk" id="flRisk">先选今天最危险的底。</p>
+        <div class="fl-chips" id="flChips"></div>
+        <div class="fl-foot"><span class="fl-pause" id="flPause"></span><button type="button" class="fl-edit" id="flEdit">调整</button></div>
+      </section>
 
       <div class="group-head" style="margin-top:4px"><button class="seg-pill js-fold" style="--c:var(--hi)"><svg viewBox="0 0 24 24"><path d="M12 5l7 12H5z" fill="currentColor"/></svg>高 <svg><use href="#i-chev"/></svg></button></div>
       <div class="g-list" id="g-high"></div>
@@ -3311,6 +3354,98 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
       }
     }
   }, 500);
+})();
+</script>
+<div class="fl-sheet" id="flSheet">
+  <div class="fl-panel">
+    <div class="fl-sheet-h"><b>今天保什么底</b><button type="button" class="fl-close" id="flClose" aria-label="关闭">×</button></div>
+    <div class="fl-label">今天的状态</div>
+    <div id="flScores"></div>
+    <div class="fl-label">今天最紧的</div>
+    <div class="fl-tight" id="flTight"></div>
+    <div class="fl-label">选 3 个保底（<span id="flCount">0</span>/3）</div>
+    <div class="fl-pick" id="flPick"></div>
+    <p class="fl-note">其他模块今天暂停，不算失败。状态差时，保底比满分重要。</p>
+    <button type="button" class="fl-save" id="flSave">保存今天的保底</button>
+  </div>
+</div>
+
+<script src="core/floors.js"></script>
+<script>
+/* 今日保底：壳层一张卡 + 底部面板 */
+(function () {
+  var F = window.LightFloors;
+  if (!F) return;
+  var $ = function (s) { return document.querySelector(s); };
+  var draft = null;
+
+  function render() {
+    var s = F.summary();
+    var card = $('#floorsCard');
+    card.setAttribute('data-color', s.color);
+    var labels = { green: '绿 · 可推进', yellow: '黄 · 减量', red: '红 · 只恢复', unknown: '未设置' };
+    $('#flColor').textContent = labels[s.color] || '未设置';
+    var risk = s.color === 'unknown' ? '先选今天最危险的底。'
+      : s.color === 'green' ? '状态可以，按计划推进。'
+        : s.color === 'yellow' ? '今天减 20–30%，只保 3 个底。'
+          : '今天只恢复：睡、吃、走，不做大重量/大决定。';
+    $('#flRisk').textContent = risk;
+    $('#flChips').innerHTML = s.chosen.map(function (f) {
+      return '<button type="button" class="fl-chip' + (f.done ? ' on' : '') + '" data-fl="' + f.id + '">' +
+        '<span class="tick">' + (f.done ? '✓' : '○') + '</span>' + f.label + '</button>';
+    }).join('');
+    $('#flPause').textContent = s.paused.length ? '今天暂停：' + s.paused.join(' · ') : '';
+  }
+
+  function scoreRow(key, label) {
+    var v = draft[key];
+    var dots = [1, 2, 3, 4, 5].map(function (n) {
+      return '<button type="button" class="fl-dot' + (String(v) === String(n) ? ' on' : '') + '" data-score="' + key + '" data-v="' + n + '">' + n + '</button>';
+    }).join('');
+    return '<div class="fl-score"><span>' + label + '</span><div class="fl-dots">' + dots + '</div></div>';
+  }
+  function openSheet() {
+    var d = F.day();
+    draft = { sleep: d.sleep, soreness: d.soreness, mood: d.mood, stress: d.stress, tightest: d.tightest || '', chosen: (d.chosen || []).slice() };
+    if (!draft.chosen.length) draft.chosen = F.defaultChosen(draft);
+    renderSheet();
+    $('#flSheet').classList.add('on');
+  }
+  function renderSheet() {
+    $('#flScores').innerHTML = scoreRow('sleep', '睡眠') + scoreRow('soreness', '酸痛') + scoreRow('mood', '情绪') + scoreRow('stress', '压力');
+    $('#flTight').innerHTML = F.TIGHT.map(function (t) {
+      return '<button type="button" class="fl-opt' + (draft.tightest === t.id ? ' on' : '') + '" data-tight="' + t.id + '">' + t.label + '</button>';
+    }).join('');
+    $('#flPick').innerHTML = F.FLOORS.map(function (f) {
+      return '<button type="button" class="fl-opt' + (draft.chosen.indexOf(f.id) >= 0 ? ' on' : '') + '" data-pick="' + f.id + '">' + f.label + '<small>' + f.domain + '</small></button>';
+    }).join('');
+    $('#flCount').textContent = draft.chosen.length;
+  }
+
+  document.addEventListener('click', function (e) {
+    var chip = e.target.closest('[data-fl]');
+    if (chip) { F.toggleDone(chip.getAttribute('data-fl')); render(); return; }
+    if (e.target.closest('#flEdit')) { openSheet(); return; }
+    var dot = e.target.closest('[data-score]');
+    if (dot) { draft[dot.getAttribute('data-score')] = Number(dot.getAttribute('data-v')); renderSheet(); return; }
+    var tight = e.target.closest('[data-tight]');
+    if (tight) { draft.tightest = tight.getAttribute('data-tight'); renderSheet(); return; }
+    var pick = e.target.closest('[data-pick]');
+    if (pick) {
+      var id = pick.getAttribute('data-pick');
+      var i = draft.chosen.indexOf(id);
+      if (i >= 0) draft.chosen.splice(i, 1);
+      else if (draft.chosen.length < 3) draft.chosen.push(id);
+      renderSheet(); return;
+    }
+    if (e.target.closest('#flClose')) { $('#flSheet').classList.remove('on'); return; }
+    if (e.target.closest('#flSave')) {
+      F.saveDay({ sleep: draft.sleep, soreness: draft.soreness, mood: draft.mood, stress: draft.stress, tightest: draft.tightest, chosen: draft.chosen });
+      $('#flSheet').classList.remove('on'); render();
+    }
+  });
+
+  render();
 })();
 </script>
 </body>
