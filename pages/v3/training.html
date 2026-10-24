@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -103,6 +103,12 @@
   .pe-row{display:grid;grid-template-columns:1.4fr 40px 52px 66px 26px;gap:6px;align-items:center;margin:6px 0}
   .pe-row input,.pe-row select{width:100%;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--sheet);color:var(--text-1);font:inherit;font-size:11px;padding:0 6px}
   .pe-head{display:grid;grid-template-columns:1.4fr 40px 52px 66px 26px;gap:6px;font-size:9px;color:var(--text-3);margin-top:12px}
+  .pe-row.active input[data-f="name"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+  .ep-search{width:100%;height:40px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text-1);font:inherit;font-size:12px;padding:0 12px;margin-bottom:12px}
+  .ep-search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+  .ep-item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:11px 2px;border:0;border-top:1px solid var(--line);background:transparent;color:var(--text-1);font:inherit;font-size:12px;text-align:left;cursor:pointer}
+  .ep-item:first-child{border-top:0}
+  .ep-item span{font-size:9.5px;color:var(--text-3)}
   .pe-del{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--text-3);font-size:12px;cursor:pointer}
   .note{font-size:10.5px;line-height:1.75;color:var(--text-3);margin:10px 2px 0}
   .overlay{position:fixed;inset:0;background:var(--bg);z-index:50;display:none;flex-direction:column}
@@ -298,10 +304,23 @@
       <div class="field"><label>有氧分钟</label><input id="pe-cardio" type="number" min="0" max="60" placeholder="15"></div>
     </div>
     <div class="sec" style="margin:18px 2px 0"><span>力量动作</span><b>组 / 次</b></div>
+    <button type="button" class="btn ghost small" id="pe-library" style="margin:6px 0 4px">从动作库选</button>
     <div class="pe-head"><span>动作</span><span>组</span><span>次</span><span>肌群</span><span></span></div>
     <div id="pe-exercises"></div>
+    <datalist id="exercise-catalog"></datalist>
     <button type="button" class="add-set" id="pe-add" style="margin-top:10px">+ 加动作</button>
     <p class="note">名称最多 12 字；组数 1–8；减载周会自动压到 2 组，不会改你保存的计划。</p>
+  </div>
+</div>
+
+<div class="overlay" id="exercise-picker" style="z-index:80">
+  <div class="sheet-head">
+    <button class="icon-btn" id="ep-close" aria-label="关闭">←</button>
+    <div class="sh-name"><b>动作库</b><span>选中后填到当前行</span></div>
+  </div>
+  <div class="sheet-body">
+    <input id="ep-search" class="ep-search" placeholder="搜动作，如 深蹲 / 划船">
+    <div id="ep-list"></div>
   </div>
 </div>
 
@@ -765,7 +784,69 @@
 
   /* ---------- 计划编辑 ---------- */
   var editDay = null;
+  var activeRow = 0;
   var MUSCLE_OPTS = [['chest', '胸'], ['back', '背'], ['shoulders', '肩'], ['rear_delts', '后束'], ['biceps', '二头'], ['triceps', '三头'], ['quads', '股四'], ['hamstrings', '腘绳'], ['calves', '小腿'], ['other', '其他']];
+  var CATALOG = [
+    ['杠铃深蹲', 'quads'], ['前蹲', 'quads'], ['高脚杯深蹲', 'quads'], ['腿举', 'quads'], ['保加利亚分腿蹲', 'quads'],
+    ['罗马尼亚硬拉', 'hamstrings'], ['硬拉', 'hamstrings'], ['腿弯举', 'hamstrings'], ['臀推', 'hamstrings'],
+    ['杠铃卧推', 'chest'], ['上斜哑铃卧推', 'chest'], ['俯卧撑', 'chest'], ['双杠臂屈伸', 'chest'],
+    ['站姿推举', 'shoulders'], ['哑铃侧平举', 'shoulders'], ['面拉', 'rear_delts'], ['反向飞鸟', 'rear_delts'],
+    ['引体 / 高位下拉', 'back'], ['坐姿绳索划船', 'back'], ['胸支撑划船', 'back'], ['单臂哑铃划船', 'back'],
+    ['绳索三头下压', 'triceps'], ['哑铃弯举', 'biceps'], ['锤式弯举', 'biceps'], ['站姿提踵', 'calves'], ['坐姿提踵', 'calves']
+  ];
+  function muscleName(k) { var m = MUSCLE_OPTS.filter(function (x) { return x[0] === k; })[0]; return m ? m[1] : '其他'; }
+
+  function fillCatalog() {
+    $('#exercise-catalog').innerHTML = CATALOG.map(function (x) { return '<option value="' + x[0] + '">' + muscleName(x[1]) + '</option>'; }).join('');
+  }
+  function renderPe() {
+    $('#pe-exercises').innerHTML = (editDay.strength || []).map(function (x, i) {
+      return '<div class="pe-row' + (i === activeRow ? ' active' : '') + '" data-i="' + i + '">' +
+        '<input data-f="name" list="exercise-catalog" value="' + esc(x.name) + '" placeholder="动作">' +
+        '<input data-f="sets" type="number" min="1" max="8" value="' + (x.sets || 3) + '">' +
+        '<input data-f="reps" value="' + esc(x.reps) + '" placeholder="8–12">' +
+        '<select data-f="muscle">' + muscleOptions(x.muscle) + '</select>' +
+        '<button type="button" class="pe-del" data-del="' + i + '">×</button></div>';
+    }).join('');
+  }
+  function renderPicker(q) {
+    var term = String(q || '').trim();
+    var list = CATALOG.filter(function (x) { return !term || x[0].indexOf(term) >= 0; });
+    $('#ep-list').innerHTML = list.length ? list.map(function (x) {
+      return '<button type="button" class="ep-item" data-pick="' + x[0] + '" data-muscle="' + x[1] + '"><b>' + x[0] + '</b><span>' + muscleName(x[1]) + '</span></button>';
+    }).join('') : '<p class="note">没有匹配的动作，直接手打也行。</p>';
+  }
+  $('#pe-library').addEventListener('click', function () {
+    renderPicker('');
+    $('#ep-search').value = '';
+    $('#exercise-picker').classList.add('on');
+    setTimeout(function () { $('#ep-search').focus(); }, 50);
+  });
+  $('#ep-search').addEventListener('input', function () { renderPicker(this.value); });
+  $('#ep-close').addEventListener('click', function () { $('#exercise-picker').classList.remove('on'); });
+  $('#ep-list').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-pick]');
+    if (!b) return;
+    var row = $('#pe-exercises .pe-row[data-i="' + activeRow + '"]');
+    if (row) {
+      row.querySelector('[data-f="name"]').value = b.getAttribute('data-pick');
+      row.querySelector('[data-f="muscle"]').value = b.getAttribute('data-muscle');
+    }
+    $('#exercise-picker').classList.remove('on');
+  });
+  $('#pe-exercises').addEventListener('focusin', function (e) {
+    var row = e.target.closest('.pe-row');
+    if (!row) return;
+    activeRow = Number(row.getAttribute('data-i'));
+    $$('#pe-exercises .pe-row').forEach(function (r) { r.classList.toggle('active', r === row); });
+  });
+  $('#pe-exercises').addEventListener('input', function (e) {
+    if (!e.target.matches('[data-f="name"]')) return;
+    var hit = CATALOG.filter(function (x) { return x[0] === e.target.value; })[0];
+    if (!hit) return;
+    var row = e.target.closest('.pe-row');
+    row.querySelector('[data-f="muscle"]').value = hit[1];
+  });
 
   function muscleOptions(cur) {
     return MUSCLE_OPTS.map(function (x) { return '<option value="' + x[0] + '"' + (x[0] === cur ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('');
@@ -774,6 +855,7 @@
     var p = L.plan().filter(function (x) { return x.id === id; })[0];
     if (!p) return;
     editDay = JSON.parse(JSON.stringify(p));
+    activeRow = 0;
     $('#pe-title').textContent = p.name;
     $('#pe-name').value = p.name;
     $('#pe-ability').value = p.ability || '';
@@ -794,12 +876,14 @@
   $('#pe-add').addEventListener('click', function () {
     editDay.strength = editDay.strength || [];
     editDay.strength.push({ name: '', muscle: 'chest', sets: 3, reps: '8–12' });
+    activeRow = editDay.strength.length - 1;
     renderPe();
   });
   $('#pe-exercises').addEventListener('click', function (e) {
     var b = e.target.closest('[data-del]');
     if (!b) return;
     editDay.strength.splice(Number(b.getAttribute('data-del')), 1);
+    activeRow = 0;
     renderPe();
   });
   $('#pe-close').addEventListener('click', function () {
@@ -831,6 +915,7 @@
 
   function boot() {
     renderToday();
+    fillCatalog();
     renderPlanSettings();
     var active = L.active();
     if (active) openSession(active.id);
@@ -840,6 +925,8 @@
 </script>
 </body>
 </html>
+
+
 
 
 

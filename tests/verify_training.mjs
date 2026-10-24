@@ -35,6 +35,23 @@ await page.waitForTimeout(250);
 await page.click('[data-edit="push"]');
 await page.waitForSelector("#plan-editor.on", { timeout: 5000 });
 const firstRow = page.locator("#pe-exercises .pe-row").first();
+await firstRow.locator('[data-f="name"]').click();
+await page.click("#pe-library");
+await page.waitForSelector("#exercise-picker.on", { timeout: 5000 });
+await page.fill("#ep-search", "保加利亚");
+await page.click(".ep-item");
+await page.waitForTimeout(200);
+const picked = await firstRow.evaluate((row) => ({
+  name: row.querySelector('[data-f="name"]').value,
+  muscle: row.querySelector('[data-f="muscle"]').value,
+}));
+ok("动作库选中并带肌群", picked.name === "保加利亚分腿蹲" && picked.muscle === "quads", JSON.stringify(picked));
+await page.click("#pe-library");
+await page.fill("#ep-search", "杠铃卧推");
+await page.click(".ep-item");
+await page.waitForTimeout(200);
+const restored = await firstRow.locator('[data-f="name"]').inputValue();
+ok("动作库可换回卧推", restored === "杠铃卧推", restored);
 await firstRow.locator('[data-f="sets"]').fill("4");
 await firstRow.locator('[data-f="reps"]').fill("5–6");
 await page.click("#pe-save");
