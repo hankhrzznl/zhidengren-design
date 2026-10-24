@@ -11,6 +11,10 @@ const ok = (n, c, d = "") => results.push([c ? "PASS" : "FAIL", n, d]);
 
 await page.goto(BASE + "/index.html", { waitUntil: "load" });
 await page.evaluate(() => localStorage.clear());
+await page.evaluate(() => localStorage.setItem("lifeflow-train-records", JSON.stringify([
+  { name: "旧硬拉", date: "2026-10-01", sets_detail: [{ weight: 100, reps: 5 }] },
+  { name: "旧跑步", date: "2026-10-02", minutes: 30 }
+])));
 
 await page.goto(BASE + "/v3/training.html", { waitUntil: "load" });
 await page.waitForTimeout(600);
@@ -93,6 +97,11 @@ const prs = await page.evaluate(() => ({
   text: document.querySelector("#pr-list")?.innerText || "",
 }));
 ok("PR 卡显示最好成绩", prs.rows === 4 && /杠铃卧推/.test(prs.text) && /60×8/.test(prs.text), JSON.stringify(prs.text.replace(/\s+/g, " ")));
+const legacy = await page.evaluate(() => ({
+  show: getComputedStyle(document.querySelector("#legacy-card")).display !== "none",
+  text: document.querySelector("#legacy-list")?.innerText || "",
+}));
+ok("旧记录只读展示", legacy.show && /旧硬拉/.test(legacy.text) && /100kg × 5/.test(legacy.text), JSON.stringify(legacy.text.replace(/\s+/g, " ")));
 
 await page.click('#seg button[data-view="plan"]');
 await page.waitForTimeout(300);

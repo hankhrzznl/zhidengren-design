@@ -212,6 +212,7 @@
       <div class="card chart"><h3>近 4 周容量</h3><div class="bars" id="volume-bars"></div></div>
       <div class="card chart"><h3>e1RM</h3><div class="e1rm" id="e1rm-list"></div></div>
       <div class="card chart"><h3>PR</h3><div id="pr-list"></div></div>
+      <div class="card chart" id="legacy-card" style="display:none"><h3>旧记录 <span id="legacy-count" style="font-size:9px;color:var(--text-3);font-weight:400"></span></h3><div id="legacy-list"></div><p class="note" style="margin-top:8px">旧记录只读，不计入上方统计；导出会一起带上。</p></div>
       <div class="card chart"><h3>近 7 天肌群组数</h3><div id="muscle-list"></div></div>
       <p class="note">目标：每肌群每周 8–12 个有效组（RPE ≥ 7）；有氧每周 150–180 分钟。</p>
     </section>
@@ -669,6 +670,24 @@
       return '<div class="pr-row"><span class="pr-name">' + name + '</span><b>' + b.weight + '×' + b.reps + '</b><span>' + b.date.slice(5).replace('-', '/') + '</span></div>';
     });
     $('#pr-list').innerHTML = prRows.join('');
+
+    var legacy = L.legacyList(5);
+    if (legacy.length) {
+      $('#legacy-card').style.display = '';
+      $('#legacy-count').textContent = L.legacyRaw().length + ' 条';
+      $('#legacy-list').innerHTML = legacy.map(function (x) {
+        var detail = '';
+        if (x.sets_detail && x.sets_detail.length) {
+          var best = x.sets_detail.reduce(function (m, s) { return (Number(s.weight) || 0) > (Number(m.weight) || 0) ? s : m; }, x.sets_detail[0]);
+          detail = Number(best.weight) > 0 ? best.weight + 'kg × ' + best.reps : x.sets_detail.length + ' 组 × ' + (best.reps || '?') + ' 次';
+        } else if (x.minutes) {
+          detail = x.minutes + ' 分钟';
+        }
+        return '<div class="pr-row"><span class="pr-name">' + esc(x.name) + ' · ' + (x.date || '').slice(5).replace('-', '/') + '</span><b>' + detail + '</b></div>';
+      }).join('');
+    } else {
+      $('#legacy-card').style.display = 'none';
+    }
 
     var ms = L.muscleSets(7);
     var order = ['chest', 'back', 'quads', 'hamstrings', 'shoulders', 'arms'];

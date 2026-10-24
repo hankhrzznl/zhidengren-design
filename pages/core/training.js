@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    训练 v2 · 数据与指标
    方案：PPL 3 练 1 休 + 功能三项 + 低冲击有氧；3 周 build + 1 周 deload。
    存储：localStorage['lifeflow-train-v2'] = {v, startDate, sessions, body, profile}
@@ -446,6 +446,11 @@
   function legacyRaw() {
     try { return JSON.parse(root.localStorage.getItem('lifeflow-train-records') || '[]'); } catch (e) { return []; }
   }
+  function legacyList(n) {
+    return legacyRaw().filter(function (x) { return x && x.name; }).sort(function (a, b) {
+      return String(b.date || '').localeCompare(String(a.date || ''));
+    }).slice(0, n || 5);
+  }
   function exportAll() {
     var d = db();
     return {
@@ -498,7 +503,7 @@
     doneSets: doneSets, volume: volume, cardioMin: cardioMin, e1rm: e1rm,
     stats: stats, muscleSets: muscleSets, bestE1rm: bestE1rm, bestLift: bestLift, prForSession: prForSession,
     recent: recent, lastSet: lastSet, bodyAdd: bodyAdd, bodyList: bodyList, bodyLatest: bodyLatest,
-    legacyRaw: legacyRaw, exportAll: exportAll, recordStore: recordStore
+    legacyRaw: legacyRaw, legacyList: legacyList, exportAll: exportAll, recordStore: recordStore
   };
 })(typeof window !== 'undefined' ? window : globalThis);
 

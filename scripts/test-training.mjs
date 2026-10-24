@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 训练 v2 纯逻辑验收：node scripts/test-training.mjs
  */
 import fs from 'node:fs';
@@ -80,9 +80,13 @@ const prs = T.prForSession(s2);
 ok('更重的一组识别为 PR', prs.some((p) => p.name === '杠铃卧推' && p.weight === 90), JSON.stringify(prs));
 
 /* 导出包含 v2 + 旧记录 */
-localStorage.setItem('lifeflow-train-records', JSON.stringify([{ name: '旧动作' }]));
+localStorage.setItem('lifeflow-train-records', JSON.stringify([
+  { name: '旧动作 A', date: '2026-10-01', minutes: 30 },
+  { name: '旧动作 B', date: '2026-10-05', sets_detail: [{ weight: 60, reps: 8 }] }
+]));
 const exp = T.exportAll();
-ok('导出包含 session 与旧记录', exp.sessions.filter((x) => x.status === 'completed').length === 2 && exp.legacy.length === 1, JSON.stringify({ s: exp.sessions.length, l: exp.legacy.length }));
+ok('导出包含 session 与旧记录', exp.sessions.filter((x) => x.status === 'completed').length === 2 && exp.legacy.length === 2, JSON.stringify({ s: exp.sessions.length, l: exp.legacy.length }));
+ok('旧记录按日期倒序', T.legacyList()[0].name === '旧动作 B', JSON.stringify(T.legacyList().map((x) => x.name)));
 
 /* 删除 session 同时回滚运动事实 */
 const beforeDel = records.length;
