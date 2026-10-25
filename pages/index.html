@@ -652,6 +652,7 @@ body[data-tab="goals"] .tabbar{display:none}
 .goal-row__main{flex:1;min-width:0}
 .goal-row__main b{display:block;font:600 14px var(--cjk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .goal-row__main small{display:block;font:400 10.5px/1.5 var(--cjk);color:var(--txt3);margin-top:3px}
+.goal-pct{font:600 12px var(--cjk);color:var(--brand);font-variant-numeric:tabular-nums;flex:none}
 .goal-state{font:500 9.5px var(--cjk);padding:3px 7px;border-radius:99px;background:var(--card2);color:var(--txt2);flex:none}
 .goal-state.active{color:#4FBF8B;background:rgba(70,170,120,.14)}
 .goal-state.paused{color:#D6A84A;background:rgba(210,160,70,.14)}
@@ -2240,8 +2241,12 @@ function renderGoalsShell(){
   const dt=$('#goalsDate'); if(dt) dt.textContent=`${d.getMonth()+1} 月 ${d.getDate()} 日 · 周${WK[d.getDay()]}`;
   box.innerHTML=items.map(g=>{
     const state=GOAL_STATE_LABEL[g.status]||'进行中';
+    const gs=window.LightToday?window.LightToday.goalStats(g):null;
+    const pct=gs?gs.percent+'%':'—';
+    const statText=gs?gs.label:'待记录';
     return `<button type="button" class="goal-row" data-goal-id="${esc(g.id)}">`+
-      `<span class="goal-row__main"><b>${esc(g.title)}</b><small>${esc(goalModsText(g))} · ${g.requirements&&g.requirements.length?g.requirements.length+' 条要求':'还没配模块'}</small></span>`+
+      `<span class="goal-row__main"><b>${esc(g.title)}</b><small>${esc(goalModsText(g))} · ${g.requirements&&g.requirements.length?g.requirements.length+' 条要求':'还没配模块'} · ${statText}</small></span>`+
+      `<span class="goal-pct">${pct}</span>`+
       `<span class="goal-state ${esc(g.status||'active')}">${state}</span>`+
       `<svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`+
     `</button>`;
@@ -3725,8 +3730,8 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     if (weekly) {
       var parts = [];
       if (p.weekly && p.weekly.length) {
-        parts.push('本周还差：' + p.weekly.map(function (x) {
-          return (window.LightGoals ? window.LightGoals.moduleLabel(x.moduleId) : x.moduleId) + ' ' + x.target + (x.unit ? ' ' + x.unit : '');
+        parts.push('本周：' + p.weekly.map(function (x) {
+          return (window.LightGoals ? window.LightGoals.moduleLabel(x.moduleId) : x.moduleId) + ' ' + (x.done || 0) + '/' + x.target;
         }).join(' / '));
       }
       if (p.paused && p.paused.length) parts.push('今天暂停：' + p.paused.map(function (x) { return x.label; }).join(' / '));
@@ -3748,6 +3753,7 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
 </script>
 </body>
 </html>
+
 
 
 

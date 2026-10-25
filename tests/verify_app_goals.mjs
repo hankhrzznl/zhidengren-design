@@ -62,14 +62,22 @@ const plan = await page.evaluate(() => ({
   count: document.querySelector("#tpCount")?.textContent,
 }));
 ok("今日推进读取目标", /训练/.test(plan.text || "") && /练成薄肌/.test(plan.text || ""), JSON.stringify(plan));
+ok("周配额显示 0/3", /本周 0\/3/.test(plan.text || ""), plan.text);
 await page.click(".tp-item");
 await page.waitForTimeout(250);
 const planDone = await page.evaluate(() => ({
   done: document.querySelector(".tp-item")?.classList.contains("done"),
   count: document.querySelector("#tpCount")?.textContent,
+  text: document.querySelector("#tpList")?.innerText.replace(/\s+/g, " "),
 }));
 ok("今日推进可勾选", planDone.done === true && planDone.count === "1/3", JSON.stringify(planDone));
+ok("周配额勾选后 1/3", /本周 1\/3/.test(planDone.text || ""), planDone.text);
 await page.screenshot({ path: OUT + "app-today-3plus3.png" });
+
+await page.evaluate(() => openGoalsScreen());
+await page.waitForTimeout(300);
+const pct = await page.locator(".goal-pct").first().textContent();
+ok("目标列表显示遵守度", /%/.test(pct || ""), pct);
 
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(700);

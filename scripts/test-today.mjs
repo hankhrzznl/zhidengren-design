@@ -80,6 +80,35 @@ G.save({
 const conflict = T.plan(MON);
 ok('方向冲突显示冲突', conflict.conflicts.length === 1, JSON.stringify(conflict.conflicts.map((x) => x.goals)));
 
+/* 周配额累计：周一/周四/周日 */
+const TRAIN = 'training|sessions|次', THU = '2026-10-29', SUN = '2026-11-01';
+G.save({
+  id: 'g-train2', title: '训练目标', status: 'active', activeFrom: MON,
+  requirements: [{ id: 't2', moduleId: 'training', metric: 'sessions', target: 3, unit: '次', cadence: 'weekly' }]
+});
+T.toggle(TRAIN, MON);
+const one = T.plan(MON);
+const oneTrain = one.progress.filter((x) => x.key === TRAIN)[0];
+ok('周配额显示 1/3', /1\/3/.test(oneTrain.meta), JSON.stringify(oneTrain));
+T.toggle(TRAIN, THU);
+T.toggle(TRAIN, SUN);
+const full = T.plan(SUN);
+ok('周配额完成后不再出现', !full.progress.some((x) => x.key === TRAIN) && full.weekly.some((x) => x.key === TRAIN && x.complete), JSON.stringify(full.weekly));
+const gWeek = G.save({
+  id: 'g-week', title: '周配额目标', status: 'active', activeFrom: MON,
+  requirements: [{ id: 'w-train', moduleId: 'training', metric: 'sessions', target: 3, unit: '次', cadence: 'weekly' }]
+});
+const ws = T.goalStats(gWeek, SUN);
+ok('周配额目标进度 100%', ws && ws.percent === 100, JSON.stringify(ws));
+
+const gDay = G.save({
+  id: 'g-day', title: '日目标', status: 'active', activeFrom: MON,
+  requirements: [{ id: 'd-study', moduleId: 'study', metric: 'minutes', target: 1, unit: 'min', cadence: 'daily' }]
+});
+T.toggle('study|minutes|min', MON);
+const ds = T.goalStats(gDay, MON);
+ok('日目标进度 100%', ds && ds.percent === 100, JSON.stringify(ds));
+
 for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : '');
 console.log(`\n今日 3+3 校验：${pass}/${rows.length} PASS`);
 process.exit(rows.some((r) => r[0] === 'FAIL') ? 1 : 0);

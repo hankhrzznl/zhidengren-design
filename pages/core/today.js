@@ -59,6 +59,74 @@
   function weeklyDue(target, date) {
     return weeklySlots(target).indexOf(weekday(date)) >= 0;
   }
+  function dateAdd(date, n) {
+    var d = new Date(String(date || dateKey()) + 'T12:00:00');
+    d.setDate(d.getDate() + n);
+    return dateKey(d);
+  }
+  function weekStart(date) {
+    var d = new Date(String(date || dateKey()) + 'T12:00:00');
+    var off = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - off);
+    return dateKey(d);
+  }
+  function weekDates(date) {
+    var start = weekStart(date), out = [];
+    for (var i = 0; i < 7; i++) out.push(dateAdd(start, i));
+    return out;
+  }
+  function weekDone(key, date) {
+    return weekDates(date).filter(function (d) { return !!doneMap(d)[key]; }).length;
+  }
+  function floorDoneOn(key, date) {
+    if (!root.LightFloors) return false;
+    var chosen = (root.LightFloors.summary(date).chosen || []);
+    return chosen.some(function (f) {
+      var spec = floorSpec(f.id);
+      return !!(f.done && spec && keyOf(spec.moduleId, spec.metric, spec.unit) === key);
+    });
+  }
+  function doneOn(key, date) {
+    return !!doneMap(date)[key] || floorDoneOn(key, date);
+  }
+  function daysBetween(a, b) {
+    var d1 = new Date(a + 'T12:00:00'), d2 = new Date(b + 'T12:00:00');
+    return Math.round((d2 - d1) / 86400000);
+  }
+  function goalStats(goal, date) {
+    date = date || dateKey();
+    if (!goal || !goal.requirements || !goal.requirements.length) return null;
+    var floor = dateAdd(date, -27);
+    var from = goal.activeFrom && goal.activeFrom > floor ? goal.activeFrom : floor;
+    var days = Math.max(1, daysBetween(from, date) + 1);
+    var expected = 0, actual = 0;
+    goal.requirements.forEach(function (r) {
+      var key = keyOf(r.moduleId, r.metric, r.unit);
+      if (r.cadence === 'weekly') {
+        var weeks = Math.max(1, Math.ceil(days / 7));
+        expected += weeks;
+        var cursor = weekStart(from);
+        for (var i = 0; i < weeks; i++) {
+          if (weekDone(key, cursor) >= (Number(r.target) || 1)) actual++;
+          cursor = dateAdd(cursor, 7);
+        }
+      } else {
+        expected += days;
+        for (var j = 0; j < days; j++) {
+          if (doneOn(key, dateAdd(from, j))) actual++;
+        }
+      }
+    });
+    if (!expected) return null;
+    return {
+      percent: Math.round(actual / expected * 100),
+      actual: actual,
+      expected: expected,
+      days: days,
+      from: from,
+      label: days >= 28 ? '近 4 周' : '近 ' + days + ' 天'
+    };
+  }
 
   function floorSpec(id) { return FLOOR_SPECS[id] || null; }
   function floorLabel(id) {
@@ -114,8 +182,14 @@
       var required = rows.filter(function (r) { return r.requirement.role !== 'optional'; });
       if (!required.length) return;
       var cadence = required.some(function (r) { return r.requirement.cadence === 'weekly'; }) ? 'weekly' : 'daily';
-      if (cadence === 'weekly' && !weeklyDue(item.target, date)) {
-        weekly.push({ key: item.key, moduleId: item.moduleId, target: item.target, unit: item.unit, goals: item.goals });
+      var weeklyDone = cadence === 'weekly' ? weekDone(item.key, date) : 0;
+      var weeklyTarget = cadence === 'weekly' ? (Number(item.target) || 1) : null;
+      if (cadence === 'weekly' && weeklyDone >= weeklyTarget) {
+        weekly.push({ key: item.key, moduleId: item.moduleId, target: weeklyTarget, done: weeklyDone, unit: item.unit, goals: item.goals, complete: true });
+        return;
+      }
+      if (cadence === 'weekly' && !weeklyDue(weeklyTarget, date)) {
+        weekly.push({ key: item.key, moduleId: item.moduleId, target: weeklyTarget, done: weeklyDone, unit: item.unit, goals: item.goals });
         return;
       }
       var base = floorByKey[item.key];
@@ -133,9 +207,10 @@
         metric: item.metric,
         unit: item.unit,
         target: target,
-        weeklyTarget: cadence === 'weekly' ? item.target : null,
+        weeklyTarget: weeklyTarget,
+        weeklyDone: weeklyDone,
         label: moduleText(item.moduleId) + ' ' + target + unitText(item.unit),
-        meta: cadence === 'weekly' ? '本周 ' + item.target + unitText(item.unit) : '每天',
+        meta: cadence === 'weekly' ? '本周 ' + weeklyDone + '/' + weeklyTarget : '每天',
         goals: item.goals,
         goalIds: item.goalIds,
         done: !!done[item.key],
@@ -172,6 +247,10 @@
     isDone: isDone,
     weeklyDue: weeklyDue,
     weeklySlots: weeklySlots,
+    weekStart: weekStart,
+    weekDone: weekDone,
+    doneOn: doneOn,
+    goalStats: goalStats,
     plan: plan
   };
 })(typeof window !== 'undefined' ? window : globalThis);
