@@ -34,6 +34,7 @@
   MODULE_BY_LABEL['训练'] = 'training';
   MODULE_BY_LABEL['阅读'] = 'habit';
 
+  var METRIC_LABELS = { hours: '睡眠时长', minutes: '分钟', sessions: '次数', volume: '容量', protein_g: '蛋白克数', score: '评分', spend: '金额', count: '次数', doses: '次' };
   var MODULE_DEFAULTS = {
     sleep: { metric: 'hours', unit: 'h', target: 7, hint: '睡眠时长' },
     diet: { metric: 'protein_g', unit: 'g', target: 120, hint: '蛋白质克数' },
@@ -73,6 +74,9 @@
   }
   function defaultsFor(id) {
     return MODULE_DEFAULTS[id] || MODULE_DEFAULTS.other;
+  }
+  function metricLabel(metric) {
+    return METRIC_LABELS[metric] || metric;
   }
 
   function normalizeRequirement(raw) {
@@ -307,7 +311,7 @@
     dateKey: dateKey,
     moduleForLabel: moduleForLabel,
     moduleLabel: moduleLabel,
-    defaultsFor: defaultsFor,
+    defaultsFor: defaultsFor, metricLabel: metricLabel,
     normalizeGoal: normalizeGoal,
     normalizeRequirement: normalizeRequirement,
     migrate: migrate,

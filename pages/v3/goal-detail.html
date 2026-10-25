@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light" class="light">
 <head>
 <meta charset="UTF-8">
@@ -1480,7 +1480,7 @@ body {
     var dir = r.direction === 'at_most' ? '最多' : '至少';
     return '<div class="req-item">' +
       '<div><div class="req-item__name">' + esc(label) + '</div>' +
-      '<div class="req-item__meta">' + esc(r.metric) + ' · ' + cadence + ' · ' + dir + '</div></div>' +
+      '<div class="req-item__meta">' + esc(window.LightGoals ? window.LightGoals.metricLabel(r.metric) : r.metric) + ' · ' + cadence + ' · ' + dir + '</div></div>' +
       '<div class="req-item__val">' + esc(r.target) + ' ' + esc(r.unit || '') + '</div>' +
     '</div>';
   }

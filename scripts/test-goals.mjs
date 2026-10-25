@@ -16,6 +16,7 @@ const DAY = '2026-10-25';
 let pass = 0; const rows = [];
 function ok(name, cond, detail = '') { rows.push([cond ? 'PASS' : 'FAIL', name, detail]); if (cond) pass++; }
 
+ok('指标中文名', G.metricLabel('hours') === '睡眠时长', G.metricLabel('hours'));
 ok('模块默认值', G.defaultsFor('training').metric === 'sessions' && G.defaultsFor('training').target === 3, JSON.stringify(G.defaultsFor('training')));
 
 /* 空库不写 v2，避免把之后 goals 页的 v1 种子挡掉 */
@@ -124,5 +125,6 @@ ok('导出包含 v2 与旧 v1', exp.goals.length >= 4 && !!exp.legacyV1, JSON.st
 for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : '');
 console.log(`\n目标 v2 校验：${pass}/${rows.length} PASS`);
 process.exit(rows.some((r) => r[0] === 'FAIL') ? 1 : 0);
+
 
 
