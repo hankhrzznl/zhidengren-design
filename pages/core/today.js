@@ -7,6 +7,7 @@
 (function (root) {
   'use strict';
   var KEY = 'lifeflow-today-v1';
+  var WEEK_KEY = 'lifeflow-weekly-v1';
 
   var FLOOR_SPECS = {
     sleep: { moduleId: 'sleep', metric: 'hours', unit: 'h', target: 7 },
@@ -131,6 +132,62 @@
     var d1 = new Date(a + 'T12:00:00'), d2 = new Date(b + 'T12:00:00');
     return Math.round((d2 - d1) / 86400000);
   }
+  function weekRead() {
+    try { return JSON.parse(root.localStorage.getItem(WEEK_KEY) || 'null') || { v: 1, decisions: {} }; } catch (e) { return { v: 1, decisions: {} }; }
+  }
+  function weekWrite(d) { try { root.localStorage.setItem(WEEK_KEY, JSON.stringify(d)); } catch (e) {} return d; }
+  function weekId(key, date) { return weekStart(date) + '|' + key; }
+  function weeklyDecision(key, date) {
+    return (weekRead().decisions || {})[weekId(key, date)] || null;
+  }
+  function weeklyTargetFor(key, base, date) {
+    var d = weeklyDecision(key, date);
+    if (!d) return base;
+    if (d.action === 'carry') return base + (Number(d.amount) || 0);
+    if (d.action === 'reduce') return 1;
+    return base;
+  }
+  function weeklyItems(date) {
+    if (!root.LightGoals) return [];
+    return root.LightGoals.mergeRequirements(root.LightGoals.active(date), date).filter(function (item) {
+      return !item.conflict && (item.rows || []).some(function (r) { return r.requirement.cadence === 'weekly'; });
+    }).map(function (item) {
+      return { key: item.key, moduleId: item.moduleId, target: Number(item.target) || 1, unit: item.unit, goals: item.goals };
+    });
+  }
+  function weeklyReview(date) {
+    date = date || dateKey();
+    var prev = dateAdd(weekStart(date), -7);
+    var pending = [], applied = [];
+    weeklyItems(prev).forEach(function (it) {
+      var prevDecision = weeklyDecision(it.key, prev);
+      var prevTarget = it.target;
+      if (prevDecision && prevDecision.action === 'carry') prevTarget += Number(prevDecision.amount) || 0;
+      else if (prevDecision && prevDecision.action === 'reduce') prevTarget = 1;
+      var done = weekDone(it.key, prev);
+      var gap = Math.max(0, prevTarget - done);
+      if (!gap) return;
+      var row = {
+        key: it.key, moduleId: it.moduleId, label: moduleText(it.moduleId),
+        target: prevTarget, done: done, gap: gap, unit: it.unit, goals: it.goals, week: prev
+      };
+      var now = weeklyDecision(it.key, date);
+      if (now) applied.push(Object.assign({}, row, { action: now.action, amount: now.amount || 0 }));
+      else pending.push(row);
+    });
+    return { pending: pending, applied: applied, prev: prev };
+  }
+  function applyWeeklyAction(key, date, action) {
+    date = date || dateKey();
+    var review = weeklyReview(date);
+    var row = review.pending.concat(review.applied).filter(function (x) { return x.key === key; })[0];
+    if (!row) return null;
+    var amount = action === 'carry' ? Math.min(2, row.gap) : 0;
+    var d = weekRead();
+    d.decisions[weekId(key, date)] = { action: action, amount: amount, at: new Date().toISOString() };
+    weekWrite(d);
+    return { action: action, amount: amount, row: row };
+  }
   function goalStats(goal, date) {
     date = date || dateKey();
     if (!goal || !goal.requirements || !goal.requirements.length) return null;
@@ -222,13 +279,14 @@
       if (!required.length) return;
       var cadence = required.some(function (r) { return r.requirement.cadence === 'weekly'; }) ? 'weekly' : 'daily';
       var weeklyDone = cadence === 'weekly' ? weekDone(item.key, date) : 0;
-      var weeklyTarget = cadence === 'weekly' ? (Number(item.target) || 1) : null;
+      var weeklyTarget = cadence === 'weekly' ? weeklyTargetFor(item.key, Number(item.target) || 1, date) : null;
+      var weeklyBase = cadence === 'weekly' ? (Number(item.target) || 1) : null;
       if (cadence === 'weekly' && weeklyDone >= weeklyTarget) {
-        weekly.push({ key: item.key, moduleId: item.moduleId, target: weeklyTarget, done: weeklyDone, unit: item.unit, goals: item.goals, complete: true });
+        weekly.push({ key: item.key, moduleId: item.moduleId, target: weeklyTarget, baseTarget: weeklyBase, done: weeklyDone, unit: item.unit, goals: item.goals, complete: true });
         return;
       }
       if (cadence === 'weekly' && !weeklyDue(weeklyTarget, date)) {
-        weekly.push({ key: item.key, moduleId: item.moduleId, target: weeklyTarget, done: weeklyDone, unit: item.unit, goals: item.goals });
+        weekly.push({ key: item.key, moduleId: item.moduleId, target: weeklyTarget, baseTarget: weeklyBase, done: weeklyDone, unit: item.unit, goals: item.goals });
         return;
       }
       var base = floorByKey[item.key];
@@ -279,6 +337,7 @@
 
   root.LightToday = {
     KEY: KEY,
+    WEEK_KEY: WEEK_KEY,
     FLOOR_SPECS: FLOOR_SPECS,
     dateKey: dateKey,
     doneMap: doneMap,
@@ -291,6 +350,10 @@
     moduleAmount: moduleAmount,
     amountOn: amountOn,
     doneOn: doneOn,
+    weeklyDecision: weeklyDecision,
+    weeklyTargetFor: weeklyTargetFor,
+    weeklyReview: weeklyReview,
+    applyWeeklyAction: applyWeeklyAction,
     goalStats: goalStats,
     plan: plan
   };

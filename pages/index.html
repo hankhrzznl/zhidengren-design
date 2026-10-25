@@ -686,6 +686,19 @@ body[data-tab="goals"] .tabbar{display:none}
 .tp-empty,.tp-weekly{font:400 10px/1.6 var(--cjk);color:var(--txt3);margin:6px 0 0}
 .tp-weekly{color:var(--txt2)}
 .tp-conflict{font:400 10.5px/1.6 var(--cjk);color:#E0A36E;margin:7px 0 0}
+/* 上周缺口：顺延 / 降级 / 跳过 */
+.wc-card{margin:0 0 10px;padding:12px 14px;border:1px solid rgba(224,163,110,.28);border-radius:15px;background:rgba(224,163,110,.06)}
+.wc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
+.wc-head b{font:600 11px var(--cjk);color:#E0A36E}
+.wc-head small{font:400 9px var(--cjk);color:var(--txt3)}
+.wc-row{padding:8px 0;border-top:1px solid var(--line)}
+.wc-row:first-child{border-top:0}
+.wc-row__main{display:flex;justify-content:space-between;gap:8px;font:500 11.5px var(--cjk);color:var(--txt2)}
+.wc-row__main small{font:400 9.5px var(--cjk);color:var(--txt3)}
+.wc-actions{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.wc-actions button{border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--txt2);font:500 10px var(--cjk);padding:5px 8px}
+.wc-actions button[data-wc="carry"]{border-color:rgba(77,195,255,.35);color:var(--brand)}
+.wc-actions button[data-wc="skip"]{color:var(--txt3)}
 </style>
 <style id="v3-skin">
 /* ============================================================
@@ -1420,6 +1433,11 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
         <div id="tpList"></div>
         <p class="tp-empty" id="tpEmpty">还没有目标。去「记一笔 → 长期目标」先定一个。</p>
         <p class="tp-weekly" id="tpWeekly"></p>
+      </section>
+
+      <section class="wc-card" id="weeklyCarryCard" style="display:none">
+        <div class="wc-head"><b>上周没做完</b><small>只顺延一周，最多 +2</small></div>
+        <div id="wcList"></div>
       </section>
 
       <div class="group-head" style="margin-top:4px"><button class="seg-pill js-fold" style="--c:var(--hi)"><svg viewBox="0 0 24 24"><path d="M12 5l7 12H5z" fill="currentColor"/></svg>高 <svg><use href="#i-chev"/></svg></button></div>
@@ -3708,6 +3726,8 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     var empty = document.getElementById('tpEmpty');
     var count = document.getElementById('tpCount');
     var weekly = document.getElementById('tpWeekly');
+    var carryCard = document.getElementById('weeklyCarryCard');
+    var carryList = document.getElementById('wcList');
     if (!list) return;
 
     if (count) count.textContent = p.done + '/' + p.limit;
@@ -3738,9 +3758,31 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
       if (p.conflicts && p.conflicts.length) parts.push('冲突：' + p.conflicts.map(function (x) { return (x.goals || []).join(' vs '); }).join(' / '));
       weekly.textContent = parts.join(' · ');
     }
+
+    var review = window.LightToday.weeklyReview();
+    if (carryCard && carryList) {
+      carryCard.style.display = review.pending.length ? '' : 'none';
+      carryList.innerHTML = review.pending.map(function (x) {
+        var carryN = Math.min(2, x.gap);
+        return '<div class="wc-row">' +
+          '<div class="wc-row__main"><span>' + esc(x.label) + '</span><small>上周 ' + x.done + '/' + x.target + ' · 还差 ' + x.gap + '</small></div>' +
+          '<div class="wc-actions">' +
+            '<button type="button" data-wc="carry" data-wc-key="' + esc(x.key) + '">顺延 +' + carryN + '</button>' +
+            '<button type="button" data-wc="reduce" data-wc-key="' + esc(x.key) + '">降为 1 次/周</button>' +
+            '<button type="button" data-wc="skip" data-wc-key="' + esc(x.key) + '">跳过</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
   }
   window.renderTodayPlan = render;
   document.addEventListener('click', function (e) {
+    var wc = e.target.closest('[data-wc]');
+    if (wc && window.LightToday) {
+      window.LightToday.applyWeeklyAction(wc.getAttribute('data-wc-key'), null, wc.getAttribute('data-wc'));
+      render();
+      return;
+    }
     var row = e.target.closest('[data-tp-key]');
     if (!row || !window.LightToday) return;
     window.LightToday.toggle(row.getAttribute('data-tp-key'));

@@ -42,6 +42,8 @@
 | `lifeflow-study-items` | 学习项（可带 goal 文案） | 学习项创建页 |
 | `lifeflow-exam-plans` | 考试计划 | 考试页 |
 | `lifeflow-floors-v1` | 今日保底 | 手机壳层 |
+| `lifeflow-today-v1` | 今日 3+3 勾选 | 手机壳层 |
+| `lifeflow-weekly-v1` | 周配额顺延/降级/跳过 | 手机壳层 |
 | `lifeflow-train-v2` | 训练 session | 训练页 |
 | `lifeflow-theme` | 日夜 | 三端共用 |
 | `wb_lifeflow_daywork_v2` | 工作台个人数据 | 工作台 |
@@ -320,10 +322,12 @@ L5 每日行动 DailyActionV2（date/time/duration、itemId）
 - 壳内 `#screen-goals`：目标列表 + 新建/编辑 sheet；入口「记一笔 → 长期目标」；不是底部 tab。
 - 「记一笔」改成三步：写一句 / 按模块记 / 看目标；明确文字记录与模块记录的区别。
 - `goals.html / goal-create.html / goal-detail.html`：已接 `LightGoals`，保留为旧模块页回退；旧 v1 只读。
-- 测试：`test-goals` 20、`test-today` 19、`verify_goals_v2` 9、`verify_app_goals` 14；`run-all` 36/36。
+- 测试：`test-goals` 20、`test-today` 24、`verify_goals_v2` 9、`verify_app_goals` 14、`verify_weekly_carry` 4；`run-all` 36/36。
 - 今日 3+3：`#todayPlanCard` 在待办页；3 保底 + 3 推进；共享模块合并、黄/红限流、点击勾选；`lifeflow-today-v1`。
 - 模块日志：`core/today.js` 读 `lifeflow-days-v1`（睡眠/饮水/训练/学习/输出等），训练记录自动累计周配额，睡眠/饮水自动完成保底要求。
+- 上周缺口：待办页 `#weeklyCarryCard`，可顺延 +2 / 降为 1 次/周 / 跳过；决策存 `lifeflow-weekly-v1`。
 - 未做：目标进度统计、习惯/日常统一、任务/日程单对象。
+
 
 
 

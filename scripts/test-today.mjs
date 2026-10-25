@@ -132,6 +132,23 @@ ok('模块日志自动完成周配额', logPlan.weekly.some((x) => x.key === 'tr
 const logStats = T.goalStats(gLog, LOG_SUN);
 ok('模块日志驱动目标进度', logStats && logStats.percent === 100, JSON.stringify(logStats));
 
+/* 上周缺口 → 顺延 / 降级 / 跳过 */
+const PREV = '2026-10-19';
+G.save({
+  id: 'g-prev', title: '上周目标', status: 'active', activeFrom: PREV,
+  requirements: [{ id: 'p-train', moduleId: 'training', metric: 'sessions', target: 3, unit: '次', cadence: 'weekly' }]
+});
+const review = T.weeklyReview(MON);
+const gapRow = review.pending.filter((x) => x.key === 'training|sessions|次')[0];
+ok('上周缺口可识别', gapRow && gapRow.gap === 3, JSON.stringify(review.pending));
+const carry = T.applyWeeklyAction('training|sessions|次', MON, 'carry');
+ok('顺延最多 +2', carry && carry.amount === 2 && T.weeklyTargetFor('training|sessions|次', 3, MON) === 5, JSON.stringify(carry));
+ok('顺延后不再待处理', T.weeklyReview(MON).pending.every((x) => x.key !== 'training|sessions|次'));
+T.applyWeeklyAction('training|sessions|次', MON, 'reduce');
+ok('降级为 1 次/周', T.weeklyTargetFor('training|sessions|次', 3, MON) === 1);
+T.applyWeeklyAction('training|sessions|次', MON, 'skip');
+ok('跳过后保持基础目标', T.weeklyTargetFor('training|sessions|次', 3, MON) === 3);
+
 for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : '');
 console.log(`\n今日 3+3 校验：${pass}/${rows.length} PASS`);
 process.exit(rows.some((r) => r[0] === 'FAIL') ? 1 : 0);
