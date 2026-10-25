@@ -1,4 +1,4 @@
-﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -54,6 +54,22 @@ const saved = await page.evaluate(() => {
 });
 ok("新建目标写入壳内列表与 v2", /练成薄肌/.test(saved.list || "") && saved.req && saved.req[0][0] === "training" && saved.req[0][1] === 3, JSON.stringify(saved));
 await page.screenshot({ path: OUT + "app-goals-created.png" });
+
+await page.evaluate(() => go("todo"));
+await page.waitForTimeout(400);
+const plan = await page.evaluate(() => ({
+  text: document.querySelector("#tpList")?.innerText.replace(/\s+/g, " "),
+  count: document.querySelector("#tpCount")?.textContent,
+}));
+ok("今日推进读取目标", /训练/.test(plan.text || "") && /练成薄肌/.test(plan.text || ""), JSON.stringify(plan));
+await page.click(".tp-item");
+await page.waitForTimeout(250);
+const planDone = await page.evaluate(() => ({
+  done: document.querySelector(".tp-item")?.classList.contains("done"),
+  count: document.querySelector("#tpCount")?.textContent,
+}));
+ok("今日推进可勾选", planDone.done === true && planDone.count === "1/3", JSON.stringify(planDone));
+await page.screenshot({ path: OUT + "app-today-3plus3.png" });
 
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(700);

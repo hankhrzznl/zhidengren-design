@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -668,6 +668,23 @@ body[data-tab="goals"] .tabbar{display:none}
 .goal-req-del{width:28px;height:28px;border:0;border-radius:50%;background:transparent;color:var(--txt3);font-size:15px}
 .goal-add-req{display:inline-flex;align-items:center;gap:5px;border:0;background:none;color:var(--brand);font:600 12px var(--cjk);padding:7px 0}
 .goal-sheet-actions{margin-top:14px}
+/* 今日推进（目标 → 3 项） */
+.tp-card{margin:4px 0 10px;padding:13px 14px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.tp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.tp-head b{display:block;font:600 11px var(--cjk);letter-spacing:.10em;color:var(--txt2)}
+.tp-head small{display:block;font:400 9.5px var(--cjk);color:var(--txt3);margin-top:3px}
+.tp-head span{font:600 10.5px var(--cjk);color:var(--txt3);font-variant-numeric:tabular-nums}
+.tp-item{display:flex;align-items:center;gap:9px;width:100%;padding:9px 0;border:0;border-top:1px solid var(--line);background:none;color:var(--txt);text-align:left}
+.tp-item:first-child{border-top:0}
+.tp-check{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);color:var(--txt3);display:flex;align-items:center;justify-content:center;font-size:11px;flex:none}
+.tp-item.done .tp-check{background:rgba(77,195,255,.18);border-color:rgba(77,195,255,.45);color:var(--brand)}
+.tp-main{flex:1;min-width:0}
+.tp-main b{display:block;font:500 12.5px var(--cjk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp-main small{display:block;font:400 9.5px var(--cjk);color:var(--txt3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp-item.done .tp-main b{color:var(--txt3);text-decoration:line-through}
+.tp-empty,.tp-weekly{font:400 10px/1.6 var(--cjk);color:var(--txt3);margin:6px 0 0}
+.tp-weekly{color:var(--txt2)}
+.tp-conflict{font:400 10.5px/1.6 var(--cjk);color:#E0A36E;margin:7px 0 0}
 </style>
 <style id="v3-skin">
 /* ============================================================
@@ -1392,6 +1409,16 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
         <p class="fl-risk" id="flRisk">先选今天最危险的底。</p>
         <div class="fl-chips" id="flChips"></div>
         <div class="fl-foot"><span class="fl-pause" id="flPause"></span><button type="button" class="fl-edit" id="flEdit">调整</button></div>
+      </section>
+
+      <section class="tp-card" id="todayPlanCard">
+        <div class="tp-head">
+          <div><b>今日推进</b><small>来自目标 · 最多 3 项</small></div>
+          <span id="tpCount">0/3</span>
+        </div>
+        <div id="tpList"></div>
+        <p class="tp-empty" id="tpEmpty">还没有目标。去「记一笔 → 长期目标」先定一个。</p>
+        <p class="tp-weekly" id="tpWeekly"></p>
       </section>
 
       <div class="group-head" style="margin-top:4px"><button class="seg-pill js-fold" style="--c:var(--hi)"><svg viewBox="0 0 24 24"><path d="M12 5l7 12H5z" fill="currentColor"/></svg>高 <svg><use href="#i-chev"/></svg></button></div>
@@ -2303,6 +2330,7 @@ function openGoalSheet(id){
     row.querySelector('[data-f="metric-label"]').textContent=window.LightGoals.metricLabel(d.metric);
     row.querySelector('[data-f="unit"]').value=d.unit;
     row.querySelector('[data-f="target"]').value=d.target;
+    var cad=row.querySelector('[data-f="cadence"]'); if(cad) cad.value=d.cadence||'daily';
   });
   $('#goalReqList').addEventListener('click',(e)=>{
     const del=e.target.closest('[data-del-req]');
@@ -2320,6 +2348,7 @@ function openGoalSheet(id){
     window.LightGoals.save(goalEditDraft);
     closeSheet();
     renderGoalsShell();
+    document.dispatchEvent(new CustomEvent('goals-updated'));
     toast('目标已保存');
   };
 }
@@ -3581,6 +3610,7 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
 </div>
 
 <script src="core/floors.js"></script>
+<script src="core/today.js"></script>
 <script>
 /* 今日保底：壳层一张卡 + 底部面板 */
 (function () {
@@ -3605,6 +3635,7 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
         '<span class="tick">' + (f.done ? '✓' : '○') + '</span>' + f.label + '</button>';
     }).join('');
     $('#flPause').textContent = s.paused.length ? '今天暂停：' + s.paused.join(' · ') : '';
+    if (window.renderTodayPlan) window.renderTodayPlan();
   }
 
   function scoreRow(key, label) {
@@ -3658,8 +3689,67 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   render();
 })();
 </script>
+<script>
+/* 今日推进：目标 requirements → 最多 3 项；点击可勾 */
+(function () {
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function render() {
+    if (!window.LightToday) return;
+    var p = window.LightToday.plan();
+    var list = document.getElementById('tpList');
+    var empty = document.getElementById('tpEmpty');
+    var count = document.getElementById('tpCount');
+    var weekly = document.getElementById('tpWeekly');
+    if (!list) return;
+
+    if (count) count.textContent = p.done + '/' + p.limit;
+    list.innerHTML = p.progress.map(function (item) {
+      var src = (item.goals || []).join(' / ') || '目标';
+      return '<button type="button" class="tp-item' + (item.done ? ' done' : '') + '" data-tp-key="' + esc(item.key) + '">' +
+        '<span class="tp-check">' + (item.done ? '✓' : '○') + '</span>' +
+        '<span class="tp-main"><b>' + esc(item.label) + '</b><small>' + esc(src) + ' · ' + esc(item.meta) + '</small></span>' +
+      '</button>';
+    }).join('');
+
+    if (empty) {
+      empty.style.display = p.progress.length ? 'none' : '';
+      if (!p.progress.length) {
+        empty.textContent = p.color === 'red'
+          ? '红状态：今天只保底，推进暂停。'
+          : (!p.goals ? '还没有目标。去「记一笔 → 长期目标」先定一个。' : '今天没有需要推进的模块。');
+      }
+    }
+    if (weekly) {
+      var parts = [];
+      if (p.weekly && p.weekly.length) {
+        parts.push('本周还差：' + p.weekly.map(function (x) {
+          return (window.LightGoals ? window.LightGoals.moduleLabel(x.moduleId) : x.moduleId) + ' ' + x.target + (x.unit ? ' ' + x.unit : '');
+        }).join(' / '));
+      }
+      if (p.paused && p.paused.length) parts.push('今天暂停：' + p.paused.map(function (x) { return x.label; }).join(' / '));
+      if (p.conflicts && p.conflicts.length) parts.push('冲突：' + p.conflicts.map(function (x) { return (x.goals || []).join(' vs '); }).join(' / '));
+      weekly.textContent = parts.join(' · ');
+    }
+  }
+  window.renderTodayPlan = render;
+  document.addEventListener('click', function (e) {
+    var row = e.target.closest('[data-tp-key]');
+    if (!row || !window.LightToday) return;
+    window.LightToday.toggle(row.getAttribute('data-tp-key'));
+    render();
+  });
+  document.addEventListener('goals-updated', render);
+  window.addEventListener('load', render);
+  setTimeout(render, 200);
+})();
+</script>
 </body>
 </html>
+
+
 
 
 

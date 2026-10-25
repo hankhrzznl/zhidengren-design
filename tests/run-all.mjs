@@ -99,6 +99,7 @@ const tests = [
   "../scripts/test-training.mjs",
   "../scripts/test-floors.mjs",
   "../scripts/test-goals.mjs",
+  "../scripts/test-today.mjs",
   "../scripts/test-light.mjs"
 ];
 
@@ -132,6 +133,7 @@ for (const t of tests) {
 server.close();
 console.log(`\n[run-all] ${pass} suites passed, ${fail} failed${fail ? " → " + failed.join(", ") : ""}`);
 process.exit(fail ? 1 : 0);
+
 
 
 

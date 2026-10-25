@@ -1,4 +1,4 @@
-﻿# DOCUMENTATION.md · 执灯人 / LifeFlow 工作流知识库
+# DOCUMENTATION.md · 执灯人 / LifeFlow 工作流知识库
 
 > 生成：2026-10-25
 > 用途：给后续 AI / 智能体的约束与背景；先读本文件，再读具体任务文档。
@@ -235,6 +235,7 @@ L5 每日行动 DailyActionV2（date/time/duration、itemId）
 | `pages/core/floors.js` | 今日保底 |
 | `pages/core/training.js` | 训练 v2 |
 | `pages/core/goals.js` | 目标 v2 数据层 / v1 迁移 / 共享合并 |
+| `pages/core/today.js` | 今日 3+3 规划器 / 完成勾选 |
 | `pages/v3/goals.html` | 目标列表（种子 + 渲染） |
 | `pages/v3/goal-create.html` | 目标创建（三层表单，measure:null） |
 | `pages/v3/goal-detail.html` | 目标详情（阶段/任务/单一 measure） |
@@ -319,7 +320,8 @@ L5 每日行动 DailyActionV2（date/time/duration、itemId）
 - 壳内 `#screen-goals`：目标列表 + 新建/编辑 sheet；入口「记一笔 → 长期目标」；不是底部 tab。
 - 「记一笔」改成三步：写一句 / 按模块记 / 看目标；明确文字记录与模块记录的区别。
 - `goals.html / goal-create.html / goal-detail.html`：已接 `LightGoals`，保留为旧模块页回退；旧 v1 只读。
-- 测试：`test-goals` 20、`verify_goals_v2` 9、`verify_app_goals` 7；`run-all` 35/35。
-- 未做：今日 3+3、目标进度统计、习惯/日常统一、任务/日程单对象。
-- 未做：今日 3+3、目标进度统计、习惯/日常统一。
+- 测试：`test-goals` 20、`test-today` 11、`verify_goals_v2` 9、`verify_app_goals` 9；`run-all` 36/36。
+- 今日 3+3：`#todayPlanCard` 在待办页；3 保底 + 3 推进；共享模块合并、黄/红限流、点击勾选；`lifeflow-today-v1`。
+- 未做：目标进度统计、习惯/日常统一、任务/日程单对象。
+
 

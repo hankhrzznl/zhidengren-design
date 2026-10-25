@@ -39,7 +39,7 @@
     sleep: { metric: 'hours', unit: 'h', target: 7, hint: '睡眠时长' },
     diet: { metric: 'protein_g', unit: 'g', target: 120, hint: '蛋白质克数' },
     water: { metric: 'volume', unit: 'L', target: 1.5, hint: '饮水量' },
-    training: { metric: 'sessions', unit: '次', target: 3, hint: '训练次数' },
+    training: { metric: 'sessions', unit: '次', target: 3, cadence: 'weekly', hint: '训练次数' },
     study: { metric: 'minutes', unit: 'min', target: 60, hint: '专注分钟' },
     mood: { metric: 'score', unit: '分', target: 3, hint: '情绪评分' },
     expense: { metric: 'spend', unit: '元', target: 100, hint: '记账金额' },

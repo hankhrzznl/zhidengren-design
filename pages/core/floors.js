@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    今日保底 · floors.js
    不是 20 个模块打分，而是：四域保底 + 五流约束 + 每天只保 3 个底。
    存储：localStorage['lifeflow-floors-v1'] = {v:1, days:{date:{...}}}
@@ -71,7 +71,7 @@
     if (t === 'money') return ['ledger', 'sleep', 'protein'];
     if (t === 'time') return ['sleep', 'protein', 'walk'];
     if (t === 'energy') return ['sleep', 'protein', 'walk'];
-    if (colorOf(dayObj) === 'green') return ['focus', 'walk', 'protein'];
+    if (colorOf(dayObj) === 'green') return ['sleep', 'protein', 'walk'];
     return ['sleep', 'protein', 'walk'];
   }
   function saveDay(patch, date) {
@@ -120,3 +120,4 @@
     floor: floor
   };
 })(typeof window !== 'undefined' ? window : globalThis);
+
