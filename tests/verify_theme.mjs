@@ -47,7 +47,7 @@ const dark = await page.evaluate(() => ({
   text: getComputedStyle(document.querySelector(".task-title")).color,
 }));
 check("无存档时默认夜间", dark.theme === "dark" && dark.key === null, JSON.stringify(dark));
-check("八处主题入口（7 屏 + 模块顶栏）", dark.toggles === 8, String(dark.toggles));
+check("九处主题入口（8 屏 + 模块顶栏）", dark.toggles === 9, String(dark.toggles));
 
 /* 2. 切日间 */
 await page.click("#screen-todo .theme-toggle");
@@ -180,6 +180,7 @@ const failed = checks.filter((c) => !c.ok);
 for (const c of checks) console.log(`${c.ok ? "PASS" : "FAIL"}  ${c.name}`);
 console.log(`\n主题校验：${checks.length - failed.length}/${checks.length} PASS`);
 process.exit(failed.length ? 1 : 0);
+
 
 
 

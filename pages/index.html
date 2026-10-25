@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -694,6 +694,11 @@ body[data-tab="review"] .tabbar{display:none}
 .rv-stat span{display:block;font:400 9px var(--cjk);color:var(--txt3);margin-top:2px}
 .rv-note{width:100%;min-height:64px;border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--txt);font:400 12px/1.6 var(--cjk);padding:9px;resize:vertical}
 .rv-save{width:100%;height:36px;margin-top:8px;border:1px solid rgba(77,195,255,.35);border-radius:9px;background:rgba(77,195,255,.10);color:var(--brand);font:600 11px var(--cjk)}
+/* 日常 Practice 视图 */
+body[data-tab="practices"] .tabbar{display:none}
+#screen-practices{padding:64px 18px 30px;display:flex;flex-direction:column;gap:10px}
+#practiceList .tp-item{padding:9px 0}
+#practiceWeekly .rv-row:first-child{border-top:0}
 /* 今日推进（目标 → 3 项） */
 .tp-card{margin:4px 0 10px;padding:13px 14px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
 .tp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
@@ -1695,6 +1700,12 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
         <span class="ge-arrow"><svg><use href="#i-chev-r"/></svg></span>
       </button>
 
+      <button type="button" class="goals-entry" id="openPractices">
+        <span class="ge-ic" style="background:rgba(123,174,127,.14);color:#7BAE7F"><svg><use href="#i-refresh"/></svg></span>
+        <span class="ge-main"><b>日常</b><small>保底、承诺、周配额，都是重复行为</small></span>
+        <span class="ge-arrow"><svg><use href="#i-chev-r"/></svg></span>
+      </button>
+
       <div class="sect-h rec-h"><b>今天记下的</b><span id="recCount">0 条</span><button type="button" class="rec-toggle" id="recToggle" aria-expanded="true">收起</button></div>
       <div class="rec-list" id="recList"></div>
     </section>
@@ -1753,6 +1764,27 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
         <div class="rv-head"><h3>下周只改一件事</h3><small>写一句就够</small></div>
         <textarea id="reviewNote" class="rv-note" maxlength="120" placeholder="比如：把训练从周日挪到周三"></textarea>
         <button type="button" class="rv-save" id="reviewSave">保存这句</button>
+      </section>
+    </section>
+
+    <!-- ================= 日常（Practice 视图，不新增类型） ================= -->
+    <section class="screen" id="screen-practices">
+      <div class="assistant-top">
+        <button class="round-btn" id="practicesBack" aria-label="返回记一笔"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="round-btn theme-toggle" type="button" aria-label="切换到日间模式"><svg viewBox="0 0 24 24"><use href="#i-sun"/></svg></button>
+        <span class="rec-date" id="practicesDate"></span>
+      </div>
+      <div class="rec-head">
+        <h1>日常</h1>
+        <p class="rec-sub">保底、承诺、周配额，都是重复行为；习惯只是它们自动化后的状态。</p>
+      </div>
+      <section class="rv-card">
+        <div class="rv-head"><h3>今天</h3><small>点一下勾掉</small></div>
+        <div id="practiceList"></div>
+      </section>
+      <section class="rv-card">
+        <div class="rv-head"><h3>本周配额</h3><small>来自目标</small></div>
+        <div id="practiceWeekly"></div>
       </section>
     </section>
 
@@ -2161,8 +2193,10 @@ function renderSugg(){
 }
 function renderTodos(){
   const vis=x=>viewDone||!x.done;
+  const scheduled=new Set();
+  Object.values(state.plan).forEach(list=>list.forEach(x=>scheduled.add(String(x.id))));
   for(const g of ['high','mid','low','inbox'])
-    $('#g-'+g).innerHTML=state.todos[g].filter(vis).map(x=>taskCard(x,true)).join('');
+    $('#g-'+g).innerHTML=state.todos[g].filter(x=>!scheduled.has(String(x.id))&&vis(x)).map(x=>taskCard(x,true)).join('');
   for(const g of ['anytime','morning','noon','day','evening']){
     const list=state.plan[g].filter(x=>!x.dates||x.dates.includes(selectedDate));
     $('#p-'+g).innerHTML=list.filter(vis).map(x=>taskCard(x,true)).join('');
@@ -2518,6 +2552,45 @@ function renderReview(){
   if(note){ const db=reviewRead(); note.value=(db.weeks||{})[s.range.start]||''; }
 }
 function openReviewScreen(){ renderReview(); go('review'); }
+function renderPractices(){
+  if(!window.LightToday) return;
+  const p=window.LightToday.plan();
+  const list=$('#practiceList'), wk=$('#practiceWeekly');
+  const d=new Date(); const dt=$('#practicesDate'); if(dt) dt.textContent=`${d.getMonth()+1} 月 ${d.getDate()} 日 · 周${WK[d.getDay()]}`;
+  if(list){
+    const items=p.floors.concat(p.progress);
+    list.innerHTML=items.length?items.map(x=>{
+      const src=x.slot==='floor'?'保底':(x.goals||[]).join(' / ')||'目标';
+      const sub=x.slot==='floor'?src:(src+' · '+(x.meta||''));
+      const floor=x.floorId?` data-practice-floor="${esc(x.floorId)}"`:'';
+      return `<button type="button" class="tp-item${x.done?' done':''}" data-practice-key="${esc(x.key)}"${floor}>`+
+        `<span class="tp-check">${x.done?'✓':'○'}</span>`+
+        `<span class="tp-main"><b>${esc(x.label)}</b><small>${esc(sub)}</small></span>`+
+      `</button>`;
+    }).join(''):'<p class="rec-empty" style="margin:0">今天没有日常项。</p>';
+  }
+  if(wk){
+    const weeklyRows=(p.weekly||[]).concat((p.progress||[]).filter(x=>x.weeklyTarget).map(x=>({moduleId:x.moduleId,done:x.weeklyDone||0,target:x.weeklyTarget,unit:x.unit,complete:false})));
+    wk.innerHTML=weeklyRows.length?weeklyRows.map(x=>
+      `<div class="rv-row"><div><b>${esc(window.LightGoals?window.LightGoals.moduleLabel(x.moduleId):x.moduleId)}</b><small>${x.done||0}/${x.target} ${x.unit||''}</small></div><span class="rv-status">${x.complete?'完成':'进行中'}</span></div>`
+    ).join(''):'<p class="rec-empty" style="margin:0">本周没有周配额。</p>';
+  }
+}
+function openPracticesScreen(){ renderPractices(); go('practices'); }
+if($('#openPractices')) $('#openPractices').onclick=openPracticesScreen;
+if($('#practicesBack')) $('#practicesBack').onclick=()=>go('assistant');
+if($('#practiceList')) $('#practiceList').addEventListener('click',(e)=>{
+  const row=e.target.closest('[data-practice-key]');
+  if(!row||!window.LightToday) return;
+  if(row.getAttribute('data-practice-floor') && window.LightFloors){
+    window.LightFloors.toggleDone(row.getAttribute('data-practice-floor'));
+  } else {
+    window.LightToday.toggle(row.getAttribute('data-practice-key'));
+  }
+  renderPractices();
+});
+
+function dealSugg(){sugg=pickSugg(3);renderSugg()}
 if($('#openReview')) $('#openReview').onclick=openReviewScreen;
 if($('#reviewBack')) $('#reviewBack').onclick=()=>go('assistant');
 if($('#reviewSave')) $('#reviewSave').onclick=()=>{
@@ -3627,7 +3700,7 @@ function taskMenuAct(act,f){
   }else if(act==='inbox'){
     if(zone!=='plan'){closeSheet();toast('已在待办清单中');return}
     state.plan[g]=state.plan[g].filter(x=>x.id!==item.id);
-    const {dates,...rest}=item;
+    const {dates,scheduledDate,...rest}=item;
     state.todos.inbox.push({...rest,done:false});
     after();closeSheet();toast('已搬到待办');
   }else if(act==='sched'){
@@ -3637,13 +3710,13 @@ function taskMenuAct(act,f){
         if(it.k!==g){state.plan[g]=state.plan[g].filter(x=>x.id!==item.id);state.plan[it.k].push(item);after()}
       }else{
         state.todos[g]=state.todos[g].filter(x=>x.id!==item.id);
-        state.plan[it.k].push({...item,dates:[selectedDate],done:false});
+        state.plan[it.k].push({...item,dates:[selectedDate],scheduledDate:selectedDate,done:false});
       }
       after();toast('已安排到'+SLOT_NAME[it.k]);
     });
   }else if(act==='tomorrow'){
     if(zone==='plan'){item.dates=[addDaysKey(todayKey,1)]}
-    else{state.todos[g]=state.todos[g].filter(x=>x.id!==item.id);state.plan.anytime.push({...item,dates:[addDaysKey(todayKey,1)],done:false})}
+    else{state.todos[g]=state.todos[g].filter(x=>x.id!==item.id);state.plan.anytime.push({...item,dates:[addDaysKey(todayKey,1)],scheduledDate:addDaysKey(todayKey,1),done:false})}
     after();closeSheet();toast('已重新安排到明天');
   }else if(act==='decomp'){
     closeSheet();openDecomp(f);
@@ -3948,6 +4021,8 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
 </script>
 </body>
 </html>
+
+
 
 
 
