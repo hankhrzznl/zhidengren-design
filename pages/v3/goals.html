@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light" class="light">
 <head>
 <meta charset="UTF-8">
@@ -1224,6 +1224,7 @@ body {
 </div>
 
 <script src="../assets/lucide.min.js"></script>
+<script src="../core/goals.js"></script>
 <script>
 (function () {
   'use strict';
@@ -1377,20 +1378,30 @@ body {
   }
 
   function loadGoals() {
+    if (window.LightGoals) {
+      window.LightGoals.migrate();
+      var items = window.LightGoals.list();
+      if (!items.length) {
+        seedGoals().forEach(function (g) { window.LightGoals.save(g); });
+        items = window.LightGoals.list();
+      }
+      return items;
+    }
+    /* 极端回退：没有 core/goals.js 时仍显示旧数据 */
     try {
       var raw = localStorage.getItem(K_GOALS);
       if (raw) {
         var d = JSON.parse(raw);
         if (d && d.v === SCHEMA_V && Array.isArray(d.items)) { return d.items; }
       }
-    } catch (e) { /* 存储不可用 → 退化为种子，页面仍能显示 */ }
-    var seed = seedGoals();
-    saveGoals(seed, true);
-    return seed;
+    } catch (e) {}
+    return seedGoals();
   }
   function saveGoals(list, quiet) {
     try {
-      localStorage.setItem(K_GOALS, JSON.stringify({ v: SCHEMA_V, items: list }));
+      if (window.LightGoals) {
+        list.forEach(function (g) { window.LightGoals.save(g); });
+      }
       if (!quiet) { window.dispatchEvent(new CustomEvent('goal-updated', { detail: { items: list } })); }
     } catch (e) { /* 忽略 */ }
   }
@@ -1425,7 +1436,13 @@ body {
     var st = statusOf(g);
     var segs = [g.domain, '已推进 ' + g.days + ' 天', STATUS_NOTE[st]].filter(function (x) { return !!x; });
     var meta = '<i data-lucide="' + esc(g.domainIcon || 'target') + '"></i> ' + esc(segs.join(' · '));
-    if (g.measure) {
+    if (g.requirements && g.requirements.length) {
+      var mods = g.requirements.map(function (r) {
+        return window.LightGoals ? window.LightGoals.moduleLabel(r.moduleId) : r.moduleId;
+      }).filter(function (v, i, a) { return a.indexOf(v) === i; });
+      meta += ' · <span class="attach" data-href="' + esc(detailHref(g)) + '">' +
+        '<i data-lucide="layers"></i> ' + mods.length + ' 个模块：' + esc(mods.join(' / ')) + '</span>';
+    } else if (g.measure) {
       meta += ' · <span class="attach ' + esc(g.measure.cls) + '" data-href="' + esc(g.measure.href) + '">' +
         '<i data-lucide="' + esc(g.measure.icon) + '"></i> 衡量：' + esc(g.measure.label) + '</span>';
     }
@@ -1646,3 +1663,5 @@ body {
 </style>
 </body>
 </html>
+
+

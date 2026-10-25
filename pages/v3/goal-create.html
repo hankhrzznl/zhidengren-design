@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light" class="light">
 <head>
 <meta charset="UTF-8">
@@ -1085,6 +1085,17 @@ body {
         <input class="edit-input" id="first-step" type="text" placeholder="比如：精读 1 段材料" maxlength="60">
       </div>
 
+      <!-- 第 4 层 · 需要哪些模块 -->
+      <div class="form-section fade-up fade-up--4">
+        <div class="form-section__label">
+          <span class="form-section__step">4</span>
+          这个目标需要哪些模块
+        </div>
+        <p class="req-hint">只写要求；记录仍然在各模块页。比如：睡眠 7h/天、训练 3 次/周。</p>
+        <div id="req-list"></div>
+        <button type="button" class="add-btn" id="add-req" style="margin-top:10px;"><i data-lucide="plus"></i> 添加模块要求</button>
+      </div>
+
       <!-- 高级设置（折叠） -->
       <div class="fold fade-up fade-up--4" id="fold-advanced">
         <button type="button" class="fold__toggle" id="fold-toggle">
@@ -1116,6 +1127,7 @@ body {
 </div>
 
 <script src="../assets/lucide.min.js"></script>
+<script src="../core/goals.js"></script>
 <script>
 (function () {
   'use strict';
@@ -1209,21 +1221,108 @@ body {
   var SCHEMA_V = 1;
 
   function loadGoals() {
+    if (window.LightGoals) {
+      window.LightGoals.migrate();
+      return window.LightGoals.list();
+    }
     try {
       var raw = localStorage.getItem(K_GOALS);
       if (raw) {
         var d = JSON.parse(raw);
         if (d && d.v === SCHEMA_V && Array.isArray(d.items)) { return d.items; }
       }
-    } catch (e) { /* 存储不可用 → 退化为空表（本页只是追加） */ }
+    } catch (e) {}
     return [];
   }
   function saveGoals(list) {
     try {
-      localStorage.setItem(K_GOALS, JSON.stringify({ v: SCHEMA_V, items: list }));
+      if (window.LightGoals) {
+        list.forEach(function (g) { window.LightGoals.save(g); });
+      }
       window.dispatchEvent(new CustomEvent('goal-updated', { detail: { items: list } }));
     } catch (e) { /* 忽略：无存储时仍走成功态，不阻塞用户 */ }
   }
+
+  /* 模块要求：表单行 ↔ requirements[] */
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function moduleOptions(cur) {
+    var mods = (window.LightGoals && window.LightGoals.MODULES) || [
+      { id: 'sleep', label: '睡眠' }, { id: 'diet', label: '饮食' }, { id: 'water', label: '饮水' },
+      { id: 'training', label: '训练' }, { id: 'study', label: '学习' }, { id: 'mood', label: '情绪' },
+      { id: 'expense', label: '记账' }, { id: 'other', label: '其他' }
+    ];
+    return mods.map(function (m) {
+      return '<option value="' + m.id + '"' + (m.id === cur ? ' selected' : '') + '>' + m.label + '</option>';
+    }).join('');
+  }
+  function reqRowHTML(r) {
+    r = r || {};
+    if (!r.metric) {
+      var d = window.LightGoals ? window.LightGoals.defaultsFor(r.moduleId || 'sleep') : { metric: 'hours', unit: 'h', target: 7 };
+      r = Object.assign({}, d, r);
+    }
+    return '<div class="req-row">' +
+      '<div class="req-row__top">' +
+        '<select class="edit-input" data-f="module" aria-label="模块">' + moduleOptions(r.moduleId || 'sleep') + '</select>' +
+        '<input class="edit-input" data-f="metric" value="' + esc(r.metric || '') + '" placeholder="指标 hours" aria-label="指标">' +
+        '<button type="button" class="req-del" data-del-req aria-label="删除">×</button>' +
+      '</div>' +
+      '<div class="req-row__bottom">' +
+        '<input class="edit-input" data-f="target" type="number" min="0" step="0.1" value="' + (r.target != null ? r.target : '') + '" placeholder="目标" aria-label="目标">' +
+        '<input class="edit-input" data-f="unit" value="' + esc(r.unit || '') + '" placeholder="单位" aria-label="单位">' +
+        '<select class="edit-input" data-f="cadence" aria-label="周期">' +
+          '<option value="daily"' + (r.cadence === 'daily' ? ' selected' : '') + '>每天</option>' +
+          '<option value="weekly"' + (r.cadence === 'weekly' ? ' selected' : '') + '>每周</option>' +
+        '</select>' +
+        '<select class="edit-input" data-f="direction" aria-label="方向">' +
+          '<option value="at_least"' + (r.direction !== 'at_most' ? ' selected' : '') + '>至少</option>' +
+          '<option value="at_most"' + (r.direction === 'at_most' ? ' selected' : '') + '>最多</option>' +
+        '</select>' +
+      '</div>' +
+    '</div>';
+  }
+  function addReqRow(r) {
+    var box = document.getElementById('req-list');
+    if (!box) return;
+    box.insertAdjacentHTML('beforeend', reqRowHTML(r));
+  }
+  function collectRequirements() {
+    var out = [];
+    Array.prototype.forEach.call(document.querySelectorAll('#req-list .req-row'), function (row, i) {
+      var moduleId = row.querySelector('[data-f="module"]').value;
+      var target = Number(row.querySelector('[data-f="target"]').value);
+      if (!isFinite(target) || target <= 0) return;
+      out.push({
+        id: 'req-' + Date.now() + '-' + i,
+        moduleId: moduleId,
+        metric: row.querySelector('[data-f="metric"]').value.trim() || 'count',
+        target: target,
+        unit: row.querySelector('[data-f="unit"]').value.trim(),
+        cadence: row.querySelector('[data-f="cadence"]').value,
+        direction: row.querySelector('[data-f="direction"]').value,
+        role: 'required',
+        source: 'goal'
+      });
+    });
+    return out;
+  }
+  document.getElementById('add-req').addEventListener('click', function () { addReqRow({}); });
+  document.getElementById('req-list').addEventListener('change', function (e) {
+    if (!e.target.matches('[data-f="module"]')) return;
+    var row = e.target.closest('.req-row');
+    var d = window.LightGoals ? window.LightGoals.defaultsFor(e.target.value) : null;
+    if (!d) return;
+    row.querySelector('[data-f="metric"]').value = d.metric;
+    row.querySelector('[data-f="unit"]').value = d.unit;
+    row.querySelector('[data-f="target"]').value = d.target;
+  });
+  document.getElementById('req-list').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-del-req]');
+    if (b) b.closest('.req-row').remove();
+  });
 
   /* 第 2 层：阶段行 → stages[]（空行不落盘；第一个阶段是"当前阶段"） */
   function collectStages() {
@@ -1275,7 +1374,10 @@ body {
       step: { title: firstStep || name, sub: '', startedAt: null },
       strategy: notes,
       stages: stages,
-      tasks: []
+      tasks: [],
+      requirements: collectRequirements(),
+      priority: 3,
+      primary: false
     });
     saveGoals(items);
 
@@ -1402,6 +1504,17 @@ body {
   .success-overlay__sub { font-size: 14px; color: var(--text-2); }
 
   .hr { border: 0; border-top: 1px solid var(--border); margin: 6px 0; }
+
+  /* 模块要求行 */
+  .req-hint { font-size: 12px; line-height: 1.6; color: var(--text-3); margin: 0 0 10px; }
+  .req-row { border: 1px solid var(--border); border-radius: 14px; padding: 10px; margin-bottom: 10px; background: var(--surface-2); }
+  .req-row__top { display: grid; grid-template-columns: 1.05fr 1fr 30px; gap: 7px; align-items: center; }
+  .req-row__bottom { display: grid; grid-template-columns: 1fr .8fr 1fr 1fr; gap: 7px; margin-top: 7px; }
+  .req-row .edit-input { height: 36px; font-size: 12px; padding: 0 8px; min-width: 0; }
+  .req-row select.edit-input { appearance: none; }
+  .req-del { width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; color: var(--text-3); font-size: 16px; }
+  .req-empty { font-size: 12px; color: var(--text-3); padding: 8px 2px; }
 </style>
 </body>
 </html>
+

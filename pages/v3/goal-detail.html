@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light" class="light">
 <head>
 <meta charset="UTF-8">
@@ -1103,6 +1103,16 @@ body {
         </div>
       </section>
 
+      <!-- 需要模块（核心，不折叠） -->
+      <section class="fade-up fade-up--3" style="padding:0 4px 6px;">
+        <div class="section-head" style="margin-top:0;">
+          <h2 class="section-head__title">需要模块</h2>
+          <button type="button" class="section-head__hint" id="edit-req" style="border:0;background:none;">编辑</button>
+        </div>
+        <div class="req-list" id="req-list"></div>
+        <p class="req-empty" id="req-empty">还没有配置模块要求。</p>
+      </section>
+
       <!-- 高级视图（折叠） -->
       <div class="fold fade-up fade-up--3" id="fold-advanced">
         <button type="button" class="fold__toggle" id="fold-toggle">
@@ -1193,7 +1203,26 @@ body {
   </main>
 </div>
 
+<div class="sheet" id="req-sheet" aria-hidden="true">
+  <div class="sheet__scrim" data-req-close></div>
+  <div class="sheet__panel" role="dialog" aria-modal="true" aria-label="编辑需要模块">
+    <div class="sheet__grip"></div>
+    <div class="sheet__head">
+      <h2 class="sheet__title">需要模块</h2>
+      <button type="button" class="sheet__close" data-req-close aria-label="关闭"><i data-lucide="x"></i></button>
+    </div>
+    <p class="req-hint">目标只负责提要求；记录仍然在各模块页。</p>
+    <div id="req-edit-list"></div>
+    <button type="button" class="add-btn" id="req-add" style="margin-top:6px;"><i data-lucide="plus"></i> 添加模块要求</button>
+    <div class="sheet__actions">
+      <button type="button" class="btn" data-req-close>取消</button>
+      <button type="button" class="btn btn--primary" id="req-save">保存</button>
+    </div>
+  </div>
+</div>
+
 <script src="../assets/lucide.min.js"></script>
+<script src="../core/goals.js"></script>
 <script>
 (function () {
   'use strict';
@@ -1356,22 +1385,41 @@ body {
   }
 
   function loadGoals() {
+    if (window.LightGoals) {
+      window.LightGoals.migrate();
+      var items = window.LightGoals.list();
+      if (!items.length) {
+        seedGoals().forEach(function (g) { window.LightGoals.save(g); });
+        items = window.LightGoals.list();
+      }
+      return items;
+    }
     try {
       var raw = localStorage.getItem(K_GOALS);
       if (raw) {
         var d = JSON.parse(raw);
         if (d && d.v === SCHEMA_V && Array.isArray(d.items)) { return d.items; }
       }
-    } catch (e) { /* 存储不可用 → 退化为种子，页面仍能显示 */ }
-    var seed = seedGoals();
-    saveGoals(seed, true);
-    return seed;
+    } catch (e) {}
+    return seedGoals();
   }
   function saveGoals(list, quiet) {
     try {
-      localStorage.setItem(K_GOALS, JSON.stringify({ v: SCHEMA_V, items: list }));
+      if (window.LightGoals) {
+        list.forEach(function (g) { window.LightGoals.save(g); });
+      }
       if (!quiet) { window.dispatchEvent(new CustomEvent('goal-updated', { detail: { items: list } })); }
     } catch (e) { /* 忽略 */ }
+  }
+  function persistGoal(g) {
+    if (!g) return null;
+    if (window.LightGoals) {
+      var saved = window.LightGoals.save(g);
+      goals = window.LightGoals.list();
+      return saved;
+    }
+    persistGoal(g);
+    return g;
   }
 
   /* 排序口径：**与 goals.html 完全一致**（进行中 → 暂停 → 已完成，同状态保持存储顺序） */
@@ -1421,6 +1469,142 @@ body {
   var stageList = document.querySelector('.stage-list');
   var strategyBox = document.querySelector('.strategy-text');
   var taskList = document.querySelector('.task-list');
+  var reqList = document.getElementById('req-list');
+  var reqEmpty = document.getElementById('req-empty');
+  var reqSheet = document.getElementById('req-sheet');
+  var reqDraft = [];
+
+  function requirementHTML(r) {
+    var label = window.LightGoals ? window.LightGoals.moduleLabel(r.moduleId) : r.moduleId;
+    var cadence = r.cadence === 'weekly' ? '每周' : '每天';
+    var dir = r.direction === 'at_most' ? '最多' : '至少';
+    return '<div class="req-item">' +
+      '<div><div class="req-item__name">' + esc(label) + '</div>' +
+      '<div class="req-item__meta">' + esc(r.metric) + ' · ' + cadence + ' · ' + dir + '</div></div>' +
+      '<div class="req-item__val">' + esc(r.target) + ' ' + esc(r.unit || '') + '</div>' +
+    '</div>';
+  }
+  function renderRequirements(g) {
+    if (!reqList) return;
+    var reqs = (g && g.requirements) || [];
+    reqList.innerHTML = reqs.map(requirementHTML).join('');
+    if (reqEmpty) {
+      reqEmpty.style.display = reqs.length ? 'none' : '';
+      if (!reqs.length) {
+        reqEmpty.textContent = g && g.legacyMeasure
+          ? '还没有配置模块要求（旧衡量：' + g.legacyMeasure.label + '）'
+          : '还没有配置模块要求。';
+      }
+    }
+  }
+
+  function moduleOptions(cur) {
+    var mods = (window.LightGoals && window.LightGoals.MODULES) || [{ id: 'sleep', label: '睡眠' }];
+    return mods.map(function (m) {
+      return '<option value="' + m.id + '"' + (m.id === cur ? ' selected' : '') + '>' + m.label + '</option>';
+    }).join('');
+  }
+  function reqRowHTML(r) {
+    r = r || {};
+    if (!r.metric) {
+      var d = window.LightGoals ? window.LightGoals.defaultsFor(r.moduleId || 'sleep') : { metric: 'hours', unit: 'h', target: 7 };
+      r = Object.assign({}, d, r);
+    }
+    return '<div class="req-row">' +
+      '<div class="req-row__top">' +
+        '<select class="edit-input" data-f="module">' + moduleOptions(r.moduleId || 'sleep') + '</select>' +
+        '<input class="edit-input" data-f="metric" value="' + esc(r.metric || '') + '" placeholder="指标 hours">' +
+        '<button type="button" class="req-del" data-del-req>×</button>' +
+      '</div>' +
+      '<div class="req-row__bottom">' +
+        '<input class="edit-input" data-f="target" type="number" min="0" step="0.1" value="' + (r.target != null ? r.target : '') + '" placeholder="目标">' +
+        '<input class="edit-input" data-f="unit" value="' + esc(r.unit || '') + '" placeholder="单位">' +
+        '<select class="edit-input" data-f="cadence">' +
+          '<option value="daily"' + (r.cadence !== 'weekly' ? ' selected' : '') + '>每天</option>' +
+          '<option value="weekly"' + (r.cadence === 'weekly' ? ' selected' : '') + '>每周</option>' +
+        '</select>' +
+        '<select class="edit-input" data-f="direction">' +
+          '<option value="at_least"' + (r.direction !== 'at_most' ? ' selected' : '') + '>至少</option>' +
+          '<option value="at_most"' + (r.direction === 'at_most' ? ' selected' : '') + '>最多</option>' +
+        '</select>' +
+      '</div>' +
+    '</div>';
+  }
+  function renderReqEditor() {
+    var box = document.getElementById('req-edit-list');
+    if (box) box.innerHTML = reqDraft.map(reqRowHTML).join('');
+    if (window.lucide) window.lucide.createIcons();
+  }
+  function openReqEditor() {
+    var g = currentGoal();
+    if (!g) return;
+    reqDraft = JSON.parse(JSON.stringify(g.requirements || []));
+    if (!reqDraft.length) {
+      reqDraft.push({ moduleId: 'sleep', metric: 'hours', target: 7, unit: 'h', cadence: 'daily', direction: 'at_least' });
+    }
+    renderReqEditor();
+    if (reqSheet) { reqSheet.classList.add('is-open'); reqSheet.setAttribute('aria-hidden', 'false'); }
+  }
+  function closeReqEditor() {
+    if (reqSheet) { reqSheet.classList.remove('is-open'); reqSheet.setAttribute('aria-hidden', 'true'); }
+  }
+  function collectReqDraft() {
+    var out = [];
+    Array.prototype.forEach.call(document.querySelectorAll('#req-edit-list .req-row'), function (row, i) {
+      var target = Number(row.querySelector('[data-f="target"]').value);
+      if (!isFinite(target) || target <= 0) return;
+      out.push({
+        id: 'req-' + Date.now() + '-' + i,
+        moduleId: row.querySelector('[data-f="module"]').value,
+        metric: row.querySelector('[data-f="metric"]').value.trim() || 'count',
+        target: target,
+        unit: row.querySelector('[data-f="unit"]').value.trim(),
+        cadence: row.querySelector('[data-f="cadence"]').value,
+        direction: row.querySelector('[data-f="direction"]').value,
+        role: 'required',
+        source: 'goal'
+      });
+    });
+    return out;
+  }
+  var editReqBtn = document.getElementById('edit-req');
+  if (editReqBtn) editReqBtn.addEventListener('click', openReqEditor);
+  var reqAddBtn = document.getElementById('req-add');
+  if (reqAddBtn) reqAddBtn.addEventListener('click', function () {
+    reqDraft = collectReqDraft();
+    reqDraft.push({ moduleId: 'sleep', metric: 'hours', target: 7, unit: 'h', cadence: 'daily', direction: 'at_least' });
+    renderReqEditor();
+  });
+  if (reqSheet) {
+    reqSheet.addEventListener('change', function (e) {
+      if (!e.target.matches('[data-f="module"]')) return;
+      var row = e.target.closest('.req-row');
+      var d = window.LightGoals ? window.LightGoals.defaultsFor(e.target.value) : null;
+      if (!d) return;
+      row.querySelector('[data-f="metric"]').value = d.metric;
+      row.querySelector('[data-f="unit"]').value = d.unit;
+      row.querySelector('[data-f="target"]').value = d.target;
+    });
+    reqSheet.addEventListener('click', function (e) {
+      if (e.target.closest('[data-req-close]')) closeReqEditor();
+      if (e.target.closest('[data-del-req]')) {
+        var row = e.target.closest('.req-row');
+        var rows = Array.prototype.slice.call(document.querySelectorAll('#req-edit-list .req-row'));
+        reqDraft = collectReqDraft();
+        reqDraft.splice(rows.indexOf(row), 1);
+        renderReqEditor();
+      }
+      if (e.target.closest('#req-save')) {
+        var g = currentGoal();
+        if (!g) return;
+        g.requirements = collectReqDraft();
+        persistGoal(g);
+        closeReqEditor();
+        renderDetail();
+        showToast('模块要求已保存');
+      }
+    });
+  }
 
   function stageHTML(s) {
     var st = (s.state === 'done' || s.state === 'active') ? s.state : 'todo';
@@ -1477,6 +1661,7 @@ body {
       stepSub.style.display = step.sub ? '' : 'none';
     }
     var stages = g.stages || [], tasks = g.tasks || [];
+    renderRequirements(g);
     if (stageList) {
       stageList.innerHTML = stages.map(stageHTML).join('');
       toggleBlock(stageList.closest('section') || stageList, stages.length > 0);
@@ -1500,7 +1685,7 @@ body {
     var hm = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
     g.step = g.step || {};
     g.step.startedAt = ymd(now) + ' ' + hm;
-    saveGoals(goals);
+    persistGoal(g);
     showToast('已开始' + (g.step.title || ''));
   });
 
@@ -1519,7 +1704,7 @@ body {
       }
       if (!hit) { return; }
       hit.done = !hit.done;
-      saveGoals(goals);
+      persistGoal(g);
       renderDetail();
       showToast(hit.done ? '已标记完成' : '已恢复待办');
     });
@@ -1645,6 +1830,26 @@ body {
   .task__title { font-size: 14px; font-weight: 550; color: var(--text-1); }
   .task__meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
   .task.is-done .task__title { color: var(--text-3); text-decoration: line-through; }
+
+  /* 模块要求 */
+  .edit-input { width: 100%; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text-1); font: 400 13px var(--font-sans); padding: 0 10px; height: 40px; }
+  .edit-input:focus { outline: none; border-color: var(--brand); }
+  .req-hint { font-size: 12px; line-height: 1.6; color: var(--text-3); margin: 0 0 10px; }
+  .req-list { display: flex; flex-direction: column; gap: 8px; }
+  .req-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+  .req-item__name { font-size: 13px; font-weight: 600; color: var(--text-1); }
+  .req-item__meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .req-item__val { font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .req-empty { font-size: 12px; line-height: 1.6; color: var(--text-3); margin: 0 0 8px; }
+  .req-row { border: 1px solid var(--border); border-radius: 14px; padding: 10px; margin-bottom: 10px; background: var(--surface-2); }
+  .req-row__top { display: grid; grid-template-columns: 1.05fr 1fr 30px; gap: 7px; align-items: center; }
+  .req-row__bottom { display: grid; grid-template-columns: 1fr .8fr 1fr 1fr; gap: 7px; margin-top: 7px; }
+  .req-row .edit-input { height: 36px; font-size: 12px; padding: 0 8px; min-width: 0; }
+  #req-add { display: inline-flex; align-items: center; gap: 6px; padding: 8px 0; border: 0; background: none; color: var(--brand); font-size: 13px; font-weight: 600; }
+  .req-del { width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; color: var(--text-3); font-size: 16px; }
 </style>
 </body>
 </html>
+
+
+
