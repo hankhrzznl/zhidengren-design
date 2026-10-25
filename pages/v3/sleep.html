@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light" class="light">
 <head>
 <meta charset="UTF-8">
@@ -455,7 +455,7 @@ body {
 }
 .tag__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .tag--active { background: var(--life-green-soft); color: #1F9D5C; }
-[data-theme="dark"] .tag--active { color: var(--life-green); }
+[data-theme="dark"] .tag--active { color: #7BC47F; }
 .tag--paused { background: var(--pause-amber-soft); color: var(--pause-amber); }
 .tag--done { background: var(--brand-soft); color: var(--brand); }
 [data-theme="dark"] .tag--done { color: var(--brand-strong); }
@@ -915,14 +915,14 @@ body {
 .icon-box--strength { background: var(--expense-red-soft); color: var(--expense-red); }
 .icon-box--water { background: var(--goal-blue-soft); color: var(--goal-blue); }
 .icon-box--sleep { background: var(--purple-soft); color: var(--purple); }
-.icon-box--life { background: var(--life-green-soft); color: var(--life-green); }
+.icon-box--life { background: var(--life-green-soft); color: #7BC47F; }
 .icon-box--brand { background: var(--brand-soft); color: var(--brand); }
 .icon-box--amber { background: var(--pause-amber-soft); color: var(--pause-amber); }
 .icon-box--emotion { background: var(--emotion-soft); color: var(--emotion); }
 [data-theme="dark"] .icon-box--strength { color: var(--expense-red); }
 [data-theme="dark"] .icon-box--water { color: var(--goal-blue); }
 [data-theme="dark"] .icon-box--sleep { color: var(--purple); }
-[data-theme="dark"] .icon-box--life { color: var(--life-green); }
+[data-theme="dark"] .icon-box--life { color: #7BC47F; }
 [data-theme="dark"] .icon-box--brand { color: var(--brand-strong); }
 [data-theme="dark"] .icon-box--amber { color: var(--pause-amber); }
 [data-theme="dark"] .icon-box--emotion { color: var(--emotion); }
@@ -1110,6 +1110,38 @@ body {
         </div>
         <button type="button" class="sleep-btn" id="sleep-in-btn"><i data-lucide="moon"></i> 记录今晚入睡</button>
         <p class="t-caption t-faint check-note" style="margin-top:10px">点击即记录当前时间为入睡时间 · 明早自动算出时长</p>
+      </section>
+
+      <!-- ③ 睡眠协议：固定起床、上床窗口、咖啡因截止、起床波动 -->
+      <section class="card protocol-card" aria-label="睡眠协议">
+        <div class="section-head" style="margin-bottom:10px">
+          <h2 class="section-head__title">今晚怎么睡</h2>
+          <span class="t-caption t-faint">固定起床优先</span>
+        </div>
+        <div class="protocol-grid">
+          <div class="protocol-cell">
+            <small>起床锚点</small>
+            <b class="t-num" id="proto-wake">07:00</b>
+            <span>周末也尽量在 ±1h 内</span>
+          </div>
+          <div class="protocol-cell">
+            <small>上床窗口</small>
+            <b class="t-num" id="proto-window">22:50–23:10</b>
+            <span>困了再上床，不提前躺</span>
+          </div>
+          <div class="protocol-cell">
+            <small>咖啡因截止</small>
+            <b class="t-num" id="proto-caffeine">15:00</b>
+            <span>按 8 小时代谢估算</span>
+          </div>
+          <div class="protocol-cell">
+            <small>起床波动</small>
+            <b class="t-num" id="proto-consistency">再记 3 天</b>
+            <span>近 7 天起床时间</span>
+          </div>
+        </div>
+        <button type="button" class="protocol-wake" id="wake-btn"><i data-lucide="sunrise"></i> 记录今早起床</button>
+        <p class="protocol-note">躺下 20 分钟还没睡着，就起身到暗处，困了再回床；不要把床当办公桌。</p>
       </section>
 
       <!-- ② 原「睡眠记录卡」已并入 ①；这里不再重复 7.2 与入睡/起床 -->
@@ -1436,6 +1468,7 @@ body {
       localStorage.setItem(K_GOALS, JSON.stringify(next));
       window.dispatchEvent(new CustomEvent('sleep-updated', { detail: next }));
     } catch (e) { /* 忽略 */ }
+    try { renderProtocol(); } catch (e) { /* 初始化早期忽略 */ }
     return next;
   }
   /* 只读 sleep-plan-create 写下的时长目标（跨页衔接，本页不写这个 key） */
@@ -1460,8 +1493,72 @@ body {
     });
     return hit;
   }
+  function todaySleepOut() {
+    var today = ymd(new Date());
+    var hit = null;
+    logs.forEach(function (r) {
+      if (String(r.date) === today && r.type === 'out' && r.time) { hit = r.time; }
+    });
+    return hit;
+  }
+  function parseHM(s) {
+    var p = String(s || '').split(':');
+    var h = parseInt(p[0], 10), m = parseInt(p[1], 10);
+    return (isNaN(h) || isNaN(m)) ? null : h * 60 + m;
+  }
+  function fmtHM(mins) {
+    mins = ((mins % 1440) + 1440) % 1440;
+    var h = Math.floor(mins / 60), m = mins % 60;
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
+  function targetHM(id, fallback) {
+    var el = $(id);
+    var v = el ? parseHM(el.textContent) : null;
+    return v == null ? fallback : v;
+  }
+  function renderProtocol() {
+    var inM = targetHM('in-val', 23 * 60);
+    var outM = targetHM('out-val', 7 * 60);
+    if ($('proto-wake')) { $('proto-wake').textContent = fmtHM(outM); }
+    if ($('proto-window')) { $('proto-window').textContent = fmtHM(inM - 10) + '–' + fmtHM(inM + 10); }
+    if ($('proto-caffeine')) { $('proto-caffeine').textContent = fmtHM(inM - 8 * 60); }
+    var outs = logs.filter(function (r) { return r.type === 'out' && r.time; }).slice(-7);
+    var el = $('proto-consistency');
+    if (!el) { return; }
+    if (outs.length < 3) { el.textContent = '再记 ' + (3 - outs.length) + ' 天'; return; }
+    var vals = outs.map(function (r) { return parseHM(r.time); }).filter(function (v) { return v != null; });
+    if (vals.length < 3) { el.textContent = '再记 ' + (3 - vals.length) + ' 天'; return; }
+    var range = Math.max.apply(null, vals) - Math.min.apply(null, vals);
+    el.textContent = '±' + Math.round(range / 2) + ' 分钟';
+  }
+  function lastNightPair() {
+    var outs = logs.filter(function (r) { return r.type === 'out' && r.date && r.time; }).sort(function (a, b) {
+      return (a.date + a.time) < (b.date + b.time) ? 1 : -1;
+    });
+    var out = outs[0];
+    if (!out) { return null; }
+    var ins = logs.filter(function (r) {
+      return r.type === 'in' && r.date && r.time && ((r.date < out.date) || (r.date === out.date && r.time < out.time));
+    }).sort(function (a, b) {
+      return (a.date + a.time) < (b.date + b.time) ? 1 : -1;
+    });
+    var inRec = ins[0];
+    if (!inRec) { return null; }
+    var a = new Date(inRec.date + 'T' + inRec.time);
+    var b = new Date(out.date + 'T' + out.time);
+    var dur = (b.getTime() - a.getTime()) / 3600000;
+    if (dur <= 0) { dur += 24; }
+    if (dur < 1 || dur > 16) { return null; }
+    return { inRec: inRec, out: out, dur: Math.round(dur * 10) / 10 };
+  }
 
   function render() {
+    var pair = lastNightPair();
+    if (pair) {
+      lastDur = pair.dur;
+      $('last-in').textContent = pair.inRec.time;
+      $('last-out').textContent = pair.out.time;
+    }
     var pct = Math.round(lastDur / goalDur * 100);
     $('ring-fill').style.strokeDashoffset = String(RING_LEN * (1 - Math.min(pct, 100) / 100));
     $('ring-pct').textContent = pct + '%';
@@ -1470,11 +1567,19 @@ body {
     var diff = Math.round((goalDur - lastDur) * 60);
     var status = $('check-status');
     var tin = todaySleepIn();
-    if (tin) {
+    var tout = todaySleepOut();
+    if (tout) {
+      $('last-out').textContent = tout;
+      if (lastDur) {
+        var enough = lastDur >= goalDur;
+        status.className = 'check-status' + (enough ? '' : ' is-miss');
+        status.innerHTML = '<i data-lucide="sunrise"></i> 昨晚 ' + lastDur + 'h · 起床 ' + tout + ' · ' + (enough ? '起床锚点已记' : '今晚提前 20 分钟上床');
+      }
+    } else if (tin) {
       /* 今晚已记录 → 确定性文案（明早才有起床时刻，不能凭空报「已达标」） */
       $('last-in').textContent = tin;
       status.className = 'check-status';
-      status.innerHTML = '<i data-lucide="hourglass"></i> 已记录今晚入睡 · 明早自动算时长';
+      status.innerHTML = '<i data-lucide="hourglass"></i> 已记录今晚入睡 · 明早记录起床后算时长';
     } else if (diff <= 0) {
       status.className = 'check-status';
       status.innerHTML = '<i data-lucide="check-circle-2"></i> 达成 · 比目标多 ' + (-diff) + ' 分钟';
@@ -1483,8 +1588,9 @@ body {
       status.innerHTML = '<i data-lucide="hourglass"></i> 距目标 ' + goalDur + 'h · 今晚 23:00 前准备入睡';
     }
     $('coach-next').textContent = diff <= 0
-      ? '已连续 5 天达标 · 今晚 23:00 前准备入睡'
+      ? '起床锚点 ' + ($('out-val') ? $('out-val').textContent : '07:00') + ' · 今晚按窗口上床'
       : '昨晚 ' + lastDur + 'h · 距目标 ' + goalDur + 'h · 今晚提前 20 分钟放下屏幕';
+    renderProtocol();
     if (window.lucide) { window.lucide.createIcons(); }
   }
 
@@ -1494,13 +1600,42 @@ body {
     var hm = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
     logs.push({ id: 's' + Date.now(), date: ymd(now), time: hm, type: 'in' });
     saveLogs(logs);
-    try{
-      if (window.LightStore && lastDur) {
-        LightStore.record({ mod: '睡眠', metric: 'hours', value: lastDur, date: LightStore.today(), meta: { source: 'sleep-in' } });
-      }
-    }catch (e) {}
     render();
-    showToast('已记录入睡 ' + hm + ' · 明早自动算时长');
+    showToast('已记录入睡 ' + hm + ' · 明早记录起床后算时长');
+  });
+
+  /* 晨间锚点：记录起床，计算昨晚时长；固定起床优先于固定上床 */
+  $('wake-btn').addEventListener('click', function () {
+    var now = new Date();
+    var hm = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
+    var date = ymd(now);
+    var outM = parseHM(hm);
+    var bestIn = null;
+    logs.forEach(function (r) {
+      if (r.type !== 'in' || !r.time || !r.date) { return; }
+      if (!bestIn || (String(r.date) + r.time) >= (String(bestIn.date) + bestIn.time)) { bestIn = r; }
+    });
+    if (bestIn) {
+      var inM = parseHM(bestIn.time);
+      var dur = outM - inM;
+      if (dur <= 0) { dur += 1440; }
+      if (dur >= 60 && dur <= 16 * 60) { lastDur = Math.round(dur / 6) / 10; }
+    }
+    logs.push({ id: 'w' + Date.now(), date: date, time: hm, type: 'out' });
+    saveLogs(logs);
+    $('last-out').textContent = hm;
+    if (bestIn) { $('last-in').textContent = bestIn.time; }
+    render();
+    try {
+      if (window.LightStore && lastDur && bestIn) {
+        var day = window.LightStore.readDay(window.LightStore.today());
+        var exists = (day.records || []).some(function (r) { return r.mod === '睡眠' && r.meta && r.meta.source === 'sleep-wake'; });
+        if (!exists) {
+          window.LightStore.record({ mod: '睡眠', metric: 'hours', value: lastDur, date: window.LightStore.today(), meta: { source: 'sleep-wake' } });
+        }
+      }
+    } catch (e) {}
+    showToast(bestIn ? '起床 ' + hm + ' · 昨晚 ' + lastDur + 'h' : '已记录起床 ' + hm + ' · 再记一次入睡');
   });
 
   /* 睡前仪式 - 放下（改前输入框里的内容点「存好」后直接丢掉，只显示一行已存好） */
@@ -1644,9 +1779,9 @@ body {
   .check-times__item { flex: 1; }
   .check-times__label { font-size: 11px; color: var(--text-3); }
   .check-times__val { font-size: 15px; font-weight: 650; color: var(--text-1); margin-top: 2px; font-variant-numeric: tabular-nums; }
-  .check-status { display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; font-size: 12.5px; font-weight: 650; color: var(--life-green); }
+  .check-status { display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; font-size: 12.5px; font-weight: 650; color: #7BC47F; }
   .check-status svg { width: 14px; height: 14px; }
-  .check-status.is-miss { color: var(--pause-amber); }
+  .check-status.is-miss { color: #E0A36E; }
   .sleep-btn {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     width: 100%; height: 52px; margin-top: 16px;
@@ -1663,11 +1798,20 @@ body {
 
   /* ③ 时间锚点（双行 · 进日程） */
   .anchor-card { padding: var(--pad-card); }
+.protocol-card { padding: var(--pad-card); }
+.protocol-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.protocol-cell { padding: 11px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); display: flex; flex-direction: column; gap: 3px; }
+.protocol-cell small { font-size: 10px; color: var(--text-3); }
+.protocol-cell b { font-size: 18px; font-weight: 600; letter-spacing: .02em; }
+.protocol-cell span { font-size: 9px; line-height: 1.4; color: var(--text-3); }
+.protocol-wake { width: 100%; height: 44px; margin-top: 10px; border: 1px solid rgba(76, 195, 255, .35); border-radius: 12px; background: rgba(76, 195, 255, .10); color: var(--brand-strong); font: 600 12px var(--font-sans); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.protocol-wake i { width: 16px; height: 16px; }
+.protocol-note { margin: 9px 0 0; font-size: 10px; line-height: 1.55; color: var(--text-3); }
   .anchor-row { padding: 12px 0; }
   .anchor-row + .anchor-row { border-top: 1px solid var(--border); }
   .anchor-row__right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
   .anchor-row__time { font-size: 20px; font-weight: 700; color: var(--text-1); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-  .anchor-row__sched { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 650; color: var(--life-green); }
+  .anchor-row__sched { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 650; color: #7BC47F; }
   .anchor-row__sched svg { width: 12px; height: 12px; }
   .anchor-note { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: var(--text-3); }
   .anchor-note svg { width: 13px; height: 13px; }
@@ -1718,3 +1862,5 @@ body {
 </style>
 </body>
 </html>
+
+

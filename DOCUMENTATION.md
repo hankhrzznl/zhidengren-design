@@ -323,7 +323,7 @@ L5 每日行动 DailyActionV2（date/time/duration、itemId）
 - 壳内 `#screen-goals`：目标列表 + 新建/编辑 sheet；入口「我的 → 计划 → 长期目标」；不是底部 tab。
 - 「记一笔」只做捕捉：写一句 / 心情 / 最近 3 条 / 补记昨天；不再有模块网格与计划卡片。
 - `goals.html / goal-create.html / goal-detail.html`：已接 `LightGoals`，保留为旧模块页回退；旧 v1 只读。
-- 测试：`test-goals` 20、`test-today` 27、`verify_goals_v2` 9、`verify_app_goals` 15、`verify_weekly_carry` 4、`verify_review` 5、`verify_practices` 4、`verify_task_object` 3；`run-all` 41/41。
+- 测试：`test-goals` 20、`test-today` 27、`verify_goals_v2` 9、`verify_app_goals` 15、`verify_weekly_carry` 4、`verify_review` 5、`verify_practices` 4、`verify_task_object` 3；`run-all` 42/42。
 - 今日 3+3：`#todayPlanCard` 在待办页；3 保底 + 3 推进；共享模块合并、黄/红限流、点击勾选；`lifeflow-today-v1`。
 - 模块日志：`core/today.js` 读 `lifeflow-days-v1`（睡眠/饮水/训练/学习/输出等），训练记录自动累计周配额，睡眠/饮水自动完成保底要求。
 - 上周缺口：待办页 `#weeklyCarryCard`，可顺延 +2 / 降为 1 次/周 / 跳过；决策存 `lifeflow-weekly-v1`。
@@ -348,5 +348,14 @@ L5 每日行动 DailyActionV2（date/time/duration、itemId）
 - 计划层：`我的 → 计划`（长期目标 / 周复盘 / 日常）。
 - 待办顶部「快捷记」：睡眠 / 饮水 / 训练 / 饮食 / 情绪；文本 chips，不做图标网格。
 - 一次性提示：`lifeflow-ia-hint-v1`；最近模块：`lifeflow-modules-recent-v1`。
-- 测试新增 `verify_capture_ia` 9；`run-all` 41/41。
+- 测试新增 `verify_capture_ia` 9；`run-all` 42/42。
 
+
+
+### 2026-10-25 睡眠协议（P0）
+
+- 睡眠页新增「今晚怎么睡」：起床锚点、上床窗口（±10 分钟）、咖啡因截止（按 8 小时代谢）、近 7 天起床波动。
+- 「记录今早起床」写 `lifeflow-sleep-logs` 的 `type:'out'`，与最近一次 `in` 计算时长；只有这时才写 `lifeflow-days-v1` 的 `睡眠/hours`。
+- 「记录今晚入睡」只写日志，不再提前写时长。
+- 原则：固定起床优先于固定上床；躺下 20 分钟没睡着就离床；不追求单一睡眠分。
+- 测试：`verify_sleep_protocol` 8；`run-all` 42/42。

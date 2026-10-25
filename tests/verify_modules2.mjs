@@ -9,6 +9,15 @@ const ok = (n, c, d = "") => results.push([c ? "PASS" : "FAIL", n, d]);
 
 await page.goto(BASE + "/index.html", { waitUntil: "load" });
 await page.evaluate(() => localStorage.clear());
+await page.evaluate(() => {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const key = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const hm = (d) => pad(d.getHours()) + ":" + pad(d.getMinutes());
+  const inAt = new Date(now.getTime() - 8 * 3600 * 1000);
+  localStorage.setItem("lifeflow-sleep-goals", JSON.stringify({ v: 1, inTarget: "23:00", outTarget: "07:00", durTarget: 8, ritual: true }));
+  localStorage.setItem("lifeflow-sleep-logs", JSON.stringify({ v: 1, items: [{ id: "seed-in", date: key(inAt), time: hm(inAt), type: "in" }] }));
+});
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(900);
 await page.evaluate(() => (() => { go('profile'); openModulesScreen(); })());
@@ -35,7 +44,7 @@ const sleepEnv = await sleepFrame.evaluate(() => ({
 ok("睡眠页加载 store", sleepEnv.store, JSON.stringify(sleepEnv));
 ok("v3 AI 悬浮球已隐藏", sleepEnv.fab === "none" || sleepEnv.fab === "no-fab", sleepEnv.fab);
 ok("体能语义色变成四域色", sleepEnv.green === "#FF5C4D", sleepEnv.green);
-await sleepFrame.click("#sleep-in-btn");
+await sleepFrame.click("#wake-btn");
 await page.waitForTimeout(1200);
 const sleepStore = await page.evaluate(() => {
   const d = window.LightStore.readDay(window.LightStore.today());
@@ -51,7 +60,7 @@ const lampSleep = await page.evaluate(() => {
   const rows = [...document.querySelectorAll("#acctList .acct-row")].map((r) => r.textContent.replace(/\s+/g, " ").trim());
   return { light: st.light, body: rows.find((x) => x.startsWith("体")) };
 });
-ok("睡眠回壳后体账户有分", (lampSleep.body || "").includes("90"), lampSleep.body);
+ok("睡眠回壳后体账户有分", (lampSleep.body || "").includes("100"), lampSleep.body);
 ok("睡眠点亮第一缕", lampSleep.light === 1, JSON.stringify(lampSleep));
 
 /* 饮食页 → store */
@@ -118,6 +127,8 @@ console.log(`\n模块/视觉校验：${results.filter((r) => r[0] === "PASS").le
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
+
 
 
 
