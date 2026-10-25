@@ -348,4 +348,5 @@ L5 每日行动 DailyActionV2（date/time/duration、itemId）
 - 计划层：`我的 → 计划`（长期目标 / 周复盘 / 日常）。
 - 待办顶部「快捷记」：睡眠 / 饮水 / 训练 / 饮食 / 情绪；文本 chips，不做图标网格。
 - 一次性提示：`lifeflow-ia-hint-v1`；最近模块：`lifeflow-modules-recent-v1`。
-- 测试新增 `verify_capture_ia` 7；`run-all` 41/41。
+- 测试新增 `verify_capture_ia` 9；`run-all` 41/41。
+
