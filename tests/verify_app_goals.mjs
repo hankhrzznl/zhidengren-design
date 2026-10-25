@@ -1,4 +1,4 @@
-﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -17,12 +17,15 @@ await page.waitForTimeout(300);
 const record = await page.evaluate(() => ({
   active: document.querySelector(".screen.active")?.id,
   steps: [...document.querySelectorAll(".rec-step span")].map((x) => x.textContent),
-  goalEntry: !!document.querySelector("#openGoals"),
+  grid: !!document.querySelector("#hubAccounts"),
+  planLink: !!document.querySelector("#openPlanFromCapture"),
 }));
-ok("记一笔改成三步", record.active === "screen-assistant" && record.steps.join("/") === "写一句/按模块记/看目标", JSON.stringify(record));
-ok("记一笔有长期目标入口", record.goalEntry === true);
+ok("记一笔只做捕捉", record.active === "screen-assistant" && record.steps.join("/") === "写一句" && record.grid === false && record.planLink === true, JSON.stringify(record));
 
 await page.screenshot({ path: OUT + "app-record-redesign.png" });
+await page.evaluate(() => go("profile"));
+await page.waitForTimeout(250);
+ok("我的有计划入口", await page.evaluate(() => !!document.querySelector("#openGoals")));
 await page.click("#openGoals");
 await page.waitForTimeout(300);
 const goals = await page.evaluate(() => ({
@@ -114,7 +117,7 @@ await page.screenshot({ path: OUT + "app-goal-progress.png" });
 
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(700);
-await page.click("#avatarBtn");
+await page.evaluate(() => go("profile"));
 await page.waitForTimeout(200);
 await page.click("#openGoals");
 await page.waitForTimeout(300);

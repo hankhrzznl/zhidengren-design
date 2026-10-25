@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -675,6 +675,41 @@ body[data-tab="goals"] .tabbar{display:none}
 .goal-ms-row input[type="checkbox"]{accent-color:var(--brand);width:16px;height:16px}
 .goal-ms-del{width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:var(--txt3);font-size:15px}
 .goal-sheet-actions{margin-top:14px}
+/* 记一笔轻量入口 + 计划行 */
+.ia-hint{margin:0 0 10px;padding:9px 11px;border:1px solid rgba(77,195,255,.22);border-radius:10px;background:rgba(77,195,255,.07);font:400 10.5px/1.55 var(--cjk);color:var(--txt2)}
+.ia-hint button{margin-left:6px;border:0;background:none;color:var(--brand);font:600 10px var(--cjk)}
+.rec-plan-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 2px;border-top:1px solid var(--line);margin-top:4px}
+.rec-plan-row span{font:400 10px var(--cjk);color:var(--txt3)}
+.rec-plan-row button{border:0;background:none;color:var(--txt2);font:500 10.5px var(--cjk);padding:4px 0}
+.rec-backfill{width:100%;height:32px;border:1px dashed var(--line);border-radius:9px;background:transparent;color:var(--txt3);font:500 10.5px var(--cjk);margin:0 0 2px}
+.rec-backfill.on{border-color:rgba(77,195,255,.45);color:var(--brand);background:rgba(77,195,255,.06)}
+.rec-backfill:active{opacity:.8}
+/* 我的：计划与全部模块 */
+.profile-links{margin:0 16px 14px;padding:4px 14px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+.profile-links__head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:10px 0 6px}
+.profile-links__head b{font:600 12px var(--cjk);color:var(--txt)}
+.profile-links__head small{font:400 9px var(--cjk);color:var(--txt3)}
+.profile-link{display:flex;align-items:center;gap:10px;width:100%;padding:11px 0;border:0;border-top:1px solid var(--line);background:none;color:var(--txt);text-align:left}
+.profile-link span{font:500 12.5px var(--cjk);flex:none}
+.profile-link small{flex:1;min-width:0;font:400 9.5px var(--cjk);color:var(--txt3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile-link svg{width:14px;height:14px;color:var(--txt3);flex:none}
+/* 快捷记 chips */
+.quick-record{display:flex;align-items:center;gap:6px;margin:0 0 10px;overflow-x:auto;padding:2px 0}
+.qr-label{font:500 9.5px var(--cjk);color:var(--txt3);flex:none;margin-right:2px}
+.quick-record button{flex:none;height:30px;padding:0 11px;border:1px solid var(--line);border-radius:99px;background:transparent;color:var(--txt2);font:500 11px var(--cjk)}
+.quick-record button:active{background:rgba(77,195,255,.12);border-color:rgba(77,195,255,.35);color:var(--brand)}
+/* 全部模块 */
+body[data-tab="modules"] .tabbar{display:none}
+#screen-modules{padding:64px 18px 30px;display:flex;flex-direction:column}
+.modules-search{width:100%;height:40px;border:1px solid var(--line);border-radius:11px;background:var(--card2);color:var(--txt);font:400 12px var(--cjk);padding:0 12px;margin:0 0 10px}
+.modules-search:focus{outline:none;border-color:var(--brand)}
+.modules-list{display:flex;flex-direction:column}
+.modules-group{font:600 10px var(--cjk);letter-spacing:.10em;color:var(--txt3);padding:12px 2px 4px}
+.module-row{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:11px 2px;border:0;border-top:1px solid var(--line);background:none;color:var(--txt);text-align:left}
+.module-row b{font:500 12.5px var(--cjk);flex:none}
+.module-row small{flex:1;min-width:0;font:400 9.5px var(--cjk);color:var(--txt3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.module-row em{font:500 9px var(--cjk);color:var(--brand);font-style:normal;flex:none}
+.module-row svg{width:13px;height:13px;color:var(--txt3);flex:none}
 /* 周复盘 */
 body[data-tab="review"] .tabbar{display:none}
 #screen-review{padding:64px 18px 30px;display:flex;flex-direction:column;gap:10px}
@@ -1448,6 +1483,15 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
       </header>
       <div class="title-row"><h1 id="todoTitle">待办</h1><button class="mini-add js-addfocus" data-target="high" aria-label="添加"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-linecap="round" stroke-width="2.4"/></svg></button></div>
 
+      <div class="quick-record" id="quickRecord" aria-label="快捷记录">
+        <span class="qr-label">快捷记</span>
+        <button type="button" data-quick="sleep">睡眠</button>
+        <button type="button" data-quick="water">饮水</button>
+        <button type="button" data-quick="training">训练</button>
+        <button type="button" data-quick="diet">饮食</button>
+        <button type="button" data-quick="mood">情绪</button>
+      </div>
+
       <section class="fl-card" id="floorsCard" data-color="unknown">
         <div class="fl-head"><span>今日保底</span><b id="flColor">未设置</b></div>
         <p class="fl-risk" id="flRisk">先选今天最危险的底。</p>
@@ -1593,11 +1637,14 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
         </div>
       </div>
 
-      <!-- 模块中枢已移到「记一笔」页；这里只留入口 -->
-      <button type="button" class="hub-link" id="toRecord">
-        <span>记一笔 · 全部模块</span>
-        <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <div class="profile-links">
+        <div class="profile-links__head"><b>计划</b><small>目标 / 复盘 / 日常</small></div>
+        <button type="button" class="profile-link" id="openGoals"><span>长期目标</span><small>目标、模块要求、里程碑</small><svg><use href="#i-chev-r"/></svg></button>
+        <button type="button" class="profile-link" id="openReview"><span>周复盘</span><small>本周目标、配额、模块记录</small><svg><use href="#i-chev-r"/></svg></button>
+        <button type="button" class="profile-link" id="openPractices"><span>日常</span><small>保底、承诺、周配额</small><svg><use href="#i-chev-r"/></svg></button>
+        <div class="profile-links__head" style="margin-top:14px"><b>模块目录</b><small>列表 / 搜索 / 今天已记</small></div>
+        <button type="button" class="profile-link" id="openModulesProfile"><span>全部模块</span><small>睡眠、饮水、训练、饮食…</small><svg><use href="#i-chev-r"/></svg></button>
+      </div>
 
       <div class="lamp-zone">
         <div class="stars" id="stars"></div>
@@ -1630,6 +1677,22 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
       </div>
     </section>
 
+    <!-- ================= 全部模块（我的 → 全部模块） ================= -->
+    <section class="screen" id="screen-modules">
+      <div class="assistant-top">
+        <button class="round-btn" id="modulesBack" aria-label="返回我的"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="round-btn theme-toggle" type="button" aria-label="切换到日间模式"><svg viewBox="0 0 24 24"><use href="#i-sun"/></svg></button>
+        <span class="rec-date" id="modulesDate"></span>
+      </div>
+      <div class="rec-head">
+        <h1>全部模块</h1>
+        <p class="rec-sub">点一行进入；今天已记的会标出来。</p>
+      </div>
+      <input class="modules-search" id="modulesSearch" placeholder="搜模块，如 睡眠 / 记账" autocomplete="off">
+      <div id="modulesList" class="modules-list"></div>
+      <p class="rec-empty" id="modulesEmpty" style="display:none">没找到这个模块，换个词试试。</p>
+    </section>
+
     <!-- ================= 记一笔（头像入口 · 真的写库） ================= -->
     <section class="screen" id="screen-assistant">
       <div class="assistant-top">
@@ -1641,6 +1704,11 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
       <div class="rec-head">
         <h1>记一笔</h1>
         <p class="rec-sub" id="recSub">今天还没记。写一句，或者点一个模块。</p>
+      </div>
+
+      <div class="ia-hint" id="iaHint" style="display:none">
+        模块在「我的 → 全部模块」，计划在「我的 → 计划」
+        <button type="button" id="iaHintClose">知道了</button>
       </div>
 
       <div class="rec-step"><b>1</b><span>写一句</span><small>只记心情和一句话，不改变四账户</small></div>
@@ -1655,56 +1723,12 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
         <button class="rec-save" id="recSave">记下这句话</button>
         <p class="rec-hint">这里只记文字/心情，不会自动算进四账户。</p>
       </div>
+      <button type="button" class="rec-backfill" id="recBackfill">补记昨天</button>
 
-      <div class="rec-step"><b>2</b><span>按模块记</span><small>点一个模块，记具体数值；会进四账户和灯</small></div>
-
-      <div class="hub-card" aria-label="模块中枢">
-        <div class="hub-head"><h2>按模块记</h2><span>点一下开始</span></div>
-        <div class="hub-group">四账户模块</div>
-        <div class="ob ob-wide" id="hubAccounts">
-          <button type="button" class="mi" data-dom="情"><svg><use href="#i-smile"/></svg><span>情绪</span></button>
-          <button type="button" class="mi" data-dom="体"><svg><use href="#i-bed"/></svg><span>睡眠</span></button>
-          <button type="button" class="mi" data-dom="体"><svg><use href="#i-drop"/></svg><span>饮水</span></button>
-          <button type="button" class="mi" data-dom="体"><svg><use href="#i-walk"/></svg><span>训练</span></button>
-          <button type="button" class="mi" data-dom="体"><svg><use href="#i-cart"/></svg><span>饮食</span></button>
-          <button type="button" class="mi" data-dom="体"><svg><use href="#i-focusmode"/></svg><span>久坐</span></button>
-          <button type="button" class="mi" data-dom="体"><svg><use href="#i-pill"/></svg><span>吃药</span></button>
-          <button type="button" class="mi" data-dom="体"><svg><use href="#i-flower-d"/></svg><span>功法养生</span></button>
-          <button type="button" class="mi" data-dom="情"><svg><use href="#i-wave"/></svg><span>冥想</span></button>
-          <button type="button" class="mi" data-dom="志"><svg><use href="#i-doc-d"/></svg><span>记账</span></button>
-          <button type="button" class="mi" data-dom="志"><svg><use href="#i-cloth"/></svg><span>穿搭</span></button>
-          <button type="button" class="mi" data-dom="思"><svg><use href="#i-book"/></svg><span>学习</span></button>
-          <button type="button" class="mi" data-dom="思"><svg><use href="#i-think"/></svg><span>思考</span></button>
-          <button type="button" class="mi" data-dom="思"><svg><use href="#i-pen"/></svg><span>输出</span></button>
-        </div>
-        <div class="hub-group">工具</div>
-        <div class="ob ob-wide" id="hubTools">
-          <button type="button" class="mi"><svg><use href="#i-pen"/></svg><span>备忘录</span></button>
-          <button type="button" class="mi"><svg><use href="#i-cal"/></svg><span>倒数日</span></button>
-          <button type="button" class="mi"><svg><use href="#i-bell"/></svg><span>到点提醒</span></button>
-          <button type="button" class="mi"><svg><use href="#i-dots"/></svg><span>更多</span></button>
-        </div>
-        <p class="rec-hint" style="margin:12px 0 0">模块页里记完，返回这里会看到“今天记下的”。</p>
+      <div class="rec-plan-row">
+        <span>模块与计划</span>
+        <button type="button" id="openPlanFromCapture">我的 · 全部模块 / 计划 →</button>
       </div>
-
-      <div class="rec-step"><b>3</b><span>看目标</span><small>目标负责“为什么”，模块负责“今天做多少”</small></div>
-      <button type="button" class="goals-entry" id="openGoals">
-        <span class="ge-ic"><svg><use href="#i-target-tab"/></svg></span>
-        <span class="ge-main"><b>长期目标</b><small>薄肌、考公…每个目标需要哪些模块</small></span>
-        <span class="ge-arrow"><svg><use href="#i-chev-r"/></svg></span>
-      </button>
-
-      <button type="button" class="goals-entry" id="openReview">
-        <span class="ge-ic" style="background:rgba(224,163,110,.12);color:#E0A36E"><svg><use href="#i-cal"/></svg></span>
-        <span class="ge-main"><b>周复盘</b><small>本周目标、配额、模块记录，5 分钟看完</small></span>
-        <span class="ge-arrow"><svg><use href="#i-chev-r"/></svg></span>
-      </button>
-
-      <button type="button" class="goals-entry" id="openPractices">
-        <span class="ge-ic" style="background:rgba(123,174,127,.14);color:#7BAE7F"><svg><use href="#i-refresh"/></svg></span>
-        <span class="ge-main"><b>日常</b><small>保底、承诺、周配额，都是重复行为</small></span>
-        <span class="ge-arrow"><svg><use href="#i-chev-r"/></svg></span>
-      </button>
 
       <div class="sect-h rec-h"><b>今天记下的</b><span id="recCount">0 条</span><button type="button" class="rec-toggle" id="recToggle" aria-expanded="true">收起</button></div>
       <div class="rec-list" id="recList"></div>
@@ -1915,7 +1939,7 @@ function go(t){
 }
 $$('.tab').forEach(b=>b.onclick=()=>go(b.dataset.tab));
 $('#avatarBtn').onclick=()=>go('assistant');
-$('#toRecord').onclick=()=>go('assistant');
+$('#openPlanFromCapture').onclick=()=>go('profile');
 /* 今天记下的：默认展开，可收起（页面变长后给模块区让位） */
 $('#recToggle').onclick=()=>{
   const list=$('#recList'), btn=$('#recToggle');
@@ -2193,10 +2217,8 @@ function renderSugg(){
 }
 function renderTodos(){
   const vis=x=>viewDone||!x.done;
-  const scheduled=new Set();
-  Object.values(state.plan).forEach(list=>list.forEach(x=>scheduled.add(String(x.id))));
   for(const g of ['high','mid','low','inbox'])
-    $('#g-'+g).innerHTML=state.todos[g].filter(x=>!scheduled.has(String(x.id))&&vis(x)).map(x=>taskCard(x,true)).join('');
+    $('#g-'+g).innerHTML=state.todos[g].filter(vis).map(x=>taskCard(x,true)).join('');
   for(const g of ['anytime','morning','noon','day','evening']){
     const list=state.plan[g].filter(x=>!x.dates||x.dates.includes(selectedDate));
     $('#p-'+g).innerHTML=list.filter(vis).map(x=>taskCard(x,true)).join('');
@@ -2295,26 +2317,34 @@ function renderRecord(){
   const arr=(state.notes&&state.notes[todayKey])||[];
   const cnt=$('#recCount'); if(cnt)cnt.textContent=`${arr.length} 条`;
   const sub=$('#recSub');
-  if(sub)sub.textContent=arr.length?`今天已记 ${arr.length} 笔。再写一句，或者点模块记数值。`:`今天还没记。写一句，或者点一个模块。`;
+  if(sub)sub.textContent=arr.length?`今天已记 ${arr.length} 笔。再写一句，或者补记昨天。`:`今天还没记。写一句就好。`;
   const dt=$('#recDate');
   if(dt){const d=new Date();dt.textContent=`${d.getMonth()+1} 月 ${d.getDate()} 日 · 周${WK[d.getDay()]}`}
   if(!arr.length){
-    list.innerHTML='<div class="rec-empty">今天还是空白。<br>写一句，或者点上面的模块记一项。</div>';
+    list.innerHTML='<div class="rec-empty">今天还是空白。<br>写一句，或者补记昨天。</div>';
     return;
   }
-  list.innerHTML=arr.map((n,i)=>
-    `<div class="rec-row"><span class="rt">${esc(n.time||'')}</span>`
+  list.innerHTML=arr.slice(0,3).map((n)=>{
+    const i=arr.indexOf(n);
+    return `<div class="rec-row"><span class="rt">${esc(n.time||'')}</span>`
     +`<span class="rb">${esc(n.t||'')}</span>`
     +`${n.tone?`<span class="rtone">${TONE[n.tone]||''}</span>`:''}`
-    +`<button class="rdel" data-i="${i}" aria-label="删除"><svg viewBox="0 0 24 24"><use href="#i-x"/></svg></button></div>`
-  ).join('');
+    +`<button class="rdel" data-i="${i}" aria-label="删除"><svg viewBox="0 0 24 24"><use href="#i-x"/></svg></button></div>`;
+  }).join('');
   $$('#recList .rdel').forEach(b=>b.onclick=()=>{
     const i=+b.dataset.i;
     arr.splice(i,1);
     persist(); renderRecord();
   });
 }
-let recTone='';
+let recTone='',recBackfill=false;
+$('#recBackfill').onclick=()=>{
+  recBackfill=!recBackfill;
+  $('#recBackfill').textContent=recBackfill?'取消补记 · 记今天':'补记昨天';
+  $('#recBackfill').classList.toggle('on',recBackfill);
+  $('#recSub').textContent=recBackfill?'补记昨天。写一句，保存到昨天。':'今天还没记。写一句就好。';
+  if(!recBackfill) renderRecord();
+};
 $$('#recChips .rec-chip').forEach(b=>b.onclick=()=>{
   recTone=recTone===b.dataset.tone?'':b.dataset.tone;
   $$('#recChips .rec-chip').forEach(x=>x.classList.toggle('on',x.dataset.tone===recTone));
@@ -2323,16 +2353,19 @@ $('#recSave').onclick=()=>{
   const inp=$('#recInput'), txt=inp.value.trim();
   if(!txt&&!recTone){toast('写一句，或者点一个心情');return}
   const d=new Date();
+  const date=recBackfill?addDaysKey(todayKey,-1):todayKey;
   const time=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  (state.notes[todayKey]=state.notes[todayKey]||[]).unshift({t:txt||(TONE[recTone]||''),tone:recTone,time});
-  if(recTone)state.moods[todayKey]=recTone;
+  (state.notes[date]=state.notes[date]||[]).unshift({t:txt||(TONE[recTone]||''),tone:recTone,time});
+  if(recTone)state.moods[date]=recTone;
   inp.value=''; recTone=''; inp.blur();
   $$('#recChips .rec-chip').forEach(x=>x.classList.remove('on'));
-  markLog();
+  const wasBackfill=recBackfill;
+  recBackfill=false;
+  $('#recBackfill').textContent='补记昨天'; $('#recBackfill').classList.remove('on');
   renderMood();
   renderRecord();
   persist();
-  toast('记下了 · 灯就亮一分');
+  toast(wasBackfill?'补记到昨天 · 只留文字':'记下了 · 只留文字');
 };
 $('#recInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#recSave').click()});
 
@@ -2604,7 +2637,7 @@ if($('#reviewSave')) $('#reviewSave').onclick=()=>{
 
 function dealSugg(){sugg=pickSugg(3);renderSugg()}
 $('#refreshBtn').onclick=dealSugg;
-$('#openModules').onclick=()=>go('assistant');
+$('#openModules').onclick=()=>openModulesScreen();
 /* 本周计划：只读电脑端写进 zdLight.plan 的计划，手机不在这里编辑 */
 $('#openWeek').onclick=()=>{
   const rows=WEEK_KEYS.map((d,i)=>{
@@ -3820,6 +3853,108 @@ $$('.theme-toggle').forEach(function(b){
 });
 applyShellTheme(shellTheme, false);
 
+/* ---------- 全部模块目录（我的 → 全部模块） ---------- */
+const MODULE_GROUPS=[
+  ['体',['睡眠','饮食','饮水','训练','久坐','吃药','功法养生']],
+  ['情',['情绪','冥想']],
+  ['智',['学习','思考','输出']],
+  ['志',['记账','穿搭']],
+  ['工具',['备忘录','倒数日','到点提醒','更多']]
+];
+const MODULE_STORE_ALIAS={'训练':'运动','情绪':'情绪记录','久坐':'休息'};
+const RECENT_MODULES_KEY='lifeflow-modules-recent-v1';
+function recentModules(){
+  try{ return JSON.parse(localStorage.getItem(RECENT_MODULES_KEY)||'[]').slice(0,3); }catch(e){ return []; }
+}
+function rememberModule(name){
+  const arr=[name].concat(recentModules().filter(x=>x!==name)).slice(0,3);
+  try{ localStorage.setItem(RECENT_MODULES_KEY,JSON.stringify(arr)); }catch(e){}
+}
+function moduleTodayStatus(name){
+  if(!window.LightStore) return '还没有记录';
+  const mod=MODULE_STORE_ALIAS[name]||name;
+  const recs=(window.LightStore.readDay(window.LightStore.today()).records||[]).filter(r=>r.mod===mod);
+  return recs.length?'今天已记 '+recs.length+' 条':'还没有记录';
+}
+function moduleRowHTML(name){
+  const status=moduleTodayStatus(name);
+  return '<button type="button" class="module-row" data-module="'+esc(name)+'"><b>'+esc(name)+'</b><small>'+esc(status)+'</small><em>'+(status.indexOf('今天')===0?'今天已记':'')+'</em><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>';
+}
+function renderModules(query){
+  const list=$('#modulesList'), empty=$('#modulesEmpty');
+  if(!list) return;
+  const q=String(query||'').trim();
+  const recent=q?[]:recentModules();
+  const rows=[];
+  if(recent.length){
+    rows.push('<div class="modules-group">最近使用</div>');
+    recent.forEach(name=>rows.push(moduleRowHTML(name)));
+  }
+  const recentSet=new Set(recent);
+  MODULE_GROUPS.forEach(([label,names])=>{
+    const hit=names.filter(n=>!recentSet.has(n)&&(!q||n.includes(q)));
+    if(!hit.length) return;
+    rows.push('<div class="modules-group">'+label+'</div>');
+    hit.forEach(name=>rows.push(moduleRowHTML(name)));
+  });
+  list.innerHTML=rows.join('');
+  if(empty) empty.style.display=rows.length?'none':'';
+}
+function openModulesScreen(){
+  const d=new Date(); const dt=$('#modulesDate'); if(dt) dt.textContent=`${d.getMonth()+1} 月 ${d.getDate()} 日 · 周${WK[d.getDay()]}`;
+  const search=$('#modulesSearch'); if(search) search.value='';
+  renderModules('');
+  go('modules');
+}
+if($('#openModulesProfile')) $('#openModulesProfile').onclick=openModulesScreen;
+if($('#modulesBack')) $('#modulesBack').onclick=()=>go('profile');
+if($('#modulesSearch')) $('#modulesSearch').addEventListener('input',e=>renderModules(e.target.value));
+if($('#modulesList')) $('#modulesList').onclick=(e)=>{
+  const row=e.target.closest('[data-module]');
+  if(!row) return;
+  const name=row.getAttribute('data-module');
+  rememberModule(name);
+  if(name==='长期目标') openGoalsScreen(); else openModPage(name,name);
+};
+
+/* ---------- 记一笔：计划入口 + 一次性提示 ---------- */
+if($('#openPlanFromCapture')) $('#openPlanFromCapture').onclick=()=>go('profile');
+if($('#iaHint')){
+  let seen=false; try{ seen=!!localStorage.getItem('lifeflow-ia-hint-v1'); }catch(e){}
+  if(!seen) $('#iaHint').style.display='';
+  $('#iaHintClose').onclick=()=>{ try{ localStorage.setItem('lifeflow-ia-hint-v1','1'); }catch(e){} $('#iaHint').style.display='none'; };
+}
+
+/* ---------- 待办快捷记 ---------- */
+function quickWrite(mod,metric,value,meta,msg){
+  if(!window.LightStore) return null;
+  const rec=window.LightStore.record({mod,metric,value,date:window.LightStore.today(),source:'quick',meta:meta||{}});
+  if(window.renderTodayPlan) window.renderTodayPlan();
+  if(msg) toast(msg);
+  return rec;
+}
+function quickSheet(title,items,cb){
+  openSheet('<button class="x"><svg><use href="#i-x"/></svg></button><h3>'+title+'</h3><div class="menu">'+
+    items.map(it=>'<button data-qk="'+it.k+'">'+it.label+'</button>').join('')+'</div>');
+  $$('#sheetBox [data-qk]').forEach(b=>b.onclick=()=>{
+    const it=items.filter(x=>String(x.k)===String(b.getAttribute('data-qk')))[0];
+    closeSheet(); if(it) cb(it);
+  });
+}
+if($('#quickRecord')) $('#quickRecord').addEventListener('click',(e)=>{
+  const b=e.target.closest('[data-quick]'); if(!b) return;
+  const type=b.getAttribute('data-quick');
+  if(type==='water'){ quickWrite('饮水','ml',250,{},'+250ml · 今天饮水已记'); return; }
+  if(type==='training'){ openModPage('训练','训练'); return; }
+  if(type==='sleep'){
+    quickSheet('昨晚睡了多久',[{k:6,label:'6 小时'},{k:7,label:'7 小时'},{k:8,label:'8 小时'},{k:9,label:'9 小时'}],it=>quickWrite('睡眠','hours',it.k,{},'已记 '+it.k+'h · 睡眠'));
+  } else if(type==='diet'){
+    quickSheet('记一餐',[{k:'早',label:'早餐'},{k:'午',label:'午餐'},{k:'晚',label:'晚餐'},{k:'加',label:'加餐'}],it=>quickWrite('饮食','meals',1,{meal:it.k},'已记 '+it.label));
+  } else if(type==='mood'){
+    quickSheet('今天感觉',[{k:1,label:'还不错'},{k:2,label:'一般'},{k:3,label:'有点糟'}],it=>quickWrite('情绪记录','tone',it.k,{score:4-it.k},'已记 · '+it.label));
+  }
+});
+
 </script>
 <script>
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
@@ -4021,6 +4156,12 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
 </script>
 </body>
 </html>
+
+
+
+
+
+
 
 
 

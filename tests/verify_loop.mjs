@@ -23,9 +23,9 @@ const boot = await page.evaluate(() => ({
 ok("壳加载 core/store.js", boot.store);
 ok("壳加载 core/accounts.js", boot.accounts);
 
-await page.evaluate(() => document.querySelector('#avatarBtn').click());
+await page.evaluate(() => (() => { go('profile'); openModulesScreen(); })());
 await page.waitForTimeout(300);
-await page.evaluate(() => [...document.querySelectorAll(".ob-wide .mi")].find((x) => x.textContent.includes("饮水")).click());
+await page.evaluate(() => [...document.querySelectorAll(".module-row")].find((x) => x.textContent.includes("饮水")).click());
 await page.waitForTimeout(2600);
 
 const frame = page.frames().find((f) => f.url().endsWith("v3/water.html"));
@@ -88,9 +88,9 @@ const saved = await page.evaluate(() => {
 ok("刷新后灯仍为 1", saved.light === 1, JSON.stringify(saved));
 ok("刷新后体仍为 25", saved.body === 25, String(saved.body));
 
-await page.evaluate(() => document.querySelector('#avatarBtn').click());
+await page.evaluate(() => (() => { go('profile'); openModulesScreen(); })());
 await page.waitForTimeout(300);
-await page.evaluate(() => [...document.querySelectorAll(".ob-wide .mi")].find((x) => x.textContent.includes("饮水")).click());
+await page.evaluate(() => [...document.querySelectorAll(".module-row")].find((x) => x.textContent.includes("饮水")).click());
 await page.waitForTimeout(2400);
 const frame2 = page.frames().find((f) => f.url().endsWith("v3/water.html"));
 const waterReload = await frame2.evaluate(() => document.querySelector("#water-total")?.textContent);
@@ -103,6 +103,7 @@ console.log(`\n回路校验：${results.filter((x) => x[0] === "PASS").length}/$
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((x) => x[0] === "FAIL") ? 1 : 0);
+
 
 
 

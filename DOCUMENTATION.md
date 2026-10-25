@@ -13,8 +13,8 @@
 
 - 底部是 **4 个 tab + 1 个记一笔头像**：待办 / 今天 / 我的 / 灯 / 记一笔；
 - **没有“目标”底部 tab**；
-- 目标入口：`记一笔 → 长期目标`，打开壳内 `#screen-goals`，不是 v3 裸页；
-- 壳内目标屏隐藏底部 tabbar，返回回到「记一笔」；
+- 目标入口：`我的 → 计划 → 长期目标`，打开壳内 `#screen-goals`，不是 v3 裸页；
+- 壳内目标屏隐藏底部 tabbar，返回回到「我的」；
 - `pages/v3/goals.html` 是**旧版独立模块页**（自带 5 个 tab：今日安排 / 目标 / 习惯 / 回顾 / 我的），只能作为 legacy/iframe 回退，**不是当前 `/app/` 的主界面**。
 
 
@@ -58,7 +58,7 @@
 - 静态 HTML + 内联 CSS/JS + `pages/core/*.js`；
 - 无构建、无框架、无 npm 依赖；
 - 测试：Playwright 行为测试 + Node 纯函数测试；
-- 基线：`node tests/run-all.mjs` **32/32**；`node scripts/verify.mjs` **31/31**。
+- 基线：`node tests/run-all.mjs` **41/41**；`node scripts/verify.mjs` **31/31**。
 
 ---
 
@@ -97,7 +97,7 @@
 - 旧 key：`lifeflow-goal-items` 只读保留，首次读取迁移；
 - v2 字段：`id/title/vision/status/priority/primary/activeFrom/activeTo/phase/requirements/strategies/milestones/tasks`；
 - 旧字段（`measure/progress/stages/tasks/step`）保存为 legacy，不伪造 requirement；
-- 壳内 `#screen-goals`：列表 + 新建/编辑 sheet（名称、模块要求），入口 `记一笔 → 长期目标`；
+- 壳内 `#screen-goals`：列表 + 新建/编辑 sheet（名称、模块要求），入口 `我的 → 计划 → 长期目标`；
 - v3 `goals.html/goal-create.html/goal-detail.html` 也已接 `LightGoals`，作为旧模块页回退；
 - **v3 的 5-tab 不是当前壳**；不要把它的样式当成产品现状。
 
@@ -177,7 +177,7 @@ L5 每日行动 DailyActionV2（date/time/duration、itemId）
 
 ### 已知文档/代码不一致（改之前先核对代码）
 
-- 套件数有 32 / 20 / 16 / 18 四种说法；以 `run-all` 当前 **32** 为准。
+- 套件数以 `run-all` 当前 **41** 为准。
 - v3 页文档写 41，实际 `pages/v3/*.html` 为 **47**。
 - “已接灯”有 6/7/9 三种说法；以代码 `LightStore.record` 调用为准。
 - `desktop.html` 仍写 `tiimoClone`；`lifeflow-goal-items` 有 3 个写者：单写者原则已被局部破坏。
@@ -219,7 +219,7 @@ L5 每日行动 DailyActionV2（date/time/duration、itemId）
 
 1. 先读本文件，再读具体任务文档；不要凭行业惯例改产品模型。
 2. 不改三端分工与单写者；不引入后端/账号/云同步。
-3. 不破坏现有 32 套件；改代码必须跑 `node tests/run-all.mjs`。
+3. 不破坏现有 41 套件；改代码必须跑 `node tests/run-all.mjs`。
 4. 不做单一生命分、不做 20 模块每日打卡。
 5. AI 只给建议，不替用户决定；不自动改计划。
 6. 目标/任务/日常的术语必须统一；新增字段先做兼容，不直接覆盖旧数据。
@@ -320,18 +320,17 @@ L5 每日行动 DailyActionV2（date/time/duration、itemId）
 ### 10.6 实现状态（2026-10-25）
 
 - `pages/core/goals.js`：Goal/Requirement schema、v1 迁移、共享 requirement 合并/冲突、模块默认值；目标域单写者。
-- 壳内 `#screen-goals`：目标列表 + 新建/编辑 sheet；入口「记一笔 → 长期目标」；不是底部 tab。
-- 「记一笔」改成三步：写一句 / 按模块记 / 看目标；明确文字记录与模块记录的区别。
+- 壳内 `#screen-goals`：目标列表 + 新建/编辑 sheet；入口「我的 → 计划 → 长期目标」；不是底部 tab。
+- 「记一笔」只做捕捉：写一句 / 心情 / 最近 3 条 / 补记昨天；不再有模块网格与计划卡片。
 - `goals.html / goal-create.html / goal-detail.html`：已接 `LightGoals`，保留为旧模块页回退；旧 v1 只读。
-- 测试：`test-goals` 20、`test-today` 27、`verify_goals_v2` 9、`verify_app_goals` 15、`verify_weekly_carry` 4、`verify_review` 5、`verify_practices` 4、`verify_task_object` 3；`run-all` 36/36。
+- 测试：`test-goals` 20、`test-today` 27、`verify_goals_v2` 9、`verify_app_goals` 15、`verify_weekly_carry` 4、`verify_review` 5、`verify_practices` 4、`verify_task_object` 3；`run-all` 41/41。
 - 今日 3+3：`#todayPlanCard` 在待办页；3 保底 + 3 推进；共享模块合并、黄/红限流、点击勾选；`lifeflow-today-v1`。
 - 模块日志：`core/today.js` 读 `lifeflow-days-v1`（睡眠/饮水/训练/学习/输出等），训练记录自动累计周配额，睡眠/饮水自动完成保底要求。
 - 上周缺口：待办页 `#weeklyCarryCard`，可顺延 +2 / 降为 1 次/周 / 跳过；决策存 `lifeflow-weekly-v1`。
-- 周复盘：`记一笔 → 周复盘`，壳内 `#screen-review`；目标遵守度、周配额、模块记录、保底、下周只改一件事。
+- 周复盘：`我的 → 计划 → 周复盘`，壳内 `#screen-review`；目标遵守度、周配额、模块记录、保底、下周只改一件事。
 - 目标里程碑：权重 1–5，进度 = 60% 遵守度 + 40% 里程碑权重；目标 sheet 可增删。
-- 习惯/日常：`记一笔 → 日常` 壳内 Practice 视图；保底/承诺/周配额，不是新类型。
+- 习惯/日常：`我的 → 计划 → 日常` 壳内 Practice 视图；保底/承诺/周配额，不是新类型。
 - 任务/日程：同一任务只保留一个 id 与一条计划记录；安排后从待办消失，只出现在日程；渲染时按 id 去重。
-- 目标里程碑：权重 1–5，进度 = 60% 遵守度 + 40% 里程碑权重。
 
 
 
@@ -340,3 +339,13 @@ L5 每日行动 DailyActionV2（date/time/duration、itemId）
 
 
 
+
+
+### 2026-10-25 P0 信息架构（记一笔拆分）
+
+- 记一笔首屏只做捕捉：一句话 / 心情 / 最近 3 条 / 补记昨天；模块网格与目标/复盘/日常卡片已移出。
+- 全部模块：`我的 → 全部模块`，列表 + 搜索 + 最近使用 + 今天已记；旧 20 图标网格不再出现。
+- 计划层：`我的 → 计划`（长期目标 / 周复盘 / 日常）。
+- 待办顶部「快捷记」：睡眠 / 饮水 / 训练 / 饮食 / 情绪；文本 chips，不做图标网格。
+- 一次性提示：`lifeflow-ia-hint-v1`；最近模块：`lifeflow-modules-recent-v1`。
+- 测试新增 `verify_capture_ia` 7；`run-all` 41/41。

@@ -1,4 +1,4 @@
-import { chromium, EXE, BASE, OUT, PAGES } from "./_env.mjs";
+﻿import { chromium, EXE, BASE, OUT, PAGES } from "./_env.mjs";
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errors = [];
@@ -11,11 +11,11 @@ await page.goto(BASE + "/index.html", { waitUntil: "load" });
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(900);
-await page.evaluate(() => document.querySelector('#avatarBtn').click());
+await page.evaluate(() => (() => { go('profile'); openModulesScreen(); })());
 await page.waitForTimeout(300);
 
 /* 情绪页 → store → 壳灯/心情格 */
-await page.evaluate(() => [...document.querySelectorAll(".ob-wide .mi")].find((x) => x.textContent.includes("情绪")).click());
+await page.evaluate(() => [...document.querySelectorAll(".module-row")].find((x) => x.textContent.includes("情绪")).click());
 await page.waitForTimeout(3400);
 const moodFrame = page.frames().find((f) => f.url().endsWith("v3/mood.html"));
 ok("情绪 iframe 打开", !!moodFrame);
@@ -44,9 +44,9 @@ ok("壳心情格与模块同源", lampMood.set === 1 && (lampMood.today || "").i
 ok("情绪点亮第一缕", lampMood.light === 1, JSON.stringify(lampMood));
 
 /* 训练页 → store → 壳体 */
-await page.evaluate(() => document.querySelector('#avatarBtn').click());
+await page.evaluate(() => (() => { go('profile'); openModulesScreen(); })());
 await page.waitForTimeout(300);
-await page.evaluate(() => [...document.querySelectorAll(".ob-wide .mi")].find((x) => x.textContent.includes("训练")).click());
+await page.evaluate(() => [...document.querySelectorAll(".module-row")].find((x) => x.textContent.includes("训练")).click());
 await page.waitForTimeout(3400);
 const trainFrame = page.frames().find((f) => f.url().endsWith("v3/training.html"));
 ok("训练 iframe 打开", !!trainFrame);
@@ -84,5 +84,6 @@ console.log(`\n情绪/训练校验：${results.filter((r) => r[0] === "PASS").le
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 
 

@@ -12,11 +12,11 @@ await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(900);
 ok("开局 0 光", await page.evaluate(() => (JSON.parse(localStorage.getItem("zdLight") || "{}").light || 0) === 0));
-await page.evaluate(() => document.querySelector('#avatarBtn').click());
+await page.evaluate(() => (() => { go('profile'); openModulesScreen(); })());
 await page.waitForTimeout(300);
 
 /* 记账页 → store → 志账户 → 灯 */
-await page.evaluate(() => [...document.querySelectorAll(".ob-wide .mi")].find((x) => x.textContent.includes("记账")).click());
+await page.evaluate(() => [...document.querySelectorAll(".module-row")].find((x) => x.textContent.includes("记账")).click());
 await page.waitForTimeout(3400);
 const expenseFrame = page.frames().find((f) => f.url().endsWith("v3/expense.html"));
 ok("记账 iframe 打开", !!expenseFrame);
@@ -285,6 +285,7 @@ console.log(`\n记账校验：${results.filter((r) => r[0] === "PASS").length}/$
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 
 
 

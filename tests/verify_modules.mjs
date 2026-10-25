@@ -88,10 +88,12 @@ function check(name, ok, detail) {
 }
 
 async function stickerClick(label) {
-  await page.evaluate(() => document.querySelector('#avatarBtn').click());
+  await page.evaluate(() => go('profile'));
+  await page.waitForTimeout(200);
+  await page.click("#openModulesProfile");
   await page.waitForTimeout(250);
-  const loc = page.locator(".ob-wide .mi").filter({ hasText: label });
-  if ((await loc.count()) !== 1) throw new Error(`贴纸「${label}」数量=${await loc.count()}`);
+  const loc = page.locator(".module-row").filter({ hasText: label });
+  if ((await loc.count()) !== 1) throw new Error(`模块行「${label}」数量=${await loc.count()}`);
   const before = await page.evaluate(() => {
     try { return document.getElementById("modFrame").contentWindow.performance.timeOrigin; } catch (e) { return 0; }
   });
@@ -121,7 +123,7 @@ async function getV3Frame(link) {
 
 async function backToToday() {
   await page.click("#modBack");
-  await page.waitForFunction(() => document.body.dataset.tab === "assistant", { timeout: 6000 });
+  await page.waitForFunction(() => ["assistant","modules"].includes(document.body.dataset.tab), { timeout: 6000 });
   await page.waitForTimeout(120);
 }
 
@@ -151,23 +153,24 @@ await page.evaluate(() => {
 });
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(500);
-await page.evaluate(() => document.querySelector('#avatarBtn').click());
+await page.evaluate(() => go("profile"));
+await page.waitForTimeout(250);
+await page.click("#openModulesProfile");
 await page.waitForTimeout(300);
 
 const stickers = await page.evaluate(() =>
-  [...document.querySelectorAll(".ob-wide .mi")].map((x) => x.textContent.trim())
+  [...document.querySelectorAll(".module-row")].map((x) => x.querySelector("b").textContent.trim())
 );
-check("记一笔页 18 个模块贴纸", stickers.length === 18, `实际 ${stickers.length}: ${stickers.join("/")}`);
-check("贴纸顺序与预期一致", JSON.stringify(stickers) === JSON.stringify(EXPECT.map((x) => x[0])), stickers.join("/"));
+check("全部模块 18 行", stickers.length === 18, `实际 ${stickers.length}: ${stickers.join("/")}`);
+check("模块集合与预期一致", JSON.stringify([...stickers].sort()) === JSON.stringify(EXPECT.map((x) => x[0]).sort()), stickers.join("/"));
 
-/* 模块按四账户标注 + 触控高度 */
+/* 四账户分组 + 触控高度 */
 const hubMeta = await page.evaluate(() => {
-  const tagged = [...document.querySelectorAll("#screen-assistant .ob-wide .mi[data-dom]")];
-  const doms = [...new Set(tagged.map((x) => x.dataset.dom))];
-  const heights = [...document.querySelectorAll("#screen-assistant .ob-wide .mi")].map((x) => x.getBoundingClientRect().height);
-  return { tagged: tagged.length, doms: doms.join(""), minH: Math.min(...heights) };
+  const groups = [...document.querySelectorAll(".modules-group")].map((x) => x.textContent.trim());
+  const heights = [...document.querySelectorAll(".module-row")].map((x) => x.getBoundingClientRect().height);
+  return { groups: groups.join("/"), minH: Math.min(...heights) };
 });
-check("14 个模块标注四账户（含思三件）", hubMeta.tagged === 14 && ["体", "情", "思", "志"].every((d) => hubMeta.doms.includes(d)), JSON.stringify(hubMeta));
+check("模块按四账户分组", ["体", "情", "智", "志"].every((d) => hubMeta.groups.includes(d)), JSON.stringify(hubMeta));
 check("模块触控高度 ≥44", hubMeta.minH >= 43.5, String(hubMeta.minH));
 
 /* 今天记下的：可收起 */
@@ -476,6 +479,7 @@ if (consoleErrors.length) {
   [...new Set(consoleErrors)].slice(0, 4).forEach((x) => console.log("  · " + x));
 }
 process.exit(failed.length ? 1 : 0);
+
 
 
 

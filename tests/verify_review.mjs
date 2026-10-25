@@ -1,4 +1,4 @@
-import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -41,7 +41,7 @@ await page.evaluate(() => {
 });
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(800);
-await page.click("#avatarBtn");
+await page.evaluate(() => go("profile"));
 await page.waitForTimeout(250);
 await page.click("#openReview");
 await page.waitForTimeout(400);
@@ -65,7 +65,7 @@ await page.click("#reviewSave");
 await page.waitForTimeout(300);
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(700);
-await page.click("#avatarBtn");
+await page.evaluate(() => go("profile"));
 await page.waitForTimeout(200);
 await page.click("#openReview");
 await page.waitForTimeout(350);
@@ -77,3 +77,4 @@ console.log(`\n周复盘校验：${results.filter((r) => r[0] === "PASS").length
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+

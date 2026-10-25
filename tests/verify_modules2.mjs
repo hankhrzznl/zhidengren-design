@@ -11,11 +11,11 @@ await page.goto(BASE + "/index.html", { waitUntil: "load" });
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(900);
-await page.evaluate(() => document.querySelector('#avatarBtn').click());
+await page.evaluate(() => (() => { go('profile'); openModulesScreen(); })());
 await page.waitForTimeout(300);
 
 /* 睡眠页 → store → 壳 */
-await page.evaluate(() => [...document.querySelectorAll(".ob-wide .mi")].find((x) => x.textContent.includes("睡眠")).click());
+await page.evaluate(() => [...document.querySelectorAll(".module-row")].find((x) => x.textContent.includes("睡眠")).click());
 await page.waitForTimeout(3400);
 const sleepFrame = page.frames().find((f) => f.url().endsWith("v3/sleep.html"));
 ok("睡眠 iframe 打开", !!sleepFrame);
@@ -55,9 +55,9 @@ ok("睡眠回壳后体账户有分", (lampSleep.body || "").includes("90"), lamp
 ok("睡眠点亮第一缕", lampSleep.light === 1, JSON.stringify(lampSleep));
 
 /* 饮食页 → store */
-await page.evaluate(() => document.querySelector('#avatarBtn').click());
+await page.evaluate(() => (() => { go('profile'); openModulesScreen(); })());
 await page.waitForTimeout(300);
-await page.evaluate(() => [...document.querySelectorAll(".ob-wide .mi")].find((x) => x.textContent.includes("饮食")).click());
+await page.evaluate(() => [...document.querySelectorAll(".module-row")].find((x) => x.textContent.includes("饮食")).click());
 await page.waitForTimeout(2400);
 const dietFrame = page.frames().find((f) => f.url().endsWith("v3/diet.html"));
 ok("饮食 iframe 打开", !!dietFrame);
@@ -118,6 +118,7 @@ console.log(`\n模块/视觉校验：${results.filter((r) => r[0] === "PASS").le
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 
 
 

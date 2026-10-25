@@ -1,4 +1,4 @@
-import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -18,7 +18,7 @@ await page.evaluate(() => {
 });
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(700);
-await page.click("#avatarBtn");
+await page.evaluate(() => go("profile"));
 await page.waitForTimeout(250);
 await page.click("#openPractices");
 await page.waitForTimeout(300);
@@ -45,5 +45,6 @@ console.log(`\n日常视图校验：${results.filter((r) => r[0] === "PASS").len
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 
 

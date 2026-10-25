@@ -1,4 +1,4 @@
-﻿// 日间 / 夜间主题 · 全链路校验（5 个 tab + 模块页 iframe 同步）
+// 日间 / 夜间主题 · 全链路校验（5 个 tab + 模块页 iframe 同步）
 // 用法：node tests/verify_theme.mjs
 import { spawn } from "node:child_process";
 import { chromium, EXE, BASE, OUT, PAGES } from "./_env.mjs";
@@ -47,7 +47,7 @@ const dark = await page.evaluate(() => ({
   text: getComputedStyle(document.querySelector(".task-title")).color,
 }));
 check("无存档时默认夜间", dark.theme === "dark" && dark.key === null, JSON.stringify(dark));
-check("九处主题入口（8 屏 + 模块顶栏）", dark.toggles === 9, String(dark.toggles));
+check("十处主题入口（9 屏 + 模块顶栏）", dark.toggles === 10, String(dark.toggles));
 
 /* 2. 切日间 */
 await page.click("#screen-todo .theme-toggle");
@@ -61,7 +61,7 @@ const light = await page.evaluate(() => ({
   title: getComputedStyle(document.querySelector(".task-title")).color,
   tabbar: getComputedStyle(document.querySelector(".tabbar")).backgroundColor,
   iconColor: getComputedStyle(document.querySelector(".task-ic")).color,
-  tileFilter: getComputedStyle(document.querySelector(".ob-wide .mi svg")).filter,
+  tileFilter: getComputedStyle(document.querySelector(".profile-link svg")).filter,
 }));
 check("点一下切到日间", light.theme === "light" && light.key === "light", JSON.stringify(light));
 check("日间壳底色=暖奶油", light.body === "rgb(242, 236, 227)", light.body);
@@ -93,9 +93,9 @@ check("日间 · 记一笔保持 + 有主题入口", await page.evaluate(() =>
 ));
 
 /* 5. 模块页跟随 + 壳内切换 */
-await page.evaluate(() => document.querySelector('#avatarBtn').click());
+await page.evaluate(() => { go("profile"); openModulesScreen(); });
 await page.waitForTimeout(250);
-await page.evaluate(() => [...document.querySelectorAll(".ob-wide .mi")].find((x) => x.textContent.includes("穿搭")).click());
+await page.evaluate(() => [...document.querySelectorAll(".module-row")].find((x) => x.textContent.includes("穿搭")).click());
 try {
   await page.waitForFunction(() => {
     const f = document.getElementById("modFrame");
@@ -180,6 +180,10 @@ const failed = checks.filter((c) => !c.ok);
 for (const c of checks) console.log(`${c.ok ? "PASS" : "FAIL"}  ${c.name}`);
 console.log(`\n主题校验：${checks.length - failed.length}/${checks.length} PASS`);
 process.exit(failed.length ? 1 : 0);
+
+
+
+
 
 
 

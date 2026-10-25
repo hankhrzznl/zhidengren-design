@@ -1,4 +1,4 @@
-﻿import { chromium, EXE, BASE, OUT, PAGES } from "./_env.mjs";
+import { chromium, EXE, BASE, OUT, PAGES } from "./_env.mjs";
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 const errors = [];
@@ -78,14 +78,16 @@ for (const t of tabs) {
 }
 ok("可见按钮都有可访问名", noName.length === 0, JSON.stringify([...new Set(noName)]));
 
-await page.evaluate(() => document.querySelector('#avatarBtn')?.click());
+await page.evaluate(() => go("profile"));
+await page.waitForTimeout(250);
+await page.click("#openModulesProfile");
 await page.waitForTimeout(300);
 const stickers = await page.evaluate(() => ({
-  tag: document.querySelector(".ob-wide .mi")?.tagName,
-  n: document.querySelectorAll(".ob-wide button.mi").length,
-  labels: [...document.querySelectorAll(".ob-wide .mi")].map((x) => x.textContent.trim()),
+  tag: document.querySelector(".module-row")?.tagName,
+  n: document.querySelectorAll("button.module-row").length,
+  labels: [...document.querySelectorAll(".module-row")].map((x) => x.textContent.trim()),
 }));
-ok("18 个贴纸都是 button", stickers.tag === "BUTTON" && stickers.n === 18, JSON.stringify(stickers));
+ok("18 个模块行都是 button", stickers.tag === "BUTTON" && stickers.n === 18, JSON.stringify(stickers));
 await page.evaluate(() => document.querySelector('[data-tab="lamp"]')?.click());
 await page.waitForTimeout(300);
 const moodA11y = await page.evaluate(() => ({
