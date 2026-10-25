@@ -136,7 +136,15 @@
     out.domain = String(raw.domain || '自定义');
     out.requirements = (Array.isArray(raw.requirements) ? raw.requirements : []).map(normalizeRequirement).filter(Boolean);
     out.strategies = Array.isArray(raw.strategies) ? raw.strategies : [];
-    out.milestones = Array.isArray(raw.milestones) ? raw.milestones : [];
+    out.milestones = (Array.isArray(raw.milestones) ? raw.milestones : []).map(function (m, i) {
+      return {
+        id: m.id || uid('ms'),
+        title: String(m.title || '里程碑').slice(0, 40),
+        weight: Math.min(5, Math.max(1, Number(m.weight) || 1)),
+        done: !!m.done,
+        due: m.due || null
+      };
+    });
     out.legacyMeasure = legacy.measure;
     out.legacyProgress = legacy.progress;
     out.legacy = legacy;

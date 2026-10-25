@@ -668,6 +668,12 @@ body[data-tab="goals"] .tabbar{display:none}
 .goal-req-row select,.goal-req-row input{width:100%;height:34px;min-width:0;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--txt);font:400 11px var(--cjk);padding:0 7px}
 .goal-req-del{width:28px;height:28px;border:0;border-radius:50%;background:transparent;color:var(--txt3);font-size:15px}
 .goal-add-req{display:inline-flex;align-items:center;gap:5px;border:0;background:none;color:var(--brand);font:600 12px var(--cjk);padding:7px 0}
+.goal-ms-row{display:grid;grid-template-columns:22px 1fr 44px 26px;gap:7px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
+.goal-ms-row:first-child{border-top:0}
+.goal-ms-row input[data-f="title"]{width:100%;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--txt);font:400 11px var(--cjk);padding:0 8px;min-width:0}
+.goal-ms-row input[data-f="weight"]{width:44px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--txt);font:400 11px var(--cjk);padding:0 5px;text-align:center}
+.goal-ms-row input[type="checkbox"]{accent-color:var(--brand);width:16px;height:16px}
+.goal-ms-del{width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:var(--txt3);font-size:15px}
 .goal-sheet-actions{margin-top:14px}
 /* 周复盘 */
 body[data-tab="review"] .tabbar{display:none}
@@ -2385,11 +2391,32 @@ function renderGoalReqs(){
   const box=$('#goalReqList'); if(!box) return;
   box.innerHTML=(goalEditDraft.requirements||[]).map(goalReqRowHTML).join('');
 }
+function goalMsRowHTML(m){
+  return `<div class="goal-ms-row" data-ms-id="${esc(m.id||'')}">`+
+    `<input type="checkbox" data-f="done"${m.done?' checked':''} aria-label="完成">`+
+    `<input data-f="title" maxlength="40" placeholder="比如：连续 4 周训练 3 次" value="${esc(m.title||'')}">`+
+    `<input type="number" data-f="weight" min="1" max="5" value="${Math.min(5,Math.max(1,Number(m.weight)||1))}" aria-label="权重">`+
+    `<button type="button" class="goal-ms-del" data-del-ms>×</button>`+
+  `</div>`;
+}
+function renderGoalMs(){
+  const box=$('#goalMsList'); if(!box) return;
+  box.innerHTML=(goalEditDraft.milestones||[]).map(goalMsRowHTML).join('');
+}
+function collectGoalMs(){
+  return $$('#goalMsList .goal-ms-row').map((row,i)=>({
+    id:row.getAttribute('data-ms-id')||'ms-'+Date.now()+'-'+i,
+    title:row.querySelector('[data-f="title"]').value.trim(),
+    weight:Math.min(5,Math.max(1,Number(row.querySelector('[data-f="weight"]').value)||1)),
+    done:row.querySelector('[data-f="done"]').checked
+  })).filter(m=>m.title);
+}
 function openGoalSheet(id){
   if(!window.LightGoals){ toast('目标数据未加载'); return; }
   const g=id?window.LightGoals.get(id):null;
   goalEditDraft=g?JSON.parse(JSON.stringify(g)):{id:'g'+Date.now(),title:'',status:'active',requirements:[]};
   if(!goalEditDraft.requirements) goalEditDraft.requirements=[];
+  if(!goalEditDraft.milestones) goalEditDraft.milestones=[];
   openSheet(
     `<button class="x"><svg><use href="#i-x"/></svg></button>`+
     `<h3>${id?'编辑目标':'新建目标'}</h3>`+
@@ -2398,9 +2425,13 @@ function openGoalSheet(id){
     `<div class="goal-sheet-label">需要哪些模块</div>`+
     `<div id="goalReqList"></div>`+
     `<button type="button" class="goal-add-req" id="goalAddReq">+ 添加模块要求</button>`+
+    `<div class="goal-sheet-label">里程碑（可选，权重 1–5）</div>`+
+    `<div id="goalMsList"></div>`+
+    `<button type="button" class="goal-add-req" id="goalAddMs">+ 添加里程碑</button>`+
     `<div class="goal-sheet-actions"><button type="button" class="primary" id="goalSave">保存目标</button></div>`
   );
   renderGoalReqs();
+  renderGoalMs();
   $('#goalAddReq').onclick=()=>{
     goalEditDraft.requirements=collectGoalReqs();
     goalEditDraft.requirements.push(Object.assign({moduleId:'sleep'},goalReqDefaults('sleep')));
@@ -2423,11 +2454,25 @@ function openGoalSheet(id){
     goalEditDraft.requirements.splice(rows.indexOf(row),1);
     renderGoalReqs();
   });
+  $('#goalAddMs').onclick=()=>{
+    goalEditDraft.milestones=collectGoalMs();
+    goalEditDraft.milestones.push({id:'ms-'+Date.now(),title:'',weight:1,done:false});
+    renderGoalMs();
+  };
+  $('#goalMsList').addEventListener('click',(e)=>{
+    const del=e.target.closest('[data-del-ms]');
+    if(!del) return;
+    const rows=$$('#goalMsList .goal-ms-row'), row=del.closest('.goal-ms-row');
+    goalEditDraft.milestones=collectGoalMs();
+    goalEditDraft.milestones.splice(rows.indexOf(row),1);
+    renderGoalMs();
+  });
   $('#goalSave').onclick=()=>{
     const title=$('#goalTitle').value.trim();
     if(!title){ toast('先写一句目标'); return; }
     goalEditDraft.title=title;
     goalEditDraft.requirements=collectGoalReqs();
+    goalEditDraft.milestones=collectGoalMs();
     window.LightGoals.save(goalEditDraft);
     closeSheet();
     renderGoalsShell();

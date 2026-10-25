@@ -148,6 +148,13 @@ T.applyWeeklyAction('training|sessions|次', MON, 'reduce');
 ok('降级为 1 次/周', T.weeklyTargetFor('training|sessions|次', 3, MON) === 1);
 T.applyWeeklyAction('training|sessions|次', MON, 'skip');
 ok('跳过后保持基础目标', T.weeklyTargetFor('training|sessions|次', 3, MON) === 3);
+const gms = G.save({
+  id: 'g-ms', title: '里程碑目标', status: 'active', activeFrom: MON,
+  requirements: [{ id: 'ms-study', moduleId: 'study', metric: 'minutes', target: 1, unit: 'min', cadence: 'daily' }],
+  milestones: [{ id: 'm1', title: '完成 1 次', weight: 1, done: true }, { id: 'm2', title: '完成 3 次', weight: 3, done: false }]
+});
+const ms = T.goalStats(gms, MON);
+ok('里程碑权重 70%', ms && ms.percent === 70 && ms.milestoneRate === 25, JSON.stringify(ms));
 const wsum = T.weekSummary(MON);
 ok('周复盘包含目标与配额', wsum.goals.length > 0 && wsum.quotas.some((x) => x.key === 'training|sessions|次'), JSON.stringify({ g: wsum.goals.length, q: wsum.quotas.length }));
 ok('周复盘包含模块/保底', wsum.modules && wsum.floors && wsum.floors.total >= 0, JSON.stringify(wsum.floors));
@@ -155,4 +162,5 @@ ok('周复盘包含模块/保底', wsum.modules && wsum.floors && wsum.floors.to
 for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : '');
 console.log(`\n今日 3+3 校验：${pass}/${rows.length} PASS`);
 process.exit(rows.some((r) => r[0] === 'FAIL') ? 1 : 0);
+
 

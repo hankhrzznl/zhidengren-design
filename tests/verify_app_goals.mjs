@@ -1,4 +1,4 @@
-import { chromium, EXE, BASE, OUT } from "./_env.mjs";
+﻿import { chromium, EXE, BASE, OUT } from "./_env.mjs";
 
 const browser = await chromium.launch({ executablePath: EXE });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -42,6 +42,9 @@ await page.waitForTimeout(200);
 const row = page.locator("#goalReqList .goal-req-row").first();
 await row.locator('[data-f="module"]').selectOption("training");
 await row.locator('[data-f="target"]').fill("3");
+await page.click("#goalAddMs");
+await page.locator("#goalMsList .goal-ms-row [data-f='title']").fill("连续 4 周训练");
+await page.locator("#goalMsList .goal-ms-row [data-f='weight']").fill("3");
 await page.click("#goalSave");
 await page.waitForTimeout(350);
 const saved = await page.evaluate(() => {
@@ -50,9 +53,11 @@ const saved = await page.evaluate(() => {
   return {
     list: document.querySelector("#goalsList")?.innerText.replace(/\s+/g, " "),
     req: g ? g.requirements.map((r) => [r.moduleId, r.target]) : null,
+    ms: g ? g.milestones.map((m) => [m.title, m.weight]) : null,
   };
 });
 ok("新建目标写入壳内列表与 v2", /练成薄肌/.test(saved.list || "") && saved.req && saved.req[0][0] === "training" && saved.req[0][1] === 3, JSON.stringify(saved));
+ok("目标可加里程碑权重", saved.ms && saved.ms[0][0] === "连续 4 周训练" && saved.ms[0][1] === 3, JSON.stringify(saved.ms));
 await page.screenshot({ path: OUT + "app-goals-created.png" });
 
 await page.evaluate(() => go("todo"));
@@ -104,7 +109,7 @@ ok("模块记录自动完成周配额", /训练 3\/3/.test(logged.weekly || "") 
 await page.evaluate(() => openGoalsScreen());
 await page.waitForTimeout(300);
 const pct2 = await page.locator(".goal-pct").first().textContent();
-ok("模块记录驱动目标 100%", pct2 === "100%", pct2);
+ok("模块记录 + 里程碑权重 60%", pct2 === "60%", pct2);
 await page.screenshot({ path: OUT + "app-goal-progress.png" });
 
 await page.reload({ waitUntil: "load" });
@@ -120,4 +125,5 @@ console.log(`\n壳内目标/记一笔校验：${results.filter((r) => r[0] === "
 console.log("pageerrors:", errors.length ? [...new Set(errors)] : "none");
 await browser.close();
 process.exit(results.some((r) => r[0] === "FAIL") ? 1 : 0);
+
 

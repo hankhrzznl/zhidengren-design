@@ -213,8 +213,20 @@
       }
     });
     if (!expected) return null;
+    var ms = goal.milestones || [];
+    var totalW = 0, doneW = 0;
+    ms.forEach(function (m) {
+      var w = Math.max(1, Number(m.weight) || 1);
+      totalW += w;
+      if (m.done) doneW += w;
+    });
+    var adherence = actual / expected;
+    var msRate = totalW ? doneW / totalW : null;
+    var percent = msRate == null ? adherence : adherence * 0.6 + msRate * 0.4;
     return {
-      percent: Math.round(actual / expected * 100),
+      percent: Math.round(percent * 100),
+      adherence: Math.round(adherence * 100),
+      milestoneRate: msRate == null ? null : Math.round(msRate * 100),
       actual: actual,
       expected: expected,
       days: days,
