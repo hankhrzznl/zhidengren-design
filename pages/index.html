@@ -625,6 +625,50 @@ body[data-tab="assistant"] .tabbar{opacity:0;pointer-events:none;transform:trans
 .fl-note{font:400 10.5px/1.6 var(--cjk);color:var(--txt3);margin:12px 0 0}
 .fl-save{width:100%;height:46px;margin-top:16px;border:0;border-radius:13px;background:var(--brand);color:var(--brand-ink);font:650 13px var(--cjk)}
 </style>
+<style id="goals-shell-css">
+/* 记一笔：三步说明 */
+.rec-step{display:flex;align-items:center;gap:8px;margin:16px 0 8px;color:var(--txt2)}
+.rec-step b{width:20px;height:20px;border-radius:50%;background:var(--brand);color:var(--brand-ink);font:600 10px var(--cjk);display:flex;align-items:center;justify-content:center;flex:none}
+.rec-step span{font:600 13px var(--cjk);color:var(--txt)}
+.rec-step small{font:400 10px var(--cjk);color:var(--txt3);line-height:1.4}
+.rec-mood-label{font:500 10px var(--cjk);color:var(--txt3);margin:12px 0 6px}
+.rec-hint{font:400 10.5px/1.6 var(--cjk);color:var(--txt3);margin:9px 0 0}
+.goals-entry{display:flex;align-items:center;gap:11px;width:100%;padding:14px;margin:0 0 14px;border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--txt);text-align:left}
+.ge-ic{width:38px;height:38px;border-radius:12px;background:rgba(77,195,255,.12);color:var(--brand);display:flex;align-items:center;justify-content:center;flex:none}
+.ge-ic svg{width:18px;height:18px}
+.ge-main{flex:1;min-width:0}
+.ge-main b{display:block;font:600 13px var(--cjk)}
+.ge-main small{display:block;font:400 10.5px/1.5 var(--cjk);color:var(--txt3);margin-top:2px}
+.ge-arrow{color:var(--txt3);display:flex}
+.ge-arrow svg{width:14px;height:14px}
+
+/* 壳内目标屏 */
+body[data-tab="goals"] .tabbar{display:none}
+#screen-goals{padding:64px 18px 30px;display:flex;flex-direction:column}
+.goals-new{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;height:44px;margin:4px 0 14px;border:1px solid rgba(77,195,255,.35);border-radius:13px;background:rgba(77,195,255,.10);color:var(--brand);font:600 12.5px var(--cjk)}
+.goals-new svg{width:15px;height:15px}
+.goals-list{display:flex;flex-direction:column;gap:9px}
+.goal-row{display:flex;align-items:center;gap:10px;width:100%;padding:14px;border:1px solid var(--line);border-radius:15px;background:var(--card);color:var(--txt);text-align:left}
+.goal-row__main{flex:1;min-width:0}
+.goal-row__main b{display:block;font:600 14px var(--cjk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.goal-row__main small{display:block;font:400 10.5px/1.5 var(--cjk);color:var(--txt3);margin-top:3px}
+.goal-state{font:500 9.5px var(--cjk);padding:3px 7px;border-radius:99px;background:var(--card2);color:var(--txt2);flex:none}
+.goal-state.active{color:#4FBF8B;background:rgba(70,170,120,.14)}
+.goal-state.paused{color:#D6A84A;background:rgba(210,160,70,.14)}
+.goal-state.done{color:var(--txt3)}
+#goalsEmpty{margin:22px 0;text-align:center;line-height:1.8}
+
+/* 目标编辑 sheet */
+.goal-req-row{border:1px solid var(--line);border-radius:12px;padding:9px;margin-bottom:8px;background:var(--card2)}
+.goal-req-row__top{display:grid;grid-template-columns:1.1fr 1fr 28px;gap:6px;align-items:center}
+.goal-req-row__bottom{display:grid;grid-template-columns:1fr .8fr 1fr 1fr;gap:6px;margin-top:6px}
+.goal-req-metric{font:500 10.5px var(--cjk);color:var(--txt3);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.goal-sheet-label{font:600 10px var(--cjk);letter-spacing:.08em;color:var(--txt3);margin:16px 0 8px}
+.goal-req-row select,.goal-req-row input{width:100%;height:34px;min-width:0;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--txt);font:400 11px var(--cjk);padding:0 7px}
+.goal-req-del{width:28px;height:28px;border:0;border-radius:50%;background:transparent;color:var(--txt3);font-size:15px}
+.goal-add-req{display:inline-flex;align-items:center;gap:5px;border:0;background:none;color:var(--brand);font:600 12px var(--cjk);padding:7px 0}
+.goal-sheet-actions{margin-top:14px}
+</style>
 <style id="v3-skin">
 /* ============================================================
    手机壳 · v3 视觉统一层
@@ -1520,26 +1564,26 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
 
       <div class="rec-head">
         <h1>记一笔</h1>
-        <p class="rec-sub" id="recSub">今天还没记。记一笔，灯就亮一分。</p>
+        <p class="rec-sub" id="recSub">今天还没记。写一句，或者点一个模块。</p>
       </div>
 
+      <div class="rec-step"><b>1</b><span>写一句</span><small>只记心情和一句话，不改变四账户</small></div>
       <div class="rec-card">
-        <input id="recInput" maxlength="80" autocomplete="off" placeholder="今天做了什么…">
+        <input id="recInput" maxlength="80" autocomplete="off" placeholder="比如：今天有点累，但还是去走了 20 分钟">
+        <div class="rec-mood-label">今天感觉（可选）</div>
         <div class="rec-chips" id="recChips">
           <button class="rec-chip" data-tone="good">还不错</button>
           <button class="rec-chip" data-tone="flat">一般</button>
           <button class="rec-chip" data-tone="bad">有点糟</button>
         </div>
-        <button class="rec-save" id="recSave">记下</button>
+        <button class="rec-save" id="recSave">记下这句话</button>
+        <p class="rec-hint">这里只记文字/心情，不会自动算进四账户。</p>
       </div>
 
-      <div class="hub-intro">
-        <b>这些模块，和「今天」是什么关系？</b>
-        <p>「今天」页上的每一格，都是这里的模块记出来的：饮水、睡眠、训练、情绪…分别记进 <em>体 / 情 / 思 / 志</em> 四个账户；四账户当天的完成度，决定今晚这盏灯亮几分。工具（备忘录、倒数日、到点提醒）只存事实，不挤进四账户；<b>思</b> 由「学习」（分钟）、「思考」（条）、「输出」（字数）一起记。</p>
-      </div>
+      <div class="rec-step"><b>2</b><span>按模块记</span><small>点一个模块，记具体数值；会进四账户和灯</small></div>
 
       <div class="hub-card" aria-label="模块中枢">
-        <div class="hub-head"><h2>模块</h2><span>四账户 · 工具独立</span></div>
+        <div class="hub-head"><h2>按模块记</h2><span>点一下开始</span></div>
         <div class="hub-group">四账户模块</div>
         <div class="ob ob-wide" id="hubAccounts">
           <button type="button" class="mi" data-dom="情"><svg><use href="#i-smile"/></svg><span>情绪</span></button>
@@ -1564,11 +1608,40 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
           <button type="button" class="mi"><svg><use href="#i-bell"/></svg><span>到点提醒</span></button>
           <button type="button" class="mi"><svg><use href="#i-dots"/></svg><span>更多</span></button>
         </div>
+        <p class="rec-hint" style="margin:12px 0 0">模块页里记完，返回这里会看到“今天记下的”。</p>
       </div>
+
+      <div class="rec-step"><b>3</b><span>看目标</span><small>目标负责“为什么”，模块负责“今天做多少”</small></div>
+      <button type="button" class="goals-entry" id="openGoals">
+        <span class="ge-ic"><svg><use href="#i-target-tab"/></svg></span>
+        <span class="ge-main"><b>长期目标</b><small>薄肌、考公…每个目标需要哪些模块</small></span>
+        <span class="ge-arrow"><svg><use href="#i-chev-r"/></svg></span>
+      </button>
 
       <div class="sect-h rec-h"><b>今天记下的</b><span id="recCount">0 条</span><button type="button" class="rec-toggle" id="recToggle" aria-expanded="true">收起</button></div>
       <div class="rec-list" id="recList"></div>
     </section>
+    </section>
+
+    <!-- ================= 目标（壳内，不是 v3 裸页） ================= -->
+    <section class="screen" id="screen-goals">
+      <div class="assistant-top">
+        <button class="round-btn" id="goalsBack" aria-label="返回记一笔"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="round-btn theme-toggle" type="button" aria-label="切换到日间模式"><svg viewBox="0 0 24 24"><use href="#i-sun"/></svg></button>
+        <span class="rec-date" id="goalsDate"></span>
+      </div>
+
+      <div class="rec-head">
+        <h1>目标</h1>
+        <p class="rec-sub">先定方向，再看每个目标需要哪些模块。</p>
+      </div>
+
+      <button type="button" class="goals-new" id="goalsNew">
+        <svg><use href="#i-plus"/></svg> 新建目标
+      </button>
+
+      <div class="goals-list" id="goalsList"></div>
+      <p class="rec-empty" id="goalsEmpty">还没有目标。<br>先建一个，比如“练成薄肌”或“考公上岸”。</p>
     </section>
 
     <!-- ================= 模块主页（壳内 iframe + 暗色注入） ================= -->
@@ -1684,6 +1757,7 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
 <script src="core/light.js"></script>
 <script src="core/accounts.js"></script>
 <script src="core/store.js"></script>
+<script src="core/goals.js"></script>
 <script data-pnid-children="KgZa2RprM6GwPLxjKGn5h6">
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 /* 壳的主题：早期脚本已经把 data-theme 写到 <html>，这里读回 */
@@ -2075,11 +2149,11 @@ function renderRecord(){
   const arr=(state.notes&&state.notes[todayKey])||[];
   const cnt=$('#recCount'); if(cnt)cnt.textContent=`${arr.length} 条`;
   const sub=$('#recSub');
-  if(sub)sub.textContent=arr.length?`今天已记 ${arr.length} 笔。再记一笔，灯就亮一分。`:'今天还没记。记一笔，灯就亮一分。';
+  if(sub)sub.textContent=arr.length?`今天已记 ${arr.length} 笔。再写一句，或者点模块记数值。`:`今天还没记。写一句，或者点一个模块。`;
   const dt=$('#recDate');
   if(dt){const d=new Date();dt.textContent=`${d.getMonth()+1} 月 ${d.getDate()} 日 · 周${WK[d.getDay()]}`}
   if(!arr.length){
-    list.innerHTML='<div class="rec-empty">今天还是空白。<br>写一句，或者点一个「还不错」。</div>';
+    list.innerHTML='<div class="rec-empty">今天还是空白。<br>写一句，或者点上面的模块记一项。</div>';
     return;
   }
   list.innerHTML=arr.map((n,i)=>
@@ -2115,6 +2189,141 @@ $('#recSave').onclick=()=>{
   toast('记下了 · 灯就亮一分');
 };
 $('#recInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#recSave').click()});
+
+/* ---- 目标（壳内） ---- */
+const GOAL_STATE_LABEL={active:'进行中',paused:'暂停',done:'已完成',archived:'归档'};
+let goalEditDraft=null;
+
+function goalReqDefaults(moduleId){
+  if(window.LightGoals && window.LightGoals.defaultsFor) return window.LightGoals.defaultsFor(moduleId);
+  return {metric:'count',unit:'次',target:1,hint:'次数'};
+}
+function goalModsText(g){
+  if(!g || !g.requirements || !g.requirements.length) return '待配置模块';
+  const names=g.requirements.map(r=>window.LightGoals?window.LightGoals.moduleLabel(r.moduleId):r.moduleId);
+  return [...new Set(names)].join(' / ');
+}
+function renderGoalsShell(){
+  const box=$('#goalsList'), empty=$('#goalsEmpty');
+  if(!box) return;
+  if(!window.LightGoals){ box.innerHTML=''; if(empty){empty.style.display='';empty.textContent='目标数据未加载。'} return; }
+  window.LightGoals.migrate();
+  const items=window.LightGoals.list();
+  const d=new Date();
+  const dt=$('#goalsDate'); if(dt) dt.textContent=`${d.getMonth()+1} 月 ${d.getDate()} 日 · 周${WK[d.getDay()]}`;
+  box.innerHTML=items.map(g=>{
+    const state=GOAL_STATE_LABEL[g.status]||'进行中';
+    return `<button type="button" class="goal-row" data-goal-id="${esc(g.id)}">`+
+      `<span class="goal-row__main"><b>${esc(g.title)}</b><small>${esc(goalModsText(g))} · ${g.requirements&&g.requirements.length?g.requirements.length+' 条要求':'还没配模块'}</small></span>`+
+      `<span class="goal-state ${esc(g.status||'active')}">${state}</span>`+
+      `<svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`+
+    `</button>`;
+  }).join('');
+  if(empty) empty.style.display=items.length?'none':'';
+}
+function openGoalsScreen(){
+  renderGoalsShell();
+  go('goals');
+}
+if($('#openGoals')) $('#openGoals').onclick=openGoalsScreen;
+if($('#goalsBack')) $('#goalsBack').onclick=()=>go('assistant');
+if($('#goalsNew')) $('#goalsNew').onclick=()=>openGoalSheet(null);
+if($('#goalsList')) $('#goalsList').onclick=(e)=>{
+  const row=e.target.closest('[data-goal-id]');
+  if(row) openGoalSheet(row.getAttribute('data-goal-id'));
+};
+
+function goalModuleOptions(cur){
+  const mods=(window.LightGoals&&window.LightGoals.MODULES)||[{id:'sleep',label:'睡眠'},{id:'training',label:'训练'},{id:'study',label:'学习'}];
+  return mods.map(m=>`<option value="${m.id}"${m.id===cur?' selected':''}>${m.label}</option>`).join('');
+}
+function goalReqRowHTML(r){
+  r=r||{};
+  if(!r.metric){ const d=goalReqDefaults(r.moduleId||'sleep'); r=Object.assign({},d,r); }
+  const label=window.LightGoals?window.LightGoals.metricLabel(r.metric):r.metric;
+  return `<div class="goal-req-row">`+
+    `<div class="goal-req-row__top">`+
+      `<select data-f="module">${goalModuleOptions(r.moduleId||'sleep')}</select>`+
+      `<span class="goal-req-metric" data-f="metric-label">${esc(label)}</span>`+
+      `<input type="hidden" data-f="metric" value="${esc(r.metric||'count')}">`+
+      `<button type="button" class="goal-req-del" data-del-req>×</button>`+
+    `</div>`+
+    `<div class="goal-req-row__bottom">`+
+      `<input data-f="target" type="number" min="0" step="0.1" value="${r.target!=null?r.target:''}" placeholder="目标">`+
+      `<input data-f="unit" value="${esc(r.unit||'')}" placeholder="单位">`+
+      `<select data-f="cadence"><option value="daily"${r.cadence!=='weekly'?' selected':''}>每天</option><option value="weekly"${r.cadence==='weekly'?' selected':''}>每周</option></select>`+
+      `<select data-f="direction"><option value="at_least"${r.direction!=='at_most'?' selected':''}>至少</option><option value="at_most"${r.direction==='at_most'?' selected':''}>最多</option></select>`+
+    `</div>`+
+  `</div>`;
+}
+function collectGoalReqs(){
+  return $$('#goalReqList .goal-req-row').map((row,i)=>{
+    const target=Number(row.querySelector('[data-f="target"]').value);
+    if(!isFinite(target)||target<=0) return null;
+    return {
+      id:'req-'+Date.now()+'-'+i,
+      moduleId:row.querySelector('[data-f="module"]').value,
+      metric:row.querySelector('[data-f="metric"]').value||'count',
+      target, unit:row.querySelector('[data-f="unit"]').value.trim(),
+      cadence:row.querySelector('[data-f="cadence"]').value,
+      direction:row.querySelector('[data-f="direction"]').value,
+      role:'required', source:'goal'
+    };
+  }).filter(Boolean);
+}
+function renderGoalReqs(){
+  const box=$('#goalReqList'); if(!box) return;
+  box.innerHTML=(goalEditDraft.requirements||[]).map(goalReqRowHTML).join('');
+}
+function openGoalSheet(id){
+  if(!window.LightGoals){ toast('目标数据未加载'); return; }
+  const g=id?window.LightGoals.get(id):null;
+  goalEditDraft=g?JSON.parse(JSON.stringify(g)):{id:'g'+Date.now(),title:'',status:'active',requirements:[]};
+  if(!goalEditDraft.requirements) goalEditDraft.requirements=[];
+  openSheet(
+    `<button class="x"><svg><use href="#i-x"/></svg></button>`+
+    `<h3>${id?'编辑目标':'新建目标'}</h3>`+
+    `<p class="sub">目标只提要求；睡眠、训练、学习仍然在各模块里记。</p>`+
+    `<input class="rn" id="goalTitle" maxlength="40" placeholder="比如：练成薄肌 / 考公上岸" value="${esc(goalEditDraft.title||'')}">`+
+    `<div class="goal-sheet-label">需要哪些模块</div>`+
+    `<div id="goalReqList"></div>`+
+    `<button type="button" class="goal-add-req" id="goalAddReq">+ 添加模块要求</button>`+
+    `<div class="goal-sheet-actions"><button type="button" class="primary" id="goalSave">保存目标</button></div>`
+  );
+  renderGoalReqs();
+  $('#goalAddReq').onclick=()=>{
+    goalEditDraft.requirements=collectGoalReqs();
+    goalEditDraft.requirements.push(Object.assign({moduleId:'sleep'},goalReqDefaults('sleep')));
+    renderGoalReqs();
+  };
+  $('#goalReqList').addEventListener('change',(e)=>{
+    if(!e.target.matches('[data-f="module"]')) return;
+    const row=e.target.closest('.goal-req-row'), d=goalReqDefaults(e.target.value);
+    row.querySelector('[data-f="metric"]').value=d.metric;
+    row.querySelector('[data-f="metric-label"]').textContent=window.LightGoals.metricLabel(d.metric);
+    row.querySelector('[data-f="unit"]').value=d.unit;
+    row.querySelector('[data-f="target"]').value=d.target;
+  });
+  $('#goalReqList').addEventListener('click',(e)=>{
+    const del=e.target.closest('[data-del-req]');
+    if(!del) return;
+    const rows=$$('#goalReqList .goal-req-row'), row=del.closest('.goal-req-row');
+    goalEditDraft.requirements=collectGoalReqs();
+    goalEditDraft.requirements.splice(rows.indexOf(row),1);
+    renderGoalReqs();
+  });
+  $('#goalSave').onclick=()=>{
+    const title=$('#goalTitle').value.trim();
+    if(!title){ toast('先写一句目标'); return; }
+    goalEditDraft.title=title;
+    goalEditDraft.requirements=collectGoalReqs();
+    window.LightGoals.save(goalEditDraft);
+    closeSheet();
+    renderGoalsShell();
+    toast('目标已保存');
+  };
+}
+
 function dealSugg(){sugg=pickSugg(3);renderSugg()}
 $('#refreshBtn').onclick=dealSugg;
 $('#openModules').onclick=()=>go('assistant');
@@ -3131,6 +3340,7 @@ modFrame.addEventListener('load',()=>injectV3(modFrame.contentDocument,modCurDom
 function openModPage(mod,label){
   const h=modHit(mod);
   const canonical=h?h.name:mod;
+  if(canonical==='长期目标'||mod==='长期目标'){ openGoalsScreen(); return; }
   const link=MOD_LINK[canonical]||MOD_LINK[mod];
   if(!link){toast((label||mod)+' · 暂无主页面');return}
   modBackTo=document.body.dataset.tab||'today';
@@ -3450,6 +3660,8 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
 </script>
 </body>
 </html>
+
+
 
 
 

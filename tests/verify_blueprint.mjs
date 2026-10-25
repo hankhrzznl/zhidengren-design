@@ -107,10 +107,12 @@ const prof = await m.page.evaluate(() => ({
 }));
 await m.page.screenshot({ path: OUT + "final-profile.png", fullPage: true });
 
-// 方向层残留
+// 方向层残留 / 新目标屏在壳内
 const legacy = await m.page.evaluate(() => ({
   goalsScreen: !!document.querySelector("#screen-goals"),
-  words: ["目标在这里", "归属方向", "减脂 5 公斤", "方向"].filter((w) => document.body.innerText.includes(w)),
+  goalsTab: !!document.querySelector('.tab[data-tab="goals"]'),
+  tabCount: document.querySelectorAll(".tabbar .tab").length,
+  words: ["目标在这里", "归属方向", "减脂 5 公斤"].filter((w) => document.body.innerText.includes(w)),
 }));
 
 if (m.errs.length) console.error("手机端控制台:", m.errs);
@@ -156,8 +158,8 @@ const checks = [
   ["我的页不再承载情绪卡", !prof.hasMood],
   ["我的页不再承载周关卡", !prof.hasGate],
   ["我的页有规则说明 5 条", prof.rules === 5],
-  ["方向屏已下线", !legacy.goalsScreen],
-  ["方向文案零残留", legacy.words.length === 0],
+  ["目标屏在壳内，且不是底部 tab", legacy.goalsScreen && !legacy.goalsTab && legacy.tabCount === 4, JSON.stringify(legacy)],
+  ["旧方向文案零残留", legacy.words.length === 0],
   ["手机端控制台零错", m.errs.length === 0],
   ["手机端无 4xx", m.net.length === 0],
   ["电脑端标题为「执灯人 · 电脑端」", g.title === "执灯人 · 电脑端"],

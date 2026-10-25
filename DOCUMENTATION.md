@@ -9,6 +9,15 @@
 
 ## 1. 产品事实（不可违反）
 
+### 当前手机壳 `/app/`（2026-10-25 现状）
+
+- 底部是 **4 个 tab + 1 个记一笔头像**：待办 / 今天 / 我的 / 灯 / 记一笔；
+- **没有“目标”底部 tab**；
+- 目标入口：`记一笔 → 长期目标`，打开壳内 `#screen-goals`，不是 v3 裸页；
+- 壳内目标屏隐藏底部 tabbar，返回回到「记一笔」；
+- `pages/v3/goals.html` 是**旧版独立模块页**（自带 5 个 tab：今日安排 / 目标 / 习惯 / 回顾 / 我的），只能作为 legacy/iframe 回退，**不是当前 `/app/` 的主界面**。
+
+
 ### 三种形态，按时间尺度分工
 
 | 形态 | 入口 | 时间尺度 | 职责 |
@@ -79,18 +88,15 @@
 - 颜色：绿/黄/红/unknown；
 - 不做单一生命分。
 
-### 目标（现状 v1，必须知道它的局限）
+### 目标（v2 已接壳内，v1 只读）
 
-- key：`lifeflow-goal-items`，`{v:1, items:[...]}`；**实际有 3 个写者**（`goals.html`、`goal-create.html`、`goal-detail.html`），不是严格单写者；
-- 字段：`id/domId/title/status/domain/domainIcon/days/deadline/progress/bar/pct/measure/summary/nextStep/today/step/stages/tasks`；
-- 三层：目标 → 阶段（`stages`）→ 任务（`tasks`）；没有 v3 五层的 KR/策略实体；
-- **一个目标只有一个 `measure`**（单对象，一个模块链接，例如训练/睡眠/记账）；
-- 目标列表有 5 条 `seed-g1..g5` 种子；只有第 1 条带 `stages/tasks/strategy`，其余为空；
-- 创建页 `goal-create.html` 写 `measure: null`、`tasks: []`、`progress: 0`；阶段最多 3 个，只有名称+预计完成日；
-- `progress/days/today/summary` 是种子字面量，没有从模块记录/里程碑派生；
-- 详情页只读为主，只改 `step.startedAt` 与 `tasks[].done`；
-- 壳内没有目标屏（“方向”屏已删），只能经 `MOD_LINK['长期目标']` 进入 `v3/goals.html`；
-- 保底项 `id:'goal'`（“推进 1 个目标”）**没有连到任何目标数据**，是孤立的保底文案。
+- v2 key：`lifeflow-goals-v2`；唯一写者 `pages/core/goals.js`；
+- 旧 key：`lifeflow-goal-items` 只读保留，首次读取迁移；
+- v2 字段：`id/title/vision/status/priority/primary/activeFrom/activeTo/phase/requirements/strategies/milestones/tasks`；
+- 旧字段（`measure/progress/stages/tasks/step`）保存为 legacy，不伪造 requirement；
+- 壳内 `#screen-goals`：列表 + 新建/编辑 sheet（名称、模块要求），入口 `记一笔 → 长期目标`；
+- v3 `goals.html/goal-create.html/goal-detail.html` 也已接 `LightGoals`，作为旧模块页回退；
+- **v3 的 5-tab 不是当前壳**；不要把它的样式当成产品现状。
 
 ### 习惯 / 日常（现状）
 
@@ -309,8 +315,11 @@ L5 每日行动 DailyActionV2（date/time/duration、itemId）
 
 ### 10.6 实现状态（2026-10-25）
 
-- pages/core/goals.js：Goal/Requirement schema、v1 迁移、共享 requirement 合并/冲突；单写者。
-- goals.html / goal-create.html / goal-detail.html：已接 LightGoals；创建/详情支持多模块 requirements；旧 v1 只读。
-- 测试：	est-goals 19、erify_goals_v2 9；un-all 34/34。
+- `pages/core/goals.js`：Goal/Requirement schema、v1 迁移、共享 requirement 合并/冲突、模块默认值；目标域单写者。
+- 壳内 `#screen-goals`：目标列表 + 新建/编辑 sheet；入口「记一笔 → 长期目标」；不是底部 tab。
+- 「记一笔」改成三步：写一句 / 按模块记 / 看目标；明确文字记录与模块记录的区别。
+- `goals.html / goal-create.html / goal-detail.html`：已接 `LightGoals`，保留为旧模块页回退；旧 v1 只读。
+- 测试：`test-goals` 20、`verify_goals_v2` 9、`verify_app_goals` 7；`run-all` 35/35。
+- 未做：今日 3+3、目标进度统计、习惯/日常统一、任务/日程单对象。
 - 未做：今日 3+3、目标进度统计、习惯/日常统一。
 
