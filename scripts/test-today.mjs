@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 今日 3+3 规划器：node scripts/test-today.mjs
  */
 import fs from 'node:fs';
@@ -148,7 +148,11 @@ T.applyWeeklyAction('training|sessions|次', MON, 'reduce');
 ok('降级为 1 次/周', T.weeklyTargetFor('training|sessions|次', 3, MON) === 1);
 T.applyWeeklyAction('training|sessions|次', MON, 'skip');
 ok('跳过后保持基础目标', T.weeklyTargetFor('training|sessions|次', 3, MON) === 3);
+const wsum = T.weekSummary(MON);
+ok('周复盘包含目标与配额', wsum.goals.length > 0 && wsum.quotas.some((x) => x.key === 'training|sessions|次'), JSON.stringify({ g: wsum.goals.length, q: wsum.quotas.length }));
+ok('周复盘包含模块/保底', wsum.modules && wsum.floors && wsum.floors.total >= 0, JSON.stringify(wsum.floors));
 
 for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : '');
 console.log(`\n今日 3+3 校验：${pass}/${rows.length} PASS`);
 process.exit(rows.some((r) => r[0] === 'FAIL') ? 1 : 0);
+

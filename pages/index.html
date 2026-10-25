@@ -669,6 +669,25 @@ body[data-tab="goals"] .tabbar{display:none}
 .goal-req-del{width:28px;height:28px;border:0;border-radius:50%;background:transparent;color:var(--txt3);font-size:15px}
 .goal-add-req{display:inline-flex;align-items:center;gap:5px;border:0;background:none;color:var(--brand);font:600 12px var(--cjk);padding:7px 0}
 .goal-sheet-actions{margin-top:14px}
+/* 周复盘 */
+body[data-tab="review"] .tabbar{display:none}
+#screen-review{padding:64px 18px 30px;display:flex;flex-direction:column;gap:10px}
+.rv-card{padding:13px 14px;border:1px solid var(--line);border-radius:15px;background:var(--card)}
+.rv-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px}
+.rv-head h3{font:600 13px var(--cjk);color:var(--txt)}
+.rv-head small{font:400 9.5px var(--cjk);color:var(--txt3)}
+.rv-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.rv-row:first-child{border-top:0}
+.rv-row b{font:500 12px var(--cjk);color:var(--txt)}
+.rv-row small{display:block;font:400 9.5px var(--cjk);color:var(--txt3);margin-top:2px}
+.rv-pct{font:600 13px var(--cjk);color:var(--brand);font-variant-numeric:tabular-nums}
+.rv-status{font:500 9.5px var(--cjk);color:var(--txt3)}
+.rv-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.rv-stat{background:var(--card2);border-radius:10px;padding:8px 9px}
+.rv-stat b{display:block;font:600 15px var(--cjk);color:var(--txt)}
+.rv-stat span{display:block;font:400 9px var(--cjk);color:var(--txt3);margin-top:2px}
+.rv-note{width:100%;min-height:64px;border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--txt);font:400 12px/1.6 var(--cjk);padding:9px;resize:vertical}
+.rv-save{width:100%;height:36px;margin-top:8px;border:1px solid rgba(77,195,255,.35);border-radius:9px;background:rgba(77,195,255,.10);color:var(--brand);font:600 11px var(--cjk)}
 /* 今日推进（目标 → 3 项） */
 .tp-card{margin:4px 0 10px;padding:13px 14px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
 .tp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
@@ -1664,6 +1683,12 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
         <span class="ge-arrow"><svg><use href="#i-chev-r"/></svg></span>
       </button>
 
+      <button type="button" class="goals-entry" id="openReview">
+        <span class="ge-ic" style="background:rgba(224,163,110,.12);color:#E0A36E"><svg><use href="#i-cal"/></svg></span>
+        <span class="ge-main"><b>周复盘</b><small>本周目标、配额、模块记录，5 分钟看完</small></span>
+        <span class="ge-arrow"><svg><use href="#i-chev-r"/></svg></span>
+      </button>
+
       <div class="sect-h rec-h"><b>今天记下的</b><span id="recCount">0 条</span><button type="button" class="rec-toggle" id="recToggle" aria-expanded="true">收起</button></div>
       <div class="rec-list" id="recList"></div>
     </section>
@@ -1688,6 +1713,41 @@ html[data-theme="light"] .focus-title{color:var(--mo)}
 
       <div class="goals-list" id="goalsList"></div>
       <p class="rec-empty" id="goalsEmpty">还没有目标。<br>先建一个，比如“练成薄肌”或“考公上岸”。</p>
+    </section>
+
+    <!-- ================= 周复盘（壳内） ================= -->
+    <section class="screen" id="screen-review">
+      <div class="assistant-top">
+        <button class="round-btn" id="reviewBack" aria-label="返回记一笔"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="round-btn theme-toggle" type="button" aria-label="切换到日间模式"><svg viewBox="0 0 24 24"><use href="#i-sun"/></svg></button>
+        <span class="rec-date" id="reviewDate"></span>
+      </div>
+
+      <div class="rec-head">
+        <h1>周复盘</h1>
+        <p class="rec-sub" id="reviewRange">本周</p>
+      </div>
+
+      <section class="rv-card">
+        <div class="rv-head"><h3>目标</h3><small>近 4 周遵守度</small></div>
+        <div id="reviewGoals"></div>
+      </section>
+
+      <section class="rv-card">
+        <div class="rv-head"><h3>周配额</h3><small>本周完成</small></div>
+        <div id="reviewQuotas"></div>
+      </section>
+
+      <section class="rv-card">
+        <div class="rv-head"><h3>模块记录</h3><small>来自各模块页</small></div>
+        <div class="rv-grid" id="reviewModules"></div>
+      </section>
+
+      <section class="rv-card">
+        <div class="rv-head"><h3>下周只改一件事</h3><small>写一句就够</small></div>
+        <textarea id="reviewNote" class="rv-note" maxlength="120" placeholder="比如：把训练从周日挪到周三"></textarea>
+        <button type="button" class="rv-save" id="reviewSave">保存这句</button>
+      </section>
     </section>
 
     <!-- ================= 模块主页（壳内 iframe + 暗色注入） ================= -->
@@ -2375,6 +2435,54 @@ function openGoalSheet(id){
     toast('目标已保存');
   };
 }
+
+const REVIEW_KEY='lifeflow-review-v1';
+function reviewRead(){
+  try { return JSON.parse(localStorage.getItem(REVIEW_KEY)||'null')||{v:1,weeks:{}}; } catch(e){ return {v:1,weeks:{}}; }
+}
+function renderReview(){
+  if(!window.LightToday) return;
+  const s=window.LightToday.weekSummary();
+  const d=new Date();
+  const dt=$('#reviewDate'); if(dt) dt.textContent=`${d.getMonth()+1} 月 ${d.getDate()} 日 · 周${WK[d.getDay()]}`;
+  const range=$('#reviewRange'); if(range) range.textContent=s.range.label+' · 周一–周日';
+  const goals=$('#reviewGoals');
+  if(goals){
+    goals.innerHTML=s.goals.length?s.goals.map(g=>{
+      const pct=g.stats?g.stats.percent+'%':'—';
+      const label=g.stats?g.stats.label:'待记录';
+      return `<div class="rv-row"><div><b>${esc(g.title)}</b><small>${label}</small></div><span class="rv-pct">${pct}</span></div>`;
+    }).join(''):'<p class="rec-empty" style="margin:0">还没有目标。</p>';
+  }
+  const quotas=$('#reviewQuotas');
+  if(quotas){
+    quotas.innerHTML=s.quotas.length?s.quotas.map(q=>{
+      const action=q.action==='carry'?'顺延 +'+q.amount:q.action==='reduce'?'已降级':q.action==='skip'?'已跳过':(q.complete?'完成':'未完成');
+      return `<div class="rv-row"><div><b>${esc(q.label)}</b><small>${q.done}/${q.target} ${q.unit||''}</small></div><span class="rv-status">${action}</span></div>`;
+    }).join(''):'<p class="rec-empty" style="margin:0">本周没有周配额。</p>';
+  }
+  const grid=$('#reviewModules');
+  if(grid){
+    const m=s.modules;
+    grid.innerHTML=[
+      [m.trainingSessions,'训练次数'],[m.sleepAvg+'h','睡眠均值'],[m.waterL+'L','饮水'],
+      [m.studyMinutes+'min','学习'],[m.outputWords+'字','输出'],[s.floors.done+'/'+s.floors.total,'保底完成']
+    ].map(x=>`<div class="rv-stat"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');
+  }
+  const note=$('#reviewNote');
+  if(note){ const db=reviewRead(); note.value=(db.weeks||{})[s.range.start]||''; }
+}
+function openReviewScreen(){ renderReview(); go('review'); }
+if($('#openReview')) $('#openReview').onclick=openReviewScreen;
+if($('#reviewBack')) $('#reviewBack').onclick=()=>go('assistant');
+if($('#reviewSave')) $('#reviewSave').onclick=()=>{
+  const note=$('#reviewNote').value.trim();
+  const s=window.LightToday?window.LightToday.weekSummary():null;
+  if(!s) return;
+  const db=reviewRead(); db.weeks=db.weeks||{}; db.weeks[s.range.start]=note;
+  try{ localStorage.setItem(REVIEW_KEY,JSON.stringify(db)); }catch(e){}
+  toast('记下了 · 下周只改这一件');
+};
 
 function dealSugg(){sugg=pickSugg(3);renderSugg()}
 $('#refreshBtn').onclick=dealSugg;

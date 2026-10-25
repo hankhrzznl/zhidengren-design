@@ -224,6 +224,47 @@
   }
 
   function floorSpec(id) { return FLOOR_SPECS[id] || null; }
+  function weekRange(date) {
+    var start = weekStart(date), end = dateAdd(start, 6);
+    return { start: start, end: end, label: start.slice(5).replace('-', '/') + '–' + end.slice(5).replace('-', '/') };
+  }
+  function weekSummary(date) {
+    date = date || dateKey();
+    var range = weekRange(date);
+    var goals = root.LightGoals ? root.LightGoals.active(date).map(function (g) {
+      return { id: g.id, title: g.title, stats: goalStats(g, date) };
+    }) : [];
+    var quotas = weeklyItems(date).map(function (it) {
+      var target = weeklyTargetFor(it.key, it.target, date);
+      var done = weekDone(it.key, date);
+      var d = weeklyDecision(it.key, date);
+      return {
+        key: it.key, moduleId: it.moduleId, label: moduleText(it.moduleId),
+        target: target, baseTarget: it.target, done: done, unit: it.unit,
+        action: d ? d.action : null, amount: d ? (Number(d.amount) || 0) : 0,
+        complete: done >= target
+      };
+    });
+    var floors = { done: 0, total: 0 };
+    var mods = { trainingSessions: 0, trainingMinutes: 0, waterL: 0, studyMinutes: 0, outputWords: 0, sleepDays: [] };
+    weekDates(date).forEach(function (d) {
+      var day = root.LightFloors ? root.LightFloors.day(d) : null;
+      if (day) {
+        floors.total += (day.chosen || []).length;
+        floors.done += (day.done || []).filter(function (id) { return (day.chosen || []).indexOf(id) >= 0; }).length;
+      }
+      mods.trainingSessions += moduleAmount('training', 'sessions', d);
+      mods.trainingMinutes += moduleAmount('training', 'minutes', d);
+      mods.waterL += moduleAmount('water', 'volume', d);
+      mods.studyMinutes += moduleAmount('study', 'minutes', d);
+      mods.outputWords += moduleAmount('output', 'words', d);
+      var sh = moduleAmount('sleep', 'hours', d);
+      if (sh) mods.sleepDays.push(sh);
+    });
+    mods.sleepAvg = mods.sleepDays.length ? Math.round(mods.sleepDays.reduce(function (a, b) { return a + b; }, 0) / mods.sleepDays.length * 10) / 10 : 0;
+    mods.waterL = Math.round(mods.waterL * 10) / 10;
+    return { date: date, range: range, goals: goals, quotas: quotas, floors: floors, modules: mods };
+  }
   function floorLabel(id) {
     var f = (root.LightFloors && root.LightFloors.FLOORS || []).filter(function (x) { return x.id === id; })[0];
     return f ? f.label : id;
@@ -354,6 +395,8 @@
     weeklyTargetFor: weeklyTargetFor,
     weeklyReview: weeklyReview,
     applyWeeklyAction: applyWeeklyAction,
+    weekRange: weekRange,
+    weekSummary: weekSummary,
     goalStats: goalStats,
     plan: plan
   };
