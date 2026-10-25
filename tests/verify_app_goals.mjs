@@ -79,6 +79,34 @@ await page.waitForTimeout(300);
 const pct = await page.locator(".goal-pct").first().textContent();
 ok("目标列表显示遵守度", /%/.test(pct || ""), pct);
 
+/* 模块页真实记录：3 次训练，自动完成周配额，不再依赖手动勾 */
+await page.evaluate(() => {
+  const now = new Date();
+  const off = (now.getDay() + 6) % 7;
+  const key = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const mon = new Date(now); mon.setDate(now.getDate() - off);
+  const thu = new Date(now); thu.setDate(now.getDate() - off + 3);
+  const db = JSON.parse(localStorage.getItem("lifeflow-days-v1") || '{"v":1,"days":{}}');
+  [mon, thu, now].forEach((d) => {
+    const k = key(d);
+    db.days[k] = db.days[k] || { records: [] };
+    db.days[k].records.push({ id: "t-" + k, mod: "运动", metric: "minutes", value: 45, at: k + "T18:00:00", source: "test", meta: {} });
+  });
+  localStorage.setItem("lifeflow-days-v1", JSON.stringify(db));
+});
+await page.reload({ waitUntil: "load" });
+await page.waitForTimeout(700);
+const logged = await page.evaluate(() => ({
+  weekly: document.querySelector("#tpWeekly")?.textContent,
+  plan: document.querySelector("#tpList")?.innerText.replace(/\s+/g, " "),
+}));
+ok("模块记录自动完成周配额", /训练 3\/3/.test(logged.weekly || "") && !/训练/.test(logged.plan || ""), JSON.stringify(logged));
+await page.evaluate(() => openGoalsScreen());
+await page.waitForTimeout(300);
+const pct2 = await page.locator(".goal-pct").first().textContent();
+ok("模块记录驱动目标 100%", pct2 === "100%", pct2);
+await page.screenshot({ path: OUT + "app-goal-progress.png" });
+
 await page.reload({ waitUntil: "load" });
 await page.waitForTimeout(700);
 await page.click("#avatarBtn");

@@ -109,6 +109,29 @@ T.toggle('study|minutes|min', MON);
 const ds = T.goalStats(gDay, MON);
 ok('日目标进度 100%', ds && ds.percent === 100, JSON.stringify(ds));
 
+/* 模块日志：训练记录自动折算，不需要再勾 3+3 */
+const LOG_MON = '2026-11-02', LOG_THU = '2026-11-05', LOG_SUN = '2026-11-08';
+const storeDays = {
+  [LOG_MON]: [{ mod: '运动', metric: 'minutes', value: 45 }],
+  [LOG_THU]: [{ mod: '运动', metric: 'minutes', value: 50 }],
+  [LOG_SUN]: [{ mod: '运动', metric: 'minutes', value: 40 }],
+  [MON]: [
+    { mod: '睡眠', metric: 'hours', value: 7.5 },
+    { mod: '饮水', metric: 'ml', value: 1500 }
+  ]
+};
+globalThis.LightStore = { readDay: (d) => ({ records: storeDays[d] || [] }) };
+ok('模块记录折算训练次数', T.moduleAmount('training', 'sessions', LOG_MON) === 1, String(T.moduleAmount('training', 'sessions', LOG_MON)));
+ok('模块记录折算睡眠/饮水', T.moduleAmount('sleep', 'hours', MON) === 7.5 && T.moduleAmount('water', 'volume', MON) === 1.5);
+const gLog = G.save({
+  id: 'g-log', title: '日志目标', status: 'active', activeFrom: LOG_MON,
+  requirements: [{ id: 'l-train', moduleId: 'training', metric: 'sessions', target: 3, unit: '次', cadence: 'weekly' }]
+});
+const logPlan = T.plan(LOG_SUN);
+ok('模块日志自动完成周配额', logPlan.weekly.some((x) => x.key === 'training|sessions|次' && x.complete && x.done === 3), JSON.stringify(logPlan.weekly));
+const logStats = T.goalStats(gLog, LOG_SUN);
+ok('模块日志驱动目标进度', logStats && logStats.percent === 100, JSON.stringify(logStats));
+
 for (const r of rows) console.log(r[0].padEnd(5), r[1], r[2] ? '· ' + r[2] : '');
 console.log(`\n今日 3+3 校验：${pass}/${rows.length} PASS`);
 process.exit(rows.some((r) => r[0] === 'FAIL') ? 1 : 0);

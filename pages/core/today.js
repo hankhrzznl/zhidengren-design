@@ -23,6 +23,10 @@
     budget: { moduleId: 'expense', metric: 'budget_check', unit: '次', target: 1 },
     goal: { moduleId: 'goals', metric: 'action', unit: '次', target: 1 }
   };
+  var STORE_MOD = {
+    sleep: '睡眠', water: '饮水', training: '运动', study: '学习',
+    output: '输出', mood: '情绪记录', expense: '记账', diet: '饮食'
+  };
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function dateKey(d) {
@@ -75,8 +79,39 @@
     for (var i = 0; i < 7; i++) out.push(dateAdd(start, i));
     return out;
   }
+  function moduleAmount(moduleId, metric, date) {
+    if (!root.LightStore) return 0;
+    var mod = STORE_MOD[moduleId];
+    if (!mod) return 0;
+    var rows = (root.LightStore.readDay(date).records || []).filter(function (r) { return r.mod === mod; });
+    if (!rows.length) return 0;
+    function sum(field) {
+      return rows.reduce(function (n, r) { return n + (Number(field ? r[field] : r.value) || 0); }, 0);
+    }
+    if (moduleId === 'sleep' && metric === 'hours') {
+      return Math.max.apply(null, rows.map(function (r) { return Number(r.value) || 0; }));
+    }
+    if (moduleId === 'water' && metric === 'volume') return sum() / 1000;
+    if (moduleId === 'training' && metric === 'sessions') return rows.length;
+    if (moduleId === 'training' && metric === 'minutes') return sum();
+    if (moduleId === 'study' && metric === 'minutes') return sum();
+    if (moduleId === 'output' && (metric === 'words' || metric === 'count')) return sum();
+    if (moduleId === 'mood' && metric === 'score') {
+      var last = rows[rows.length - 1];
+      return Number((last.meta || {}).score) || Number(last.value) || 0;
+    }
+    if (moduleId === 'expense' && metric === 'entries') return rows.length;
+    if (moduleId === 'diet' && metric === 'meals') return rows.length;
+    return sum();
+  }
+  function manualDone(key, date) { return !!doneMap(date)[key]; }
+  function amountOn(key, date) {
+    var parts = String(key).split('|');
+    var moduleId = parts[0], metric = parts[1];
+    return Math.max(moduleAmount(moduleId, metric, date), manualDone(key, date) ? 1 : 0);
+  }
   function weekDone(key, date) {
-    return weekDates(date).filter(function (d) { return !!doneMap(d)[key]; }).length;
+    return weekDates(date).reduce(function (n, d) { return n + amountOn(key, d); }, 0);
   }
   function floorDoneOn(key, date) {
     if (!root.LightFloors) return false;
@@ -86,8 +121,11 @@
       return !!(f.done && spec && keyOf(spec.moduleId, spec.metric, spec.unit) === key);
     });
   }
-  function doneOn(key, date) {
-    return !!doneMap(date)[key] || floorDoneOn(key, date);
+  function doneOn(key, date, target) {
+    if (manualDone(key, date) || floorDoneOn(key, date)) return true;
+    var parts = String(key).split('|');
+    var value = moduleAmount(parts[0], parts[1], date);
+    return target != null ? value >= Number(target) : value > 0;
   }
   function daysBetween(a, b) {
     var d1 = new Date(a + 'T12:00:00'), d2 = new Date(b + 'T12:00:00');
@@ -113,7 +151,7 @@
       } else {
         expected += days;
         for (var j = 0; j < days; j++) {
-          if (doneOn(key, dateAdd(from, j))) actual++;
+          if (doneOn(key, dateAdd(from, j), r.target)) actual++;
         }
       }
     });
@@ -154,8 +192,9 @@
     var floors = (fl.chosen || []).map(function (f) {
       var spec = floorSpec(f.id);
       if (!spec) return null;
+      var key = keyOf(spec.moduleId, spec.metric, spec.unit);
       var item = {
-        key: keyOf(spec.moduleId, spec.metric, spec.unit),
+        key: key,
         floorId: f.id,
         slot: 'floor',
         moduleId: spec.moduleId,
@@ -165,7 +204,7 @@
         label: f.label,
         goals: [],
         goalIds: [],
-        done: !!f.done,
+        done: !!f.done || doneOn(key, date, spec.target),
         meta: '保底'
       };
       floorByKey[item.key] = item;
@@ -213,7 +252,7 @@
         meta: cadence === 'weekly' ? '本周 ' + weeklyDone + '/' + weeklyTarget : '每天',
         goals: item.goals,
         goalIds: item.goalIds,
-        done: !!done[item.key],
+        done: doneOn(item.key, date, target),
         priority: Math.min.apply(null, required.map(function (r) { return r.goalPriority || 3; }))
       });
     });
@@ -249,6 +288,8 @@
     weeklySlots: weeklySlots,
     weekStart: weekStart,
     weekDone: weekDone,
+    moduleAmount: moduleAmount,
+    amountOn: amountOn,
     doneOn: doneOn,
     goalStats: goalStats,
     plan: plan
